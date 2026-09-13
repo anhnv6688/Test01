@@ -1,0 +1,14 @@
+{
+  "name": "Ô Ly — học Toán tiểu học",
+  "short_name": "Ô Ly",
+  "description": "Học Toán lớp 1–2 không phụ thuộc khả năng đọc, và bản tin tối cho bố mẹ.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdfcf8",
+  "theme_color": "#fdfcf8",
+  "lang": "vi",
+  "icons": [
+    { "src": "/bieu-tuong.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

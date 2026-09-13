@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/*
+ * Hệ màu của Ô Ly.
+ *
+ * Hai bề mặt, hai bảng màu, cố ý khác nhau đến mức nhìn một giây là biết mình
+ * đang ở đâu (NT-10). Bề mặt của trẻ dùng nền giấy ô ly và màu tươi; bề mặt của
+ * phụ huynh dùng nền trắng ngà, chữ nhiều hơn, màu trầm.
+ */
+:root {
+  --muc: #1d2433;
+  --muc-nhat: #55607a;
+  --giay: #fdfcf8;
+  --vien: #e4e0d4;
+  --o-ly: #bcd4ea;
+  --son: #c0392b;
+  --xanh-la: #2f7d5b;
+  --xanh-la-nen: #e7f4ee;
+  --cam: #b4630f;
+  --cam-nen: #fdf1e1;
+  --tim: #6b4fa8;
+  --tim-nen: #f0ebfa;
+  --do-nen: #fceceb;
+  --bong: 0 1px 2px rgba(29, 36, 51, .06), 0 8px 24px -12px rgba(29, 36, 51, .18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --muc: #eef1f6;
+    --muc-nhat: #a2acc0;
+    --giay: #14171f;
+    --vien: #2b3040;
+    --o-ly: #2f3d4e;
+    --son: #f0857a;
+    --xanh-la: #6fd3a5;
+    --xanh-la-nen: #16301f;
+    --cam: #e8a75a;
+    --cam-nen: #33240f;
+    --tim: #b49df0;
+    --tim-nen: #241d3a;
+    --do-nen: #3a1d1b;
+    --bong: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+  }
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--giay);
+  color: var(--muc);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Nền giấy ô ly — dùng riêng cho bề mặt của trẻ. */
+.giay-o-ly {
+  background-color: var(--giay);
+  background-image:
+    linear-gradient(var(--o-ly) 1px, transparent 1px),
+    linear-gradient(90deg, var(--o-ly) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
+}
+@media (prefers-color-scheme: dark) {
+  .giay-o-ly { background-image: linear-gradient(var(--o-ly) 1px, transparent 1px), linear-gradient(90deg, var(--o-ly) 1px, transparent 1px); }
+}
+
+.the {
+  background: color-mix(in srgb, var(--giay) 92%, white);
+  border: 1px solid var(--vien);
+  border-radius: 16px;
+  box-shadow: var(--bong);
+}
+@media (prefers-color-scheme: dark) {
+  .the { background: color-mix(in srgb, var(--giay) 88%, white); }
+}
+
+.nut {
+  border-radius: 999px;
+  border: 1px solid var(--vien);
+  padding: .6rem 1.1rem;
+  font-weight: 600;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: transform .08s ease, background-color .15s ease;
+}
+.nut:hover { background: color-mix(in srgb, var(--muc) 6%, transparent); }
+.nut:active { transform: translateY(1px); }
+.nut:disabled { opacity: .45; cursor: not-allowed; }
+
+.nut-chinh {
+  background: var(--muc);
+  color: var(--giay);
+  border-color: var(--muc);
+}
+.nut-chinh:hover { background: color-mix(in srgb, var(--muc) 85%, var(--giay)); }
+
+/* Nút cho trẻ: to, tròn, bấm bằng ngón tay chứ không bằng con trỏ. */
+.nut-tre {
+  min-height: 72px;
+  min-width: 72px;
+  font-size: 1.5rem;
+  border-radius: 20px;
+  border: 2px solid var(--vien);
+  background: color-mix(in srgb, var(--giay) 94%, white);
+  font-weight: 700;
+}
+
+:focus-visible {
+  outline: 3px solid var(--tim);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
