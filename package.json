@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "kiem-tra": "tsc --noEmit && eslint --max-warnings=0 && vitest run"
+    "kiem-tra": "tsc --noEmit && eslint --max-warnings=0 && vitest run",
+    "chi-phi": "node --experimental-strip-types --no-warnings scripts/mo-hinh-chi-phi.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

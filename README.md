@@ -129,6 +129,34 @@ số trang đã dùng trong đúng ngày hôm nay, nên không tồn tại kho l
 nào để mà cộng dồn. Mốc ngày cắt theo nửa đêm giờ Việt Nam, không theo giờ quốc
 tế, để lượt làm mới đúng lúc nửa đêm ở nhà người dùng.
 
+### Mô hình lỗ lãi chạy lại được
+
+```bash
+npm run chi-phi                      # bảng lỗ lãi theo từng mô hình đọc ảnh
+npm run chi-phi -- --suy-nghi 2500   # thử mức token suy nghĩ khác
+npm run chi-phi -- --gia-trang 450   # cắm chi phí THẬT đo được vào
+```
+
+BR-22 đòi theo dõi chi phí liên tục, điều kiện ra mắt số 3 đòi đo chi phí thật
+một trang. Cả hai cần một chỗ chạy lại được, nên mô hình nằm ở
+`src/lib/domain/mo-hinh-chi-phi.ts` chứ không nằm trong một bảng tính.
+
+Có một bài kiểm thử dựng lại đúng con số mà chính BRD công bố ở mục 9.1 — biên
+đóng góp 36.200đ và điểm hòa vốn khoảng 500 hộ ở kịch bản phiên bản 1.0 — để
+bảo đảm mô hình này khớp với mô hình của tài liệu chứ không phải một mô hình
+khác nghe cũng hợp lý.
+
+**Hai ngưỡng gãy cần theo dõi**, tính ở mức suy nghĩ 1.200 token mỗi trang:
+
+| Mô hình đọc ảnh | Chi phí/trang | Hộ trả phí lỗ khi vượt | Hộ miễn phí chỉ được trung bình |
+|---|---|---|---|
+| Claude Opus 5 | ~1.664đ | **36 trang/tháng** | 0,6 trang/tháng |
+| Claude Sonnet 5 | ~666đ | 91 trang/tháng | 5,4 trang/tháng |
+| Claude Haiku 4.5 | ~309đ | 197 trang/tháng | 14,6 trang/tháng |
+
+Cột thứ ba là con số chết người của Opus: trần gói trả phí là 60 trang/tháng,
+nên **một hộ trả phí dùng nhiều sẽ lỗ ngay trong tập khách hàng hài lòng nhất**.
+
 > **Cảnh báo tài chính, ghi lại để không trôi mất.** Mức trần này cho phép một
 > hộ miễn phí dùng tới khoảng 60 trang mỗi tháng. Theo đúng các giả định của mô
 > hình chi phí ngày 13/9/2026, biên đóng góp chỉ còn dương nếu hộ miễn phí dùng
