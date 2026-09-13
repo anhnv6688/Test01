@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
-import type { KetQuaChamCot } from "@/lib/domain/column-marking";
+import type { KetQuaCham } from "@/lib/domain/cham-bai/ket-qua";
+import type { TomTatTrang } from "@/lib/domain/cham-bai";
 import type { LoiGiang, MucChiTiet } from "@/lib/domain/teaching";
 import {
   VUNG_DAU_TRANG_MAC_DINH, cheVaDongGoi, docAnhVaoCanvas, doChatLuong,
@@ -13,7 +14,12 @@ type LoaiViec = "doc-de-bai" | "cham-bai-lam";
 
 type KetQua =
   | { loai: "loi-giang"; loiGiang: LoiGiang; coGoiYCachHoi: boolean; deBaiDocDuoc: string }
-  | { loai: "cham-bai"; cham: KetQuaChamCot; docDuoc: { nhan: string; noiDung: string }[] };
+  | {
+      loai: "cham-bai";
+      cham: KetQuaCham[];
+      tomTat: TomTatTrang;
+      docDuoc: { nhan: string; noiDung: string }[];
+    };
 
 /**
  * Luồng chụp của phụ huynh.
@@ -25,13 +31,17 @@ type KetQua =
  * đình cũng là thứ không nên rời khỏi máy (RR-13).
  */
 export function LuongChup({
-  batDocDe, batChamBai, conLai, tran,
+  batDocDe, batChamBai, conLaiHomNay, tranNgay, conLaiThangNay, tranThang,
 }: {
   batDocDe: boolean;
   batChamBai: boolean;
-  conLai: number | null;
-  tran: number | null;
+  conLaiHomNay: number | null;
+  tranNgay: number | null;
+  conLaiThangNay: number | null;
+  tranThang: number | null;
 }) {
+  // Trần ngày chặn trước trần tháng, nên nó là con số phụ huynh cần thấy.
+  const hetLuot = conLaiHomNay === 0 || conLaiThangNay === 0;
   const [loaiViec, setLoaiViec] = useState<LoaiViec>("cham-bai-lam");
   const [mucChiTiet, setMucChiTiet] = useState<MucChiTiet>("giang-tu-dau");
   const [anh, setAnh] = useState<AnhDaChe | null>(null);
@@ -194,17 +204,23 @@ export function LuongChup({
           </label>
 
           <button type="button" className="nut nut-chinh mt-5 w-full"
-            disabled={dangXuLy || !daBat || conLai === 0}
+            disabled={dangXuLy || !daBat || hetLuot}
             onClick={() => void gui()}>
             {dangXuLy ? "Đang xử lý…" : "Tôi đã che xong, gửi đi"}
           </button>
 
-          {conLai !== null && (
+          {conLaiHomNay !== null ? (
             <p className="mt-3 mb-0 text-xs" style={{ color: "var(--muc-nhat)" }}>
-              Tháng này hộ mình còn {conLai} trên {tran} trang. Nếu Ô Ly không đọc được ảnh thì lần
-              đó không bị trừ.
+              Hôm nay hộ mình còn {conLaiHomNay} trên {tranNgay} lượt chụp. Sáng mai có lại{" "}
+              {tranNgay} lượt mới, và lượt hôm nay không dùng hết thì không chuyển sang ngày sau.
+              Nếu Ô Ly không đọc được ảnh thì lần đó không bị trừ.
             </p>
-          )}
+          ) : conLaiThangNay !== null ? (
+            <p className="mt-3 mb-0 text-xs" style={{ color: "var(--muc-nhat)" }}>
+              Tháng này hộ mình còn {conLaiThangNay} trên {tranThang} trang. Nếu Ô Ly không đọc được
+              ảnh thì lần đó không bị trừ.
+            </p>
+          ) : null}
         </div>
       )}
 
@@ -218,7 +234,9 @@ export function LuongChup({
         </p>
       )}
 
-      {ketQua?.loai === "cham-bai" && <BangChamCot kq={ketQua.cham} />}
+      {ketQua?.loai === "cham-bai" && (
+        <BangChamTrang cham={ketQua.cham} tomTat={ketQua.tomTat} />
+      )}
       {ketQua?.loai === "loi-giang" && (
         <BangLoiGiang lg={ketQua.loiGiang} coGoiYCachHoi={ketQua.coGoiYCachHoi} />
       )}
@@ -233,53 +251,124 @@ function vienChon(chon: boolean): React.CSSProperties {
   };
 }
 
-/** BR-28, BR-29: chỉ đúng bước sai, và giải thích vì sao sai. */
-function BangChamCot({ kq }: { kq: KetQuaChamCot }) {
+/**
+ * Kết quả chấm cả trang.
+ *
+ * BR-28 đòi chỉ ĐÚNG vị trí bước sai, BR-29 đòi giải thích vì sao sai và nói rõ
+ * đúng ở chỗ nào. VM-08 mở phạm vi ra mọi dạng bài, nên mỗi bài hiện thành một
+ * thẻ riêng với bảng từng bước của chính dạng đó.
+ *
+ * Phần "Ô Ly chưa dám kết luận" được hiện ngang hàng với đúng và sai chứ không
+ * giấu xuống dưới: đó là phần cần mắt của phụ huynh, và giấu nó đi sẽ khiến họ
+ * tưởng cả trang đã được kiểm hết.
+ */
+function BangChamTrang({ cham, tomTat }: { cham: KetQuaCham[]; tomTat: TomTatTrang }) {
   return (
-    <section className="the p-6">
-      <h2 className="mt-0 text-lg font-bold">
-        {kq.dung ? "Con làm đúng cả bài" : `Con sai bắt đầu từ cột ${kq.buoc[kq.buocSaiDauTien ?? 0]?.tenCot}`}
-      </h2>
-      <p className="the p-4" style={{
-        background: kq.dung ? "var(--xanh-la-nen)" : "var(--cam-nen)",
-        borderColor: kq.dung ? "var(--xanh-la)" : "var(--cam)",
-      }}>
-        {kq.choPhuHuynh}
-      </p>
-
-      <div className="mt-5 overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <caption className="pb-2 text-left text-sm" style={{ color: "var(--muc-nhat)" }}>
-            Ô Ly tính lại từng cột, từ cột đơn vị sang trái.
-          </caption>
-          <thead>
-            <tr style={{ color: "var(--muc-nhat)" }}>
-              <th className="py-2 pr-4 text-left font-semibold">Cột</th>
-              <th className="py-2 pr-4 text-left font-semibold">Con viết</th>
-              <th className="py-2 text-left font-semibold">Ô Ly tính ra</th>
-            </tr>
-          </thead>
-          <tbody>
-            {kq.buoc.slice().reverse().map((b) => (
-              <tr key={b.cot} className="border-t" style={{ borderColor: "var(--vien)" }}>
-                <td className="py-2 pr-4 align-top font-semibold">{b.tenCot}</td>
-                <td className="py-2 pr-4 align-top">
-                  <span style={{ color: b.dung ? "var(--xanh-la)" : "var(--son)", fontWeight: 700 }}>
-                    {b.chuSoTre ?? "bỏ trống"}
-                  </span>
-                </td>
-                <td className="py-2 align-top">{b.giaiThich}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <section className="space-y-4">
+      <div className="the p-5">
+        <h2 className="mt-0 text-lg font-bold">Ô Ly đã xem xong trang này</h2>
+        <p className="m-0">{tomTat.cauChoPhuHuynh}</p>
+        <ul className="m-0 mt-3 flex list-none flex-wrap gap-2 p-0 text-sm">
+          <ThePhanLoai so={tomTat.soDung} nhan="đúng" mau="var(--xanh-la)" nen="var(--xanh-la-nen)" />
+          <ThePhanLoai so={tomTat.soSai} nhan="có chỗ sai" mau="var(--son)" nen="var(--do-nen)" />
+          <ThePhanLoai so={tomTat.soChuaKetLuan} nhan="chưa kết luận" mau="var(--cam)" nen="var(--cam-nen)" />
+        </ul>
       </div>
 
-      <p className="mt-5 mb-0 text-xs" style={{ color: "var(--muc-nhat)" }}>
+      {cham.map((kq, i) => <TheMotBai key={`${kq.dang}-${i}`} kq={kq} thuTu={i + 1} />)}
+
+      <p className="text-xs" style={{ color: "var(--muc-nhat)" }}>
         Phần chấm này do máy đọc chữ trên giấy rồi tính lại. Máy có thể đọc sai — anh chị nhìn vào
         vở con là người quyết định cuối cùng. Ảnh anh chị vừa gửi đã được xóa.
       </p>
     </section>
+  );
+}
+
+function ThePhanLoai({ so, nhan, mau, nen }: { so: number; nhan: string; mau: string; nen: string }) {
+  if (so === 0) return null;
+  return (
+    <li className="rounded-full px-3 py-1 font-semibold"
+      style={{ background: nen, color: mau, border: `1px solid ${mau}` }}>
+      {so} bài {nhan}
+    </li>
+  );
+}
+
+const NHAN_TIN_CAY: Record<KetQuaCham["doTinCay"], string> = {
+  cao: "Ô Ly tính lại được toàn bộ nên kết luận này chắc chắn",
+  "trung-binh": "Ô Ly kiểm được phần tính toán, còn lại cần anh chị xem",
+  thap: "Kết luận này phụ thuộc vào việc Ô Ly nhìn rõ đề trong ảnh",
+};
+
+function TheMotBai({ kq, thuTu }: { kq: KetQuaCham; thuTu: number }) {
+  const mau =
+    kq.dung === true ? "var(--xanh-la)" : kq.dung === false ? "var(--son)" : "var(--cam)";
+  const nen =
+    kq.dung === true ? "var(--xanh-la-nen)" : kq.dung === false ? "var(--do-nen)" : "var(--cam-nen)";
+  const nhan = kq.dung === true ? "Đúng" : kq.dung === false ? "Có chỗ sai" : "Chưa kết luận";
+
+  return (
+    <article className="the p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="m-0 text-base font-bold">
+          Bài {thuTu} · {kq.tenDang}
+        </h3>
+        <span className="rounded-full px-3 py-1 text-xs font-semibold"
+          style={{ background: nen, color: mau, border: `1px solid ${mau}` }}>
+          {nhan}
+        </span>
+      </div>
+
+      <p className="the mt-4 mb-0 p-4" style={{ background: nen, borderColor: mau }}>
+        {kq.choPhuHuynh}
+      </p>
+
+      {kq.buoc.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr style={{ color: "var(--muc-nhat)" }}>
+                <th className="py-2 pr-4 text-left font-semibold">Phần</th>
+                <th className="py-2 pr-4 text-left font-semibold">Con viết</th>
+                <th className="py-2 text-left font-semibold">Ô Ly đối chiếu</th>
+              </tr>
+            </thead>
+            <tbody>
+              {kq.buoc.map((b, i) => (
+                <tr key={`${b.nhan}-${i}`} className="border-t" style={{ borderColor: "var(--vien)" }}>
+                  <td className="py-2 pr-4 align-top font-semibold">{b.nhan}</td>
+                  <td className="py-2 pr-4 align-top">
+                    <span style={{
+                      color: b.dung === true ? "var(--xanh-la)" : b.dung === false ? "var(--son)" : "var(--muc-nhat)",
+                      fontWeight: 700,
+                    }}>
+                      {b.conViet}
+                    </span>
+                  </td>
+                  <td className="py-2 align-top">{b.giaiThich}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="mt-4 mb-0 text-xs" style={{ color: "var(--muc-nhat)" }}>
+        {NHAN_TIN_CAY[kq.doTinCay]}.
+      </p>
+
+      {kq.ngoaiTamKiem.length > 0 && (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs font-semibold" style={{ color: "var(--muc-nhat)" }}>
+            Phần Ô Ly không kiểm được ở bài này
+          </summary>
+          <ul className="m-0 mt-2 list-disc space-y-1 pl-5 text-xs" style={{ color: "var(--muc-nhat)" }}>
+            {kq.ngoaiTamKiem.map((x) => <li key={x}>{x}</li>)}
+          </ul>
+        </details>
+      )}
+    </article>
   );
 }
 

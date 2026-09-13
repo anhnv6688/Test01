@@ -214,10 +214,52 @@ export function ghiLuotXuLyTrang(householdId: string): void {
 }
 
 export function soTrangDaDungThangNay(householdId: string, moc = new Date()): number {
-  const thang = moc.toISOString().slice(0, 7);
+  return demTrang(householdId, moc.toISOString().slice(0, 7));
+}
+
+/**
+ * Số trang đã xử lý trong ngày hôm nay.
+ *
+ * Trần của gói miễn phí tính theo ngày và lượt thừa không cộng dồn (VM-07, chốt
+ * ngày 13/9/2026). Việc "không cộng dồn" không cần cơ chế nào để thực hiện: hàm
+ * này chỉ đếm các lượt phát sinh trong đúng ngày đang xét, nên không tồn tại
+ * kho lượt tích lũy nào để mà cộng dồn.
+ *
+ * Mốc ngày tính theo giờ Việt Nam chứ không theo giờ quốc tế, vì lượt phải làm
+ * mới lúc nửa đêm ở nhà người dùng. Nếu cắt theo giờ quốc tế thì với múi giờ
+ * +07:00, lượt sẽ làm mới lúc bảy giờ sáng — đúng vào giữa giờ trẻ chuẩn bị đi
+ * học, và phụ huynh sẽ thấy lượt "hết" một cách khó hiểu suốt buổi tối.
+ */
+export function soTrangDaDungHomNay(householdId: string, moc = new Date()): number {
+  return demTrang(householdId, ngayVietNam(moc));
+}
+
+export function mucDaDung(householdId: string, moc = new Date()): { homNay: number; thangNay: number } {
+  return {
+    homNay: soTrangDaDungHomNay(householdId, moc),
+    thangNay: soTrangDaDungThangNay(householdId, moc),
+  };
+}
+
+/** Ngày theo giờ Việt Nam, dạng YYYY-MM-DD. */
+export function ngayVietNam(moc = new Date()): string {
+  return new Date(moc.getTime() + 7 * 3600_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Đếm số lượt có dấu thời gian bắt đầu bằng tiền tố cho trước.
+ *
+ * Với trần theo ngày, tiền tố là ngày giờ Việt Nam, nên cột at phải được so
+ * theo giờ Việt Nam chứ không theo giờ quốc tế đã lưu. Vì vậy phép so dịch cột
+ * at đi bảy giờ ngay trong câu truy vấn.
+ */
+function demTrang(householdId: string, tienTo: string): number {
+  const theoGioVN = "strftime('%Y-%m-%dT%H:%M:%S', at, '+7 hours')";
   const r = getDb()
-    .prepare("SELECT COUNT(*) AS n FROM meter_events WHERE household_id = ? AND at LIKE ?")
-    .get(householdId, `${thang}%`) as { n: number };
+    .prepare(
+      `SELECT COUNT(*) AS n FROM meter_events WHERE household_id = ? AND ${theoGioVN} LIKE ?`,
+    )
+    .get(householdId, `${tienTo}%`) as { n: number };
   return r.n;
 }
 

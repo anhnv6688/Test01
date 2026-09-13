@@ -25,22 +25,52 @@ export interface LuotDung {
 }
 
 export interface TinhTrangTran {
-  daDung: number;
-  tran: number | null;
-  conLai: number | null;
+  /** Số trang đã xử lý trong NGÀY hôm nay. */
+  daDungHomNay: number;
+  /** Số trang đã xử lý trong THÁNG này. */
+  daDungThangNay: number;
+  tranNgay: number | null;
+  tranThang: number | null;
+  /** Còn lại trong ngày. null nghĩa là không có trần ngày. */
+  conLaiHomNay: number | null;
+  /** Còn lại trong tháng. null nghĩa là không có trần tháng. */
+  conLaiThangNay: number | null;
   vuotTran: boolean;
+  /** Trần nào đang chặn, để nói cho phụ huynh biết bao giờ dùng lại được. */
+  tranDangChan: "ngay" | "thang" | null;
 }
 
-export function tinhTran(goi: MaGoi, daDungThangNay: number): TinhTrangTran {
-  const tran = GOI[goi].tranTrangThang;
-  if (tran === null) {
-    return { daDung: daDungThangNay, tran: null, conLai: null, vuotTran: false };
-  }
+export interface MucDaDung {
+  homNay: number;
+  thangNay: number;
+}
+
+/**
+ * Tính trần theo cả ngày lẫn tháng.
+ *
+ * Lượt không dùng hết KHÔNG cộng dồn: điều đó không cần một dòng mã nào để thực
+ * hiện, vì phép tính chỉ nhìn vào số trang đã dùng trong ĐÚNG ngày hôm nay.
+ * Không có kho lượt tích lũy nào tồn tại để mà cộng dồn.
+ */
+export function tinhTran(goi: MaGoi, daDung: MucDaDung): TinhTrangTran {
+  const tranNgay = GOI[goi].tranTrangNgay;
+  const tranThang = GOI[goi].tranTrangThang;
+
+  const conLaiHomNay = tranNgay === null ? null : Math.max(0, tranNgay - daDung.homNay);
+  const conLaiThangNay = tranThang === null ? null : Math.max(0, tranThang - daDung.thangNay);
+
+  const hetNgay = tranNgay !== null && daDung.homNay >= tranNgay;
+  const hetThang = tranThang !== null && daDung.thangNay >= tranThang;
+
   return {
-    daDung: daDungThangNay,
-    tran,
-    conLai: Math.max(0, tran - daDungThangNay),
-    vuotTran: daDungThangNay >= tran,
+    daDungHomNay: daDung.homNay,
+    daDungThangNay: daDung.thangNay,
+    tranNgay,
+    tranThang,
+    conLaiHomNay,
+    conLaiThangNay,
+    vuotTran: hetNgay || hetThang,
+    tranDangChan: hetNgay ? "ngay" : hetThang ? "thang" : null,
   };
 }
 
@@ -65,7 +95,7 @@ export interface KetQuaQuyen {
 
 export function kiemTraQuyen(
   chucNang: ChucNang,
-  ctx: { goi: MaGoi; hetHan: boolean; daDungThangNay: number },
+  ctx: { goi: MaGoi; hetHan: boolean; daDung: MucDaDung },
 ): KetQuaQuyen {
   if (chucNang !== "xu-ly-trang-anh") {
     // BR-09: nhốt dữ liệu của con là cách nhanh nhất bị gỡ sản phẩm.
@@ -77,11 +107,17 @@ export function kiemTraQuyen(
       lyDo: "Thuê bao đã hết hạn nên tính năng chụp tạm dừng. Toàn bộ lịch sử học của con vẫn xem được bình thường.",
     };
   }
-  const tran = tinhTran(ctx.goi, ctx.daDungThangNay);
-  if (tran.vuotTran) {
+  const tran = tinhTran(ctx.goi, ctx.daDung);
+  if (tran.tranDangChan === "ngay") {
     return {
       duocPhep: false,
-      lyDo: `Tháng này hộ mình đã dùng hết ${tran.tran} trang chụp. Phần luyện tập và toàn bộ lịch sử vẫn dùng bình thường.`,
+      lyDo: `Hôm nay hộ mình đã dùng hết ${tran.tranNgay} lượt chụp. Sáng mai có lại ${tran.tranNgay} lượt mới. Phần luyện tập của con và toàn bộ lịch sử vẫn dùng bình thường.`,
+    };
+  }
+  if (tran.tranDangChan === "thang") {
+    return {
+      duocPhep: false,
+      lyDo: `Tháng này hộ mình đã dùng hết ${tran.tranThang} trang chụp. Phần luyện tập và toàn bộ lịch sử vẫn dùng bình thường.`,
     };
   }
   return { duocPhep: true };

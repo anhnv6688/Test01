@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { chamCotDoc } from "@/lib/domain/column-marking";
+import { chamCaTrang, tomTatTrang } from "@/lib/domain/cham-bai";
 import { sinhBai } from "@/lib/domain/generator";
 import { kiemTraQuyen } from "@/lib/domain/metering";
 import { soanLoiGiang, type MucChiTiet } from "@/lib/domain/teaching";
@@ -9,9 +9,9 @@ import { dungGoiGuiDi } from "@/lib/privacy/envelope";
 import { kiemTraChungTuChe, ThieuCheAnhError } from "@/lib/privacy/redaction";
 import { dungAnhRoiXoa } from "@/lib/privacy/retention";
 import {
-  ghiLuotXuLyTrang, ghiViecAnh, hoDauTien, lichSuDongY, soTrangDaDungThangNay,
+  ghiLuotXuLyTrang, ghiViecAnh, hoDauTien, lichSuDongY, mucDaDung,
 } from "@/lib/server/repo";
-import { layNhaCungCap } from "@/lib/vision/mock";
+import { layNhaCungCap } from "@/lib/vision/chon-nha-cung-cap";
 import type { ChatLuongAnh } from "@/lib/vision/provider";
 
 export const runtime = "nodejs";
@@ -64,11 +64,10 @@ export async function POST(req: Request) {
   }
 
   // Bước 2 — trần định lượng. Chưa gọi ra ngoài nên chưa tốn đồng nào.
-  const daDung = soTrangDaDungThangNay(ho.id);
   const quyen = kiemTraQuyen("xu-ly-trang-anh", {
     goi: ho.goi,
     hetHan: ho.hetHanAt ? new Date(ho.hetHanAt) < new Date() : false,
-    daDungThangNay: daDung,
+    daDung: mucDaDung(ho.id),
   });
   if (!quyen.duocPhep) {
     return NextResponse.json({ ok: false, hetLuot: true, thongBao: quyen.lyDo }, { status: 200 });
@@ -149,9 +148,12 @@ export async function POST(req: Request) {
     };
   } else {
     const c = kq.ketQua;
+    // Bên xử lý ảnh chỉ phiên âm; việc chấm làm ở đây, bằng mã tất định.
+    const cham = chamCaTrang(c.cacBai);
     ketQua = {
       loai: "cham-bai",
-      cham: chamCotDoc(c.soA, c.soB, c.phepTinh, c.chuSoTre),
+      cham,
+      tomTat: tomTatTrang(cham),
       docDuoc: c.buocDocDuoc,
     };
   }
@@ -168,9 +170,6 @@ export async function POST(req: Request) {
     ketQua,
     anhDaXoa: true,
     nhanMay: "Phần lời giảng và phần chấm do trí tuệ nhân tạo tạo ra, anh chị là người quyết định cuối cùng.",
-    conLai: (() => {
-      const sau = soTrangDaDungThangNay(ho.id);
-      return { daDung: sau, goi: ho.goi };
-    })(),
+    conLai: { ...mucDaDung(ho.id), goi: ho.goi },
   });
 }

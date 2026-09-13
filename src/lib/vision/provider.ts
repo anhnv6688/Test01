@@ -1,3 +1,4 @@
+import type { DangBaiLam } from "@/lib/domain/cham-bai/dang-bai-lam";
 import type { GoiGuiDi } from "@/lib/privacy/envelope";
 
 /**
@@ -56,11 +57,16 @@ export interface KetQuaDocDe {
 
 export interface KetQuaChamAnh {
   loai: "cham-bai-lam";
-  phepTinh: "+" | "-";
-  soA: number;
-  soB: number;
-  /** Chữ số trẻ viết ở dòng kết quả, từ phải sang trái. */
-  chuSoTre: (number | null)[];
+  /**
+   * Các bài đọc được trên trang, đã phiên âm thành dữ liệu có cấu trúc.
+   *
+   * Bên xử lý ảnh CHỈ phiên âm, tuyệt đối không chấm: không có trường nào ở đây
+   * nói bài đúng hay sai. Việc chấm do mã nguồn tất định trong
+   * src/lib/domain/cham-bai làm, vì phép cộng trừ thì mã nguồn không bao giờ
+   * sai còn mô hình ngôn ngữ thì có lúc sai, và vì BR-28 đòi chỉ ĐÚNG vị trí
+   * bước sai chứ không phải nêu một nhận xét nghe hợp lý.
+   */
+  cacBai: DangBaiLam[];
   buocDocDuoc: BuocDocDuoc[];
 }
 

@@ -85,6 +85,38 @@ describe("đếm lượt xử lý trang ảnh (BR-19, BR-22, BR-31)", () => {
   });
 });
 
+describe("đếm lượt theo ngày, không cộng dồn (VM-07)", () => {
+  it("mốc ngày cắt theo nửa đêm giờ Việt Nam, không theo giờ quốc tế", () => {
+    // 17:30 giờ quốc tế ngày 20/9 là 00:30 sáng ngày 21/9 ở Việt Nam.
+    // Một lượt chụp lúc đó phải tính vào ngày 21, tức là lượt của ngày mới.
+    expect(repo.ngayVietNam(new Date("2026-09-20T17:30:00Z"))).toBe("2026-09-21");
+    // 16:30 giờ quốc tế vẫn là 23:30 tối ngày 20 ở Việt Nam.
+    expect(repo.ngayVietNam(new Date("2026-09-20T16:30:00Z"))).toBe("2026-09-20");
+  });
+
+  it("lượt của hôm qua không tính vào hôm nay", () => {
+    const rieng = repo.themCon(hoId, "Bé đếm lượt", 2);
+    expect(rieng.id.length).toBeGreaterThan(0);
+    const homNayTruoc = repo.soTrangDaDungHomNay(hoId);
+    const thangTruoc = repo.soTrangDaDungThangNay(hoId);
+
+    repo.ghiLuotXuLyTrang(hoId);
+
+    expect(repo.soTrangDaDungHomNay(hoId)).toBe(homNayTruoc + 1);
+    expect(repo.soTrangDaDungThangNay(hoId)).toBe(thangTruoc + 1);
+
+    // Nhìn từ một ngày khác, lượt vừa ghi không được tính.
+    const ngayKhac = new Date(Date.now() + 3 * 86400_000);
+    expect(repo.soTrangDaDungHomNay(hoId, ngayKhac)).toBe(0);
+  });
+
+  it("mucDaDung trả về cả hai con số cho bộ kiểm tra trần", () => {
+    const m = repo.mucDaDung(hoId);
+    expect(m.homNay).toBeGreaterThanOrEqual(0);
+    expect(m.thangNay).toBeGreaterThanOrEqual(m.homNay);
+  });
+});
+
 describe("bằng chứng về sự đồng ý (CR-04)", () => {
   it("mỗi lần bật tắt đều ghi kèm thời điểm và phiên bản văn bản đã đọc", () => {
     repo.ghiDongY(hoId, "doc-anh-de-bai", true);

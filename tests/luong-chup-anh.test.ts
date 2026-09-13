@@ -56,12 +56,36 @@ describe("nhà cung cấp xử lý ảnh", () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 
-  it("kết quả chấm bài đọc ra được các chữ số ở dòng kết quả", async () => {
+  it("kết quả trả về là phiên âm nhiều bài trên trang, không phải một bài", async () => {
     const kq = await ncc.xuLy(goi("Y2hhbS1iYWktbGFt"), TOT);
     expect(kq.ok).toBe(true);
     if (kq.ok && kq.ketQua.loai === "cham-bai-lam") {
-      expect(kq.ketQua.chuSoTre.length).toBeGreaterThan(0);
-      expect(kq.ketQua.buocDocDuoc.length).toBe(2);
+      expect(kq.ketQua.cacBai.length).toBeGreaterThan(1);
+      expect(kq.ketQua.buocDocDuoc.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("bên xử lý ảnh KHÔNG chấm: không trường nào nói bài đúng hay sai", async () => {
+    // Ranh giới này là lý do phần chẩn đoán của Ô Ly kiểm thử được và không
+    // bao giờ tính sai. Nếu ai đó thêm trường "dung" vào đây, bài này sẽ đỏ.
+    for (const hat of ["YWFh", "YmJi", "Y2Nj", "ZGRk"]) {
+      const kq = await ncc.xuLy(goi(hat), TOT);
+      if (kq.ok && kq.ketQua.loai === "cham-bai-lam") {
+        const chuoi = JSON.stringify(kq.ketQua);
+        expect(chuoi).not.toContain('"dung"');
+        expect(chuoi).not.toContain('"correct"');
+        expect(chuoi).not.toContain('"diem"');
+      }
+    }
+  });
+
+  it("mọi bài phiên âm ra đều chấm được, không ném lỗi", async () => {
+    const { chamCaTrang } = await import("@/lib/domain/cham-bai");
+    for (let i = 0; i < 60; i++) {
+      const kq = await ncc.xuLy(goi(Buffer.from(`trang-${i}`).toString("base64")), TOT);
+      if (!kq.ok || kq.ketQua.loai !== "cham-bai-lam") continue;
+      const cacBai = kq.ketQua.cacBai;
+      expect(() => chamCaTrang(cacBai)).not.toThrow();
     }
   });
 

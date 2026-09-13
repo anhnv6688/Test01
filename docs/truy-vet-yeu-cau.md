@@ -40,14 +40,14 @@ Ký hiệu cột "Tình trạng":
 | BR-15 | Người thật duyệt trước khi bài đến tay trẻ | Đủ | `domain/generator.ts` chặn ở cổng phát hành duy nhất | `kho-noi-dung` |
 | BR-16 | Bám yêu cầu cần đạt, theo kịp khi chương trình sửa | Đủ | `domain/curriculum.ts`; mỗi khuôn dạng gắn một mã yêu cầu cần đạt | `kho-noi-dung` |
 | BR-17 | Nội dung phụ huynh tải lên không vào kho chung | Đủ | Không có đường dữ liệu nào từ `photo_jobs` sang `templates` — kho khuôn dạng là mã nguồn tĩnh | `luong-chup-anh` |
-| BR-18 | Báo khi đề đầu vào có vấn đề, không giải bừa | Một phần | Có trường `nghiNgo` trong kết quả đọc đề và nhánh từ chối khi không khớp khuôn dạng nào; chưa có cơ chế phát hiện đề sai | `luong-chup-anh` |
+| BR-18 | Báo khi đề đầu vào có vấn đề, không giải bừa | Đủ | Trường `nghiNgo` được lời nhắc hệ thống yêu cầu tường minh; nhánh `chua-nhan-dang` và kết quả `dung: null` phủ mọi trường hợp Ô Ly không dám kết luận | `cham-moi-dang-bai`, `luong-chup-anh` |
 
 ## Nhóm D — Kinh tế vận hành
 
 | Mã | Yêu cầu | Tình trạng | Thực hiện ở | Kiểm thử |
 |---|---|---|---|---|
 | BR-19 | Giới hạn đúng chỗ phát sinh hóa đơn, và chỉ chỗ đó | Đủ | `domain/metering.ts` — chỉ một hành vi bị đếm | `kinh-te-van-hanh` |
-| BR-20 | Trần gói miễn phí đủ chặt | Đủ | `TRAN_MIEN_PHI_TRANG_THANG` ở một chỗ duy nhất | `kinh-te-van-hanh` |
+| BR-20 | Trần gói miễn phí đủ chặt | Một phần | `TRAN_MIEN_PHI_TRANG_NGAY` = 2 lượt mỗi ngày, không cộng dồn (VM-07 đã chốt). Trần này **lỏng hơn** mức mô hình chi phí chịu được — xem cảnh báo ở README và hằng số `TRAN_HOA_VON_TRANG_HO_MIEN_PHI` | `kinh-te-van-hanh` (6 bài) |
 | BR-21 | Đo tỷ lệ chuyển đổi từ ngày đầu mở bán | Chưa | Cần có thanh toán trước, xem CR-12 | — |
 | BR-22 | Theo dõi chi phí thật ở mức từng hộ | Đủ | `server/repo.ts` ghi từng lượt kèm chi phí; hiện lên trang gói cước | `kinh-te-van-hanh`, `luu-tru` |
 
@@ -65,8 +65,8 @@ Ký hiệu cột "Tình trạng":
 |---|---|---|---|---|
 | BR-26 | Chụp đề, nhận lời giải từng bước | Đủ | `domain/teaching.ts`, `api/anh/xu-ly` | `ban-tin-toi` |
 | BR-27 | Viết bằng ngôn ngữ giảng bài, có câu hỏi dẫn dắt | Đủ | `domain/teaching.ts` — mỗi bước bắt buộc có `hoiCon` | `ban-tin-toi` |
-| BR-28 | Chấm bài trên giấy, chỉ đúng bước sai | Đủ | `domain/column-marking.ts` | `chan-doan-loi` (5 bài) |
-| BR-29 | Sai thì giải thích vì sao, đúng thì nói rõ đúng ở đâu | Đủ | `domain/column-marking.ts`, `domain/marking.ts` | `chan-doan-loi` |
+| BR-28 | Chấm bài trên giấy, chỉ đúng bước sai | Đủ | `domain/cham-bai/` — sổ đăng ký 11 bộ chấm, vét cạn theo kiểu | `chan-doan-loi`, `cham-moi-dang-bai` (32 bài) |
+| BR-29 | Sai thì giải thích vì sao, đúng thì nói rõ đúng ở đâu | Đủ | Mỗi bộ chấm đều viết câu `choPhuHuynh` riêng cho cả trường hợp đúng lẫn sai | `chan-doan-loi`, `cham-moi-dang-bai` |
 | BR-30 | Dùng được trong điều kiện ánh sáng bàn học buổi tối | Đủ | `chup/che-anh.ts` đo độ sáng và tương phản ngay ở máy khách | `luong-chup-anh` |
 | BR-31 | Đọc không được thì nói rõ lý do, không trừ lượt | Đủ | `api/anh/xu-ly` ghi lượt sau khi có kết quả | `luong-chup-anh`, `luu-tru` |
 | BR-32 | Che họ tên, lớp, trường ngay trên thiết bị | Đủ | `chup/che-anh.ts` (lớp 1), `privacy/redaction.ts` (chặn phụ ở máy chủ) | `ba-lop-bao-ve` (6 bài) |
@@ -103,14 +103,14 @@ hiệu lực nếu có thứ gì đó kiểm tra nó ở mỗi lần chạy ki�
 |---|---|---|
 | CR-01 | Ngoài phần mềm | Thành lập pháp nhân |
 | CR-02 | Đủ | Khử nhận dạng trước khi gửi ra ngoài — `privacy/envelope.ts` |
-| CR-03 | Một phần | Trường `thoaThuan` bắt mọi nhà cung cấp phải khai đã ký, cấm huấn luyện, cấm lưu giữ; bản hợp đồng thật là việc ngoài mã nguồn |
+| CR-03 | Đủ phần thuộc phần mềm | `NhaCungCapClaude` TỪ CHỐI dựng nếu chưa bật đủ ba cờ xác nhận đã ký; hệ thống quay về bản giả lập thay vì gửi dữ liệu thật. Bản hợp đồng là việc ngoài mã nguồn |
 | CR-04 | Đủ | Đồng ý tách theo mục đích, không đánh dấu sẵn, lưu bằng chứng kèm phiên bản văn bản |
 | CR-05 | Chưa | Xác minh độ tuổi và sự đồng ý của người đại diện theo pháp luật |
 | CR-06 | Đủ | `app/go-bo-noi-dung` — đầu mối công khai, hạn xử lý, nhật ký |
 | CR-07 | Đủ | Nhãn hiển thị và dấu máy đọc được trong `domain/generator.ts` |
 | CR-08 | Đủ | Bản ghi người duyệt là điều kiện chặn ở cổng phát hành |
 | CR-09 đến CR-15 | Ngoài phần mềm | Hồ sơ đánh giá tác động, nhân sự phụ trách, thủ tục thuế và thương mại điện tử, hợp đồng biên soạn, chính sách nguồn nội dung |
-| CR-16 | Một phần | Như CR-03 |
+| CR-16 | Đủ phần thuộc phần mềm | Như CR-03 |
 | CR-17 | Đủ | Bốn nghĩa vụ: thông báo xử lý tự động, trang giải thích (`/cach-cham-bai`), cơ chế không tham gia theo từng mục đích, và rà soát định kỳ — ba phần đầu đã có trong sản phẩm |
 | CR-18, CR-19 | Một phần | Các điều cấm kỹ thuật về nét chữ đã cài vào lược đồ và vào kiểm thử; quyết định nội bộ bằng văn bản là việc ngoài mã nguồn |
 | CR-20 | Ngoài phần mềm | Chỉ áp dụng nếu thiết kế ba lớp không làm đủ — bản dựng này làm đủ cả ba |
@@ -122,5 +122,23 @@ hiệu lực nếu có thứ gì đó kiểm tra nó ở mỗi lần chạy ki�
 | VM-01 | Thiết bị chính là điện thoại, máy tính bảng hay máy tính | Giao diện hiện làm theo hướng điện thoại trước; đổi quyết định thì phải xem lại cỡ nút của bề mặt trẻ |
 | VM-02 | Có cần hoạt động khi không có mạng hay không | Đã có tệp khai báo ứng dụng web; chưa có bộ đệm ngoại tuyến |
 | VM-06 | Tên thương mại chính thức | Tên "Ô Ly" đang dùng ở tiêu đề, tệp khai báo và biểu tượng |
-| VM-07 | Gói miễn phí có được chụp ảnh không, trần bao nhiêu | Đổi một dòng: `TRAN_MIEN_PHI_TRANG_THANG` trong `domain/pricing.ts` |
-| VM-08 | Phạm vi dạng bài mà chấm viết tay phải xử lý được | Hiện chấm phép cộng trừ đặt cột dọc; mở rộng là thêm bộ chấm mới bên cạnh `column-marking.ts` |
+| VM-07 | ĐÃ CHỐT 13/9/2026: gói miễn phí ĐƯỢC chụp, 2 lượt mỗi ngày, không cộng dồn | Đã thực hiện. Trần đổi ở `TRAN_MIEN_PHI_TRANG_NGAY` trong `domain/pricing.ts`. Hệ quả tài chính đã ghi lại ở `TRAN_HOA_VON_TRANG_HO_MIEN_PHI` và có kiểm thử canh |
+| VM-08 | ĐÃ CHỐT 13/9/2026: chấm mọi dạng bài ngay ở bản đầu | Đã thực hiện: 10 dạng có bộ chấm riêng, cộng nhánh bắt buộc cho dạng chưa nhận ra. Thêm dạng mới là thêm một nhánh vào `cham-bai/index.ts`; quên viết bộ chấm thì trình biên dịch báo lỗi |
+
+## Ranh giới giữa mô hình và mã nguồn
+
+Một quyết định kiến trúc quan trọng không nằm trong BRD nhưng quyết định việc
+BR-28 và BR-29 có đạt được hay không: **mô hình đọc ảnh chỉ phiên âm, mã nguồn
+mới chấm**.
+
+| Việc | Ai làm | Vì sao |
+|---|---|---|
+| Đọc chữ viết tay của trẻ thành dữ liệu | Mô hình đọc ảnh | Không mã nguồn nào đọc được chữ trẻ lớp 1 viết nghiêng trên giấy ô ly |
+| Nhận dạng bài thuộc dạng nào | Mô hình đọc ảnh | Là việc nhận dạng bố cục, không phải việc tính toán |
+| Tính lại từng cột, từng biểu thức | Mã nguồn tất định | Mã nguồn không bao giờ tính sai; mô hình thì có lúc |
+| Kết luận đúng hay sai | Mã nguồn tất định | BR-28 đòi chỉ ĐÚNG vị trí bước sai, không phải nêu nhận xét nghe hợp lý |
+| Quyết định có dám kết luận không | Mã nguồn tất định | "Chưa kết luận" phải là lựa chọn có thật, không phụ thuộc vào mức tự tin của mô hình |
+
+Ranh giới này có kiểm thử canh: lược đồ đầu ra gửi cho mô hình không có trường
+nào tên `dung`, `correct` hay `diem`, và có bài kiểm thử quét mã để bảo đảm
+không ai thêm vào.

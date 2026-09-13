@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { GIAI_THICH_LOI } from "@/lib/vision/provider";
-import { layNhaCungCap } from "@/lib/vision/mock";
+import { layNhaCungCap } from "@/lib/vision/chon-nha-cung-cap";
 
 export const dynamic = "force-dynamic";
 

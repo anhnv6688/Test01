@@ -1,7 +1,7 @@
 import { CHI_PHI_MOI_TRANG_GIA_DINH, chiPhiTrungBinhMoiHo, tinhTran } from "@/lib/domain/metering";
-import { GOI, TRAN_MIEN_PHI_TRANG_THANG, dinhDangTien } from "@/lib/domain/pricing";
+import { GOI, TRAN_MIEN_PHI_TRANG_NGAY, dinhDangTien } from "@/lib/domain/pricing";
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
-import { luotDungCuaHo, soTrangDaDungThangNay } from "@/lib/server/repo";
+import { luotDungCuaHo, mucDaDung } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +19,7 @@ export default async function TrangGoiCuoc() {
   const ho = await daMoCong();
   if (!ho) return <CongPin />;
 
-  const daDung = soTrangDaDungThangNay(ho.id);
-  const tran = tinhTran(ho.goi, daDung);
+  const tran = tinhTran(ho.goi, mucDaDung(ho.id));
   const luot = luotDungCuaHo(ho.id);
   const chiPhiHo = chiPhiTrungBinhMoiHo(luot, 1);
 
@@ -54,12 +53,29 @@ export default async function TrangGoiCuoc() {
       </section>
 
       <section className="the mt-6 p-6">
-        <h2 className="mt-0 text-lg font-bold">Tháng này của hộ mình</h2>
-        <p className="m-0">
-          Đã dùng <strong>{tran.daDung}</strong>
-          {tran.tran !== null ? <> trên <strong>{tran.tran}</strong> trang</> : " trang"}.
-          {tran.conLai !== null && <> Còn lại {tran.conLai} trang.</>}
-        </p>
+        <h2 className="mt-0 text-lg font-bold">Lượt chụp của hộ mình</h2>
+        {tran.tranNgay !== null ? (
+          <>
+            <p className="m-0">
+              Hôm nay đã dùng <strong>{tran.daDungHomNay}</strong> trên{" "}
+              <strong>{tran.tranNgay}</strong> lượt. Còn lại {tran.conLaiHomNay} lượt cho hôm nay.
+            </p>
+            <p className="mt-2 mb-0 text-sm" style={{ color: "var(--muc-nhat)" }}>
+              Lượt làm mới vào lúc nửa đêm theo giờ Việt Nam. Lượt hôm nay không dùng hết thì không
+              cộng dồn sang ngày mai — Ô Ly muốn anh chị dùng đều mỗi tối, chứ không dồn cả tháng
+              vào một buổi.
+            </p>
+            <p className="mt-2 mb-0 text-sm" style={{ color: "var(--muc-nhat)" }}>
+              Cả tháng này hộ mình đã chụp {tran.daDungThangNay} trang.
+            </p>
+          </>
+        ) : (
+          <p className="m-0">
+            Tháng này đã dùng <strong>{tran.daDungThangNay}</strong>
+            {tran.tranThang !== null ? <> trên <strong>{tran.tranThang}</strong> trang</> : " trang"}.
+            {tran.conLaiThangNay !== null && <> Còn lại {tran.conLaiThangNay} trang.</>}
+          </p>
+        )}
         <p className="mt-2 mb-0 text-sm" style={{ color: "var(--muc-nhat)" }}>
           Tương ứng khoảng {dinhDangTien(Math.round(chiPhiHo))} chi phí xử lý mà Ô Ly đã chi cho hộ mình.
           Con số này Ô Ly theo dõi hằng tuần để biết mức giá hiện tại có đứng được không.
@@ -78,7 +94,7 @@ export default async function TrangGoiCuoc() {
               <tr style={{ color: "var(--muc-nhat)" }}>
                 <th className="py-2 pr-4 text-left font-semibold">Gói</th>
                 <th className="py-2 pr-4 text-left font-semibold">Giá mỗi tháng</th>
-                <th className="py-2 pr-4 text-left font-semibold">Trang chụp mỗi tháng</th>
+                <th className="py-2 pr-4 text-left font-semibold">Lượt chụp</th>
                 <th className="py-2 text-left font-semibold">Luyện tập</th>
               </tr>
             </thead>
@@ -92,7 +108,13 @@ export default async function TrangGoiCuoc() {
                   <td className="py-3 pr-4 align-top whitespace-nowrap">
                     {g.giaThang === 0 ? "miễn phí" : dinhDangTien(g.giaThang)}
                   </td>
-                  <td className="py-3 pr-4 align-top">{g.tranTrangThang ?? "không giới hạn"}</td>
+                  <td className="py-3 pr-4 align-top">
+                    {g.tranTrangNgay !== null
+                      ? `${g.tranTrangNgay} lượt mỗi ngày, không cộng dồn`
+                      : g.tranTrangThang !== null
+                        ? `${g.tranTrangThang} trang mỗi tháng`
+                        : "không giới hạn"}
+                  </td>
                   <td className="py-3 align-top">không giới hạn</td>
                 </tr>
               ))}
@@ -103,8 +125,8 @@ export default async function TrangGoiCuoc() {
           Một thuê bao dùng cho cả nhà, không tính theo số con. Nhà nhiều con là nhà cần Ô Ly nhất.
         </p>
         <p className="mt-2 mb-0 text-xs" style={{ color: "var(--muc-nhat)" }}>
-          Trần của gói miễn phí đang đặt ở {TRAN_MIEN_PHI_TRANG_THANG} trang mỗi tháng. Đây là con số
-          của bản dựng thử nghiệm và còn chờ chốt chính thức.
+          Gói miễn phí được {TRAN_MIEN_PHI_TRANG_NGAY} lượt chụp mỗi ngày. Lượt làm mới lúc nửa đêm
+          và không cộng dồn sang ngày sau.
         </p>
       </section>
     </main>

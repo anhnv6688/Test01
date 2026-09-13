@@ -2,7 +2,7 @@ import Link from "next/link";
 import { tinhTran } from "@/lib/domain/metering";
 import { dangBat } from "@/lib/privacy/consent";
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
-import { lichSuDongY, soTrangDaDungThangNay } from "@/lib/server/repo";
+import { lichSuDongY, mucDaDung } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
 import { LuongChup } from "./LuongChup";
 
@@ -13,7 +13,7 @@ export default async function TrangChup() {
   if (!ho) return <CongPin />;
 
   const dongY = lichSuDongY(ho.id);
-  const tran = tinhTran(ho.goi, soTrangDaDungThangNay(ho.id));
+  const tran = tinhTran(ho.goi, mucDaDung(ho.id));
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -26,8 +26,10 @@ export default async function TrangChup() {
       <LuongChup
         batDocDe={dangBat(dongY, "doc-anh-de-bai")}
         batChamBai={dangBat(dongY, "cham-bai-viet-tay")}
-        conLai={tran.conLai}
-        tran={tran.tran}
+        conLaiHomNay={tran.conLaiHomNay}
+        tranNgay={tran.tranNgay}
+        conLaiThangNay={tran.conLaiThangNay}
+        tranThang={tran.tranThang}
       />
 
       <p className="mt-6 text-sm">

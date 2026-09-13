@@ -4,7 +4,7 @@ import { tinhPhanThuong } from "@/lib/domain/rewards";
 import { GOI, dinhDangTien } from "@/lib/domain/pricing";
 import { tinhTran } from "@/lib/domain/metering";
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
-import { danhSachCon, lanTraLoiTrongNgay, lichSuCuaCon, soTrangDaDungThangNay } from "@/lib/server/repo";
+import { danhSachCon, lanTraLoiTrongNgay, lichSuCuaCon, mucDaDung } from "@/lib/server/repo";
 import { moiDuLieu } from "@/lib/server/seed";
 import { CongPin } from "./CongPin";
 import { hanhDongThemCon } from "./actions";
@@ -18,8 +18,7 @@ export default async function TrangPhuHuynh() {
 
   const con = danhSachCon(ho.id);
   const homNay = new Date().toISOString().slice(0, 10);
-  const daDung = soTrangDaDungThangNay(ho.id);
-  const tran = tinhTran(ho.goi, daDung);
+  const tran = tinhTran(ho.goi, mucDaDung(ho.id));
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8">
@@ -122,12 +121,20 @@ export default async function TrangPhuHuynh() {
       </section>
 
       <section className="the mt-6 p-6">
-        <h2 className="mt-0 text-lg font-bold">Tháng này hộ mình đã dùng</h2>
-        <p className="m-0">
-          <strong>{tran.daDung}</strong>
-          {tran.tran !== null ? ` trên ${tran.tran} trang chụp` : " trang chụp"} — gói {GOI[ho.goi].ten}
-          {GOI[ho.goi].giaThang > 0 ? `, ${dinhDangTien(GOI[ho.goi].giaThang)} mỗi tháng` : ", miễn phí"}.
-        </p>
+        <h2 className="mt-0 text-lg font-bold">Lượt chụp của hộ mình</h2>
+        {tran.tranNgay !== null ? (
+          <p className="m-0">
+            Hôm nay còn <strong>{tran.conLaiHomNay}</strong> trên {tran.tranNgay} lượt chụp — gói{" "}
+            {GOI[ho.goi].ten}, miễn phí. Sáng mai có lại {tran.tranNgay} lượt mới; lượt hôm nay
+            không dùng hết thì không chuyển sang ngày sau.
+          </p>
+        ) : (
+          <p className="m-0">
+            Tháng này đã dùng <strong>{tran.daDungThangNay}</strong>
+            {tran.tranThang !== null ? ` trên ${tran.tranThang} trang chụp` : " trang chụp"} — gói{" "}
+            {GOI[ho.goi].ten}, {dinhDangTien(GOI[ho.goi].giaThang)} mỗi tháng.
+          </p>
+        )}
         <p className="mt-2 mb-0 text-sm" style={{ color: "var(--muc-nhat)" }}>
           Phần luyện tập của con không bị đếm lượt và không bao giờ bị giới hạn.{" "}
           <Link href="/phu-huynh/goi-cuoc">Vì sao chỉ phần chụp ảnh mới bị đếm →</Link>
