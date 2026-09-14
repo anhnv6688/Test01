@@ -12,7 +12,7 @@ import {
   GIA_DINH_BRD, MODEL, THAM_SO_MAC_DINH, bienDongGop, chiPhiMotTrang,
   chiPhiTrungBinhMoiTrang, diemHoaVon, laiLoThang, soHoMienPhiMoiHoTraPhi,
   tranTrangHoMienPhi, tranTrangHoTraPhiLo,
-} from "../src/lib/domain/mo-hinh-chi-phi.ts";
+} from "../src/lib/domain/mo-hinh-chi-phi";
 
 function doiSo(ten: string): number | null {
   const i = process.argv.indexOf(`--${ten}`);

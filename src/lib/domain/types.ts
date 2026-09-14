@@ -127,6 +127,15 @@ export interface Template {
   strand: Strand;
   provenance: Provenance;
   approval: ApprovalRecord | null;
+  /**
+   * Lý do khuôn dạng này có ít biến thể, nếu đó là chủ đích.
+   *
+   * Một vài mạch của chương trình vốn nhỏ: bảng nhân 2 và 5 chỉ có ngần ấy
+   * phép tính, và gặp lại chúng nhiều lần chính là cách học thuộc bảng. Khi
+   * đó tác giả ghi lý do vào đây, và bộ đo kho nội dung sẽ không báo động —
+   * nhưng vẫn liệt kê ra, để không ai quên chúng tồn tại.
+   */
+  ghiChuKhongGian?: string;
   /** Sinh một bài cụ thể từ hạt ngẫu nhiên. Cùng hạt luôn cho cùng bài. */
   build(seed: number): BuiltItem;
 }

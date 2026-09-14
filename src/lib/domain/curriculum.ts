@@ -65,6 +65,48 @@ export const YCCD: Yccd[] = [
     strand: "giai-toan",
     statement: "Giải bài toán có lời văn bằng hai phép tính liên tiếp.",
   },
+  {
+    code: "T2.SPT.04",
+    grade: 2,
+    term: 2,
+    strand: "so-va-phep-tinh",
+    statement: "Tìm thành phần chưa biết của phép cộng, phép trừ.",
+  },
+  {
+    code: "T2.SPT.05",
+    grade: 2,
+    term: 2,
+    strand: "so-va-phep-tinh",
+    statement: "Gấp một số lên nhiều lần; nhận biết một phần hai, một phần năm của một nhóm.",
+  },
+  {
+    code: "T2.DL.03",
+    grade: 2,
+    term: 2,
+    strand: "do-luong",
+    statement: "Nhận biết và sử dụng đơn vị đo khối lượng ki-lô-gam và đơn vị đo dung tích lít.",
+  },
+  {
+    code: "T2.DL.04",
+    grade: 2,
+    term: 2,
+    strand: "do-luong",
+    statement: "Nhận biết ngày trong tuần, ngày trong tháng; xem lịch.",
+  },
+  {
+    code: "T2.HH.02",
+    grade: 2,
+    term: 2,
+    strand: "hinh-hoc",
+    statement: "Tính chu vi hình tam giác, hình tứ giác khi biết độ dài các cạnh.",
+  },
+  {
+    code: "T2.HH.03",
+    grade: 2,
+    term: 2,
+    strand: "hinh-hoc",
+    statement: "Nhận biết điểm, đoạn thẳng, ba điểm thẳng hàng.",
+  },
 ];
 
 export const YCCD_BY_CODE = new Map(YCCD.map((y) => [y.code, y]));

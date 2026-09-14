@@ -38,7 +38,7 @@ Ký hiệu cột "Tình trạng":
 | BR-13 | Kho dựng từ nguồn có căn cứ pháp lý sạch | Đủ | `domain/templates.ts` — mỗi khuôn dạng khai `provenance` | `kho-noi-dung`, `nguyen-tac-bat-di-bat-dich` |
 | BR-14 | Dùng được ngay lần mở đầu, không cần người dùng tải lên | Đủ | `server/seed.ts` | `luu-tru` |
 | BR-15 | Người thật duyệt trước khi bài đến tay trẻ | Đủ | `domain/generator.ts` chặn ở cổng phát hành duy nhất | `kho-noi-dung` |
-| BR-16 | Bám yêu cầu cần đạt, theo kịp khi chương trình sửa | Đủ | `domain/curriculum.ts`; mỗi khuôn dạng gắn một mã yêu cầu cần đạt | `kho-noi-dung` |
+| BR-16 | Bám yêu cầu cần đạt, theo kịp khi chương trình sửa | Đủ | `domain/curriculum.ts` — 14 mã; mỗi khuôn dạng gắn một mã, và có kiểm thử bắt mã nào chưa có khuôn dạng nào | `kho-noi-dung`, `do-kho-noi-dung` |
 | BR-17 | Nội dung phụ huynh tải lên không vào kho chung | Đủ | Không có đường dữ liệu nào từ `photo_jobs` sang `templates` — kho khuôn dạng là mã nguồn tĩnh | `luong-chup-anh` |
 | BR-18 | Báo khi đề đầu vào có vấn đề, không giải bừa | Đủ | Trường `nghiNgo` được lời nhắc hệ thống yêu cầu tường minh; nhánh `chua-nhan-dang` và kết quả `dung: null` phủ mọi trường hợp Ô Ly không dám kết luận | `cham-moi-dang-bai`, `luong-chup-anh` |
 
@@ -144,3 +144,24 @@ mới chấm**.
 Ranh giới này có kiểm thử canh: lược đồ đầu ra gửi cho mô hình không có trường
 nào tên `dung`, `correct` hay `diem`, và có bài kiểm thử quét mã để bảo đảm
 không ai thêm vào.
+
+## Điều kiện ra mắt số 4 — kho đủ cho bốn tuần
+
+BRD mục 13: "Kho khuôn dạng đủ để một trẻ lớp 2 học liên tục tối thiểu bốn tuần
+mà không lặp bài."
+
+Câu này có hai cách hiểu, và `npm run kho` đo cả hai:
+
+| Cách hiểu | Đo thế nào | Hiện tại | Kiểm thử canh |
+|---|---|---|---|
+| Không gặp lại đúng một ĐỀ | Vân tay đề + hình vẽ + đáp án, dựng đủ 20 buổi bằng chính bộ lập kế hoạch của trẻ | 1 trên 160 bài | dưới 5% |
+| Không gặp lại một DẠNG quá dày | Đếm số lần mỗi khuôn dạng xuất hiện trong bốn tuần | 5,3 lần | dưới 8 lần |
+
+Ngoài ra bộ đo bắt từng khuôn dạng phải có ít nhất 30 biến thể phân biệt được,
+trừ khi tác giả ghi rõ lý do không gian nhỏ là chủ đích — trường
+`ghiChuKhongGian` trong khuôn dạng. Lý do phải dài hơn 60 ký tự, để không ai
+ghi cho có.
+
+Điều kiện này hiện **đã đạt cho lớp 2 học kỳ 2**. Nó chưa đạt cho lớp 1, và kho
+còn rất xa con số khoảng 350 khuôn dạng mà GD-03 ước tính cần để phủ cả lớp 1
+và lớp 2 — nhưng đó là phạm vi giai đoạn 2, không phải điều kiện ra mắt.

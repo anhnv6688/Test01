@@ -32,3 +32,22 @@ export const DO_VAT = [
 ] as const;
 
 export const CAY = ["cây bàng", "cây phượng", "cây cau", "cột đèn"] as const;
+
+/** Đồ vật cân được bằng ki-lô-gam. */
+export const DO_VAT_CAN = [
+  { ten: "bao gạo", dv: "bao" },
+  { ten: "túi đường", dv: "túi" },
+  { ten: "quả bí", dv: "quả" },
+  { ten: "thùng cam", dv: "thùng" },
+] as const;
+
+/** Đồ vật đong được bằng lít. */
+export const DO_VAT_DONG = [
+  { ten: "can nước mắm", dv: "can" },
+  { ten: "chai dầu ăn", dv: "chai" },
+  { ten: "xô nước", dv: "xô" },
+] as const;
+
+export const THU_TRONG_TUAN = [
+  "thứ hai", "thứ ba", "thứ tư", "thứ năm", "thứ sáu", "thứ bảy", "chủ nhật",
+] as const;

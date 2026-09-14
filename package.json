@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "kiem-tra": "tsc --noEmit && eslint --max-warnings=0 && vitest run",
-    "chi-phi": "node --experimental-strip-types --no-warnings scripts/mo-hinh-chi-phi.ts"
+    "chi-phi": "tsx scripts/mo-hinh-chi-phi.ts",
+    "kho": "tsx scripts/do-kho-noi-dung.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
@@ -30,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.25",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5",
     "vite": "^8.3.0",
     "vitest": "^5.0.0"

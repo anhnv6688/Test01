@@ -46,8 +46,37 @@ kiểm thử canh riêng điều này, xem `tests/khong-lo-dap-an.test.ts`.
 
 Kho chỉ lưu **khuôn dạng bài** — cấu trúc toán học cùng tham số và ràng buộc. Từ
 một khuôn dạng sinh ra vô hạn bài cụ thể, nên kho hữu hạn mà trẻ luyện bốn tuần
-không gặp lại bài cũ. Hiện có 12 khuôn dạng phủ 8 yêu cầu cần đạt của lớp 2 học
-kỳ 2, mỗi khuôn dạng đều có bản ghi người duyệt và hồ sơ nguồn gốc.
+không gặp lại bài cũ. Hiện có **32 khuôn dạng phủ đủ 14 yêu cầu cần đạt** của
+lớp 2 học kỳ 2, mỗi khuôn dạng đều có bản ghi người duyệt và hồ sơ nguồn gốc.
+
+Khuôn dạng nằm ở `src/lib/domain/templates/`, chia theo mạch nội dung của
+Chương trình: số học, đo lường, hình học, giải toán. Quy tắc viết một khuôn
+dạng mới nằm ở `templates/chung.ts` — đọc phần đó trước khi thêm.
+
+### Đo kho nội dung
+
+```bash
+npm run kho    # độ phủ, không gian tham số từng khuôn dạng, độ lặp bốn tuần
+```
+
+Điều kiện ra mắt số 4 đòi kho "đủ để một trẻ lớp 2 học liên tục tối thiểu bốn
+tuần mà không lặp bài". Câu đó có hai cách hiểu và cả hai đều được đo:
+
+| | Số đo hiện tại |
+|---|---|
+| 160 bài trong 20 buổi | 159 đề khác nhau, **1 đề lặp lại** |
+| Mỗi *dạng* bài lặp lại | **5,3 lần** trong bốn tuần |
+| Khuôn dạng có không gian tham số quá bé | **không có** |
+
+Con số thứ hai mới là thứ trẻ cảm nhận được: đề khác nhau mà cứ một kiểu thì
+trẻ vẫn chán. Có bài kiểm thử canh cả hai ngưỡng, nên kho không thể lặng lẽ
+tụt xuống dưới mức đó khi ai đó sửa bộ lập kế hoạch.
+
+Bộ đo vân tay cả **hình vẽ** chứ không chỉ chữ đề — bài xem giờ hỏi đúng một
+câu như nhau mọi lần, cái đổi nằm hết ở hai kim đồng hồ. Vài khuôn dạng có
+không gian nhỏ vì bản thân chương trình nhỏ (bảng nhân 2 và 5 chỉ có ngần ấy
+phép tính); những trường hợp đó phải ghi rõ lý do ngay trong khuôn dạng, và bộ
+đo tách chúng ra khỏi danh sách cần sửa nhưng vẫn liệt kê để không ai quên.
 
 Mỗi bài cụ thể tái dựng được từ cặp `(mã khuôn dạng, hạt ngẫu nhiên)`, nên máy
 chủ không cần lưu đề đã sinh mà phụ huynh vẫn xem lại được đúng bài con đã làm.
