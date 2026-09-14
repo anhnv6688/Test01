@@ -140,6 +140,33 @@ function taoBang(d: Database.Database): void {
       ghi_chu TEXT
     );
 
+    /*
+     * Nhật ký xử lý yêu cầu.
+     *
+     * CR-06 đòi "nhật ký xử lý đầy đủ" và BO-05 đòi chứng minh được sự tuân
+     * thủ khi bị kiểm tra. Vì vậy bảng này CỐ Ý KHÔNG có khóa ngoại tới
+     * households: khi một hộ yêu cầu xóa dữ liệu và Ô Ly xóa thật, bản ghi
+     * yêu cầu của họ mất theo, nhưng dấu vết "đã nhận yêu cầu này, đã xử lý
+     * lúc này, đúng hạn hay không" phải còn lại. Nếu bảng này cũng bị xóa dây
+     * chuyền thì việc tuân thủ tốt nhất lại xóa mất bằng chứng tuân thủ.
+     *
+     * Đổi lại, bảng này tuyệt đối không được chứa dữ liệu cá nhân — chỉ mã
+     * yêu cầu, loại, hành động, người trực và mốc thời gian.
+     */
+    CREATE TABLE IF NOT EXISTS nhat_ky_xu_ly (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      loai_yeu_cau TEXT NOT NULL CHECK (loai_yeu_cau IN ('du-lieu','go-bo')),
+      ma_yeu_cau TEXT NOT NULL,
+      hanh_dong TEXT NOT NULL,
+      tu_trang_thai TEXT,
+      sang_trang_thai TEXT NOT NULL,
+      nguoi_truc TEXT NOT NULL,
+      ghi_chu TEXT,
+      dung_han INTEGER NOT NULL,
+      at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_nhat_ky_ma ON nhat_ky_xu_ly(ma_yeu_cau, at);
     CREATE INDEX IF NOT EXISTS idx_attempts_child ON attempts(child_id, at);
     CREATE INDEX IF NOT EXISTS idx_meter_household ON meter_events(household_id, at);
   `);

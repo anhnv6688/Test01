@@ -55,7 +55,7 @@ Ký hiệu cột "Tình trạng":
 
 | Mã | Yêu cầu | Tình trạng | Thực hiện ở | Kiểm thử |
 |---|---|---|---|---|
-| BR-23 | Kênh tiếp nhận yêu cầu gỡ bỏ, có nhật ký | Đủ | `app/go-bo-noi-dung` — công khai, ngoài cổng mã PIN | `luu-tru` |
+| BR-23 | Kênh tiếp nhận yêu cầu gỡ bỏ, có nhật ký | Đủ | Nhận ở `app/go-bo-noi-dung` (công khai); xử lý ở `app/truc` với nhật ký đầy đủ và hạn đếm ngược | `luu-tru`, `bang-truc` |
 | BR-24 | Nguồn gốc mỗi khuôn dạng truy vết được | Đủ | `provenance` và `approval` trong `domain/templates.ts` | `kho-noi-dung` |
 | BR-25 | Gắn nhãn nội dung do máy tạo | Đủ | `domain/generator.ts` sinh nhãn hiển thị và dấu máy đọc được | `kho-noi-dung` |
 
@@ -106,7 +106,7 @@ hiệu lực nếu có thứ gì đó kiểm tra nó ở mỗi lần chạy ki�
 | CR-03 | Đủ phần thuộc phần mềm | `NhaCungCapClaude` TỪ CHỐI dựng nếu chưa bật đủ ba cờ xác nhận đã ký; hệ thống quay về bản giả lập thay vì gửi dữ liệu thật. Bản hợp đồng là việc ngoài mã nguồn |
 | CR-04 | Đủ | Đồng ý tách theo mục đích, không đánh dấu sẵn, lưu bằng chứng kèm phiên bản văn bản |
 | CR-05 | Chưa | Xác minh độ tuổi và sự đồng ý của người đại diện theo pháp luật |
-| CR-06 | Đủ | `app/go-bo-noi-dung` — đầu mối công khai, hạn xử lý, nhật ký |
+| CR-06 | Đủ | Đầu mối công khai, hạn xử lý, và nhật ký xử lý đầy đủ ở bảng trực. Nhật ký không có khóa ngoại nên sống sót cả khi hộ đã bị xóa theo yêu cầu |
 | CR-07 | Đủ | Nhãn hiển thị và dấu máy đọc được trong `domain/generator.ts` |
 | CR-08 | Đủ | Bản ghi người duyệt là điều kiện chặn ở cổng phát hành |
 | CR-09 đến CR-15 | Ngoài phần mềm | Hồ sơ đánh giá tác động, nhân sự phụ trách, thủ tục thuế và thương mại điện tử, hợp đồng biên soạn, chính sách nguồn nội dung |
@@ -165,3 +165,21 @@ ghi cho có.
 Điều kiện này hiện **đã đạt cho lớp 2 học kỳ 2**. Nó chưa đạt cho lớp 1, và kho
 còn rất xa con số khoảng 350 khuôn dạng mà GD-03 ước tính cần để phủ cả lớp 1
 và lớp 2 — nhưng đó là phạm vi giai đoạn 2, không phải điều kiện ra mắt.
+
+## Điều kiện ra mắt số 5 — quy trình gỡ bỏ có người trực
+
+BRD mục 13: "Quy trình tiếp nhận và xử lý yêu cầu gỡ bỏ đã chạy thử và có người
+trực."
+
+| Phần | Ở đâu | Trạng thái |
+|---|---|---|
+| Đầu mối công khai nhận yêu cầu | `app/go-bo-noi-dung` | Đủ |
+| Hạn xử lý tính tự động | `server/requests.ts`, `domain/han-xu-ly.ts` | Đủ |
+| Chỗ cho người trực xử lý | `app/truc` | Đủ |
+| Nhật ký xử lý đầy đủ | bảng `nhat_ky_xu_ly` | Đủ |
+| Thống kê tuân thủ để xuất trình khi bị kiểm tra | bảng trực, mục đầu | Đủ |
+| Người trực thật, có ca trực thật | — | **Ngoài phần mềm** |
+| Tài khoản nhân sự có phân quyền | — | **Chưa** — bản dựng dùng một mã trực chung |
+
+Phần mềm đã sẵn sàng để quy trình chạy thử. Hai dòng cuối là việc của tổ chức,
+không phải của mã nguồn, nhưng chúng vẫn nằm giữa Ô Ly và điều kiện số 5.

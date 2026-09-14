@@ -26,17 +26,21 @@ npm run build        # dựng bản phát hành
 Không cần khóa API để chạy: mặc định Ô Ly dùng bản giả lập xử lý ảnh, không gọi
 ra mạng. Xem `.env.example` để biết cách cắm nhà cung cấp thật.
 
-## Hai bề mặt, tách bạch
+## Ba bề mặt, tách bạch
 
 Đây là quyết định kiến trúc quan trọng nhất của sản phẩm, theo NT-10 và BR-03.
 
-| | Bề mặt của trẻ `/be` | Bề mặt của phụ huynh `/phu-huynh` |
-|---|---|---|
-| Người dùng | Trẻ 6–8 tuổi | Bố mẹ |
-| Vào bằng | Chạm vào hình của mình | Mã PIN bốn số |
-| Nền | Giấy ô ly, nút to, màu tươi | Trắng ngà, nhiều chữ, màu trầm |
-| Có lời giải đầy đủ | **Không bao giờ** | Có |
-| Đáp án trong gói dữ liệu tải về | **Không có trường nào** | — |
+| | Bề mặt của trẻ `/be` | Bề mặt của phụ huynh `/phu-huynh` | Bảng trực `/truc` |
+|---|---|---|---|
+| Người dùng | Trẻ 6–8 tuổi | Bố mẹ | Nhân sự trực của Ô Ly |
+| Vào bằng | Chạm vào hình của mình | Mã PIN bốn số | Tên người trực + mã trực |
+| Nhìn thấy dữ liệu của | Chính mình | Hộ mình | **Mọi hộ** |
+| Có lời giải đầy đủ | **Không bao giờ** | Có | — |
+| Đáp án trong gói dữ liệu tải về | **Không có trường nào** | — | — |
+
+Bảng trực tách hẳn khỏi hai bề mặt kia vì nó nhìn thấy yêu cầu của mọi hộ. Gộp
+nó vào phần của phụ huynh là tạo ra một đường để một phụ huynh nhìn sang dữ
+liệu nhà khác — đúng loại lỗi không ai phát hiện cho tới khi quá muộn.
 
 Việc chấm bài diễn ra ở máy chủ. Máy của trẻ không bao giờ nhận được đáp án, kể
 cả khi đã mở hết thang gợi ý, kể cả khi trẻ mở công cụ nhà phát triển. Có bốn bài
@@ -167,6 +171,48 @@ con số đó hiện ngang hàng với đúng và sai chứ không giấu xuốn
 **Mỗi dạng khai rõ phần nằm ngoài tầm kiểm.** Với bài giải có lời văn, Ô Ly kiểm
 được phép tính con viết có tính đúng không, nhưng KHÔNG kiểm được phép tính đó
 đã hợp với đề chưa. Điều đó hiện ngay trên màn hình, theo đúng BR-38.
+
+## Bảng trực xử lý yêu cầu
+
+BR-39 nói thẳng: "Cần có người trực và quy trình, không chỉ có một địa chỉ thư
+điện tử." Điều kiện ra mắt số 5 đòi quy trình gỡ bỏ "đã chạy thử và có người
+trực". Trước khi có `/truc`, Ô Ly có form nhận yêu cầu và có hạn tính tự động,
+nhưng không có chỗ nào để ai đó XỬ LÝ chúng — quy trình dừng ở bước tiếp nhận.
+
+Bảng trực gom hai hàng đợi vào một chỗ, **xếp theo mức khẩn chứ không theo thứ
+tự nhận**: một yêu cầu gỡ bỏ nhận sau nhưng chỉ có 24 giờ phải đứng trước một
+yêu cầu xem dữ liệu nhận trước nhưng có 10 ngày. Xếp theo thứ tự nhận là cách
+vi phạm hạn mà vẫn thấy mình công bằng.
+
+Ngưỡng báo sớm tính theo **tỷ lệ** (còn dưới một phần tư thời gian) chứ không
+theo số giờ cố định, vì hai loại yêu cầu có hạn cách nhau mười lần.
+
+### Bấm hoàn thành là làm thật
+
+Đổi trạng thái mà không làm gì thì người dùng vẫn không nhận được thứ họ xin.
+Nên nút hoàn thành thực thi đúng việc được yêu cầu:
+
+| Yêu cầu | Ô Ly làm gì |
+|---|---|
+| Xem hoặc xuất dữ liệu | Dựng bản xuất đầy đủ mọi bảng có dính tới hộ |
+| Rút lại sự đồng ý | Tắt toàn bộ mục đích, **giữ nguyên** lịch sử đồng ý cũ làm bằng chứng CR-04 |
+| Xóa dữ liệu | Xóa thật, xóa dây chuyền, không có "đánh dấu đã xóa" rồi giữ lại |
+
+### Nhật ký sống sót qua việc xóa
+
+Bảng `nhat_ky_xu_ly` **cố ý không có khóa ngoại** tới `households`. Khi một hộ
+yêu cầu xóa và Ô Ly xóa thật, bản ghi yêu cầu mất theo — đúng, vì nó chứa nội
+dung của người dùng. Nhưng dấu vết "đã nhận yêu cầu này, đã xử lý lúc này, đúng
+hạn hay không" phải còn lại. Nếu nhật ký cũng bị xóa dây chuyền thì **việc tuân
+thủ tốt nhất lại xóa mất bằng chứng tuân thủ**.
+
+Đổi lại, nhật ký tuyệt đối không chứa dữ liệu cá nhân — chỉ mã yêu cầu, loại,
+hành động, người trực và mốc thời gian. Có kiểm thử canh cả hai điều này.
+
+Cột "đúng hạn" được **chốt tại thời điểm xử lý**, không tính lại về sau. Tính
+lại chỉ là suy đoán từ dữ liệu còn lại; chốt sẵn mới là bằng chứng. Và một yêu
+cầu đã xong mà không có dòng nhật ký nào thì **không** được tính là đúng hạn —
+không chứng minh được thì coi như không đạt.
 
 ## Kinh tế vận hành
 
