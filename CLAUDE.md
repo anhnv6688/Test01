@@ -7,10 +7,17 @@ chỗ thực hiện nó trong mã nguồn.
 ## Trước khi gửi mã
 
 ```bash
-npm run kiem-tra     # kiểm kiểu, lint, toàn bộ kiểm thử
-npm run khong-ro-ri  # không có ảnh hay dữ liệu của trẻ lọt vào kho mã
-npm run build        # bản phát hành phải dựng được
+npm run kiem-tra           # kiểm kiểu, lint, toàn bộ kiểm thử
+npm run khong-ro-ri        # không có ảnh hay dữ liệu của trẻ lọt vào kho mã
+npm run kiem-giao-dien     # dựng bản phát hành rồi mở bằng trình duyệt thật
+npm run kiem-giao-dien-dev # kiểm luôn chế độ phát triển
 ```
+
+**Đụng vào giao diện thì phải chạy `kiem-giao-dien`.** Hơn ba trăm bài kiểm thử
+kia chạy trong Node và **không dựng lấy một điểm ảnh nào** — chúng từng để lọt
+một lỗi làm mọi hình minh họa co về bề rộng 0 trên màn hình của trẻ, biến bài
+hình học thành bài đọc hiểu. Kiểm cả hai chế độ, vì bản phát triển gọi hiệu ứng
+React hai lần và đã từng treo màn hình trong khi bản phát hành vẫn chạy tốt.
 
 Cài đặt bằng `npm ci` hoặc `npm install`, **không cần** `--legacy-peer-deps`.
 Nếu có lúc nào phải thêm cờ đó thì đấy là dấu hiệu cây phụ thuộc đã lệch, hãy
@@ -49,6 +56,7 @@ hỏng lời hứa của sản phẩm.
 | Trẻ từ đủ 7 tuổi phải tự đồng ý, tính lại theo thời gian | `privacy/tuoi.ts` | `nguoi-giam-ho.test.ts` |
 | Ảnh và dữ liệu của trẻ không vào kho mã | `scripts/khong-ro-ri.ts` | `khong-ro-ri.test.ts` |
 | Mã một lần và số điện thoại không lưu dạng rõ; mức xác minh phải giành được | `privacy/ma-mot-lan.ts` | `ma-mot-lan.test.ts` |
+| Hình minh họa phải hiện ra thật, không co về 0 | `components/Visual.tsx` | `npm run kiem-giao-dien` |
 
 Nếu một thay đổi làm những bài này trượt, **sửa thay đổi, đừng sửa bài kiểm
 thử** — trừ khi chủ đầu tư đã đổi chính yêu cầu nghiệp vụ, và khi đó phải sửa
@@ -76,6 +84,12 @@ chấm.
 Khi một hộ yêu cầu xóa dữ liệu và Ô Ly xóa thật, dấu vết "đã nhận yêu cầu này,
 xử lý lúc này, đúng hạn hay không" phải sống sót. Nếu bảng đó cũng bị xóa dây
 chuyền thì việc tuân thủ tốt nhất lại xóa mất bằng chứng tuân thủ.
+
+**Hình minh họa là một phần của lời hứa, không phải trang trí.** BR-01 nói không
+chặn con ở khâu đọc. Nếu hình biến mất thì bài hình học lặng lẽ thành bài đọc
+hiểu, mà không bài kiểm thử nào trong Node thấy được. Đừng bọc `<Visual>` bằng
+`flex`: phần tử flex co lại vừa nội dung, nên mọi hình tính theo phần trăm hay
+theo `w-full` đều teo.
 
 **Mức xác minh ghi đúng thứ đã thật sự xảy ra.** `mucDatDuocQuaMaMotLan()` là
 chỗ duy nhất quyết định ghi mức nào, và nó nhận vào sự thật kỹ thuật — tin nhắn

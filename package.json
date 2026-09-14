@@ -13,7 +13,9 @@
     "chi-phi": "tsx scripts/mo-hinh-chi-phi.ts",
     "kho": "tsx scripts/do-kho-noi-dung.ts",
     "do-anh": "tsx scripts/do-bo-anh.ts",
-    "khong-ro-ri": "tsx scripts/khong-ro-ri.ts"
+    "khong-ro-ri": "tsx scripts/khong-ro-ri.ts",
+    "kiem-giao-dien": "tsx scripts/kiem-giao-dien.mts",
+    "kiem-giao-dien-dev": "tsx scripts/kiem-giao-dien.mts --dev"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
@@ -31,6 +33,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "playwright": "^1.63.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",

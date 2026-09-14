@@ -270,9 +270,19 @@ khách hàng hài lòng nhất**. Cách chia hai tầng đưa con số đó lên
 ## Kiểm tra tự động
 
 ```bash
-npm run kiem-tra      # kiểm kiểu, lint, toàn bộ kiểm thử
-npm run khong-ro-ri   # không có ảnh hay dữ liệu của trẻ lọt vào kho mã
+npm run kiem-tra           # kiểm kiểu, lint, toàn bộ kiểm thử
+npm run khong-ro-ri        # không có ảnh hay dữ liệu của trẻ lọt vào kho mã
+npm run kiem-giao-dien     # mở sản phẩm bằng trình duyệt thật và soi
+npm run kiem-giao-dien-dev # kiểm luôn chế độ phát triển
 ```
+
+Bộ kiểm giao diện có mặt vì một lý do cụ thể: 342 bài kiểm thử kia chạy trong
+Node và **không dựng lấy một điểm ảnh nào**. Chúng chứng minh được phép cộng
+đúng, đáp án không rò rỉ, sự đồng ý đúng luật — rồi để lọt một lỗi khiến **mọi
+hình minh họa co về bề rộng 0** trên màn hình của trẻ. Bài "Bi có gấp 5 lần số
+kẹo của Linh" hiện ra thành hai chữ "Linh" và "Bi" với hai vạch vô hình, tức là
+bài hình học lặng lẽ biến thành bài đọc hiểu — đúng thứ mà BR-01 sinh ra để
+tránh.
 
 `.github/workflows/kiem-tra.yml` chạy đủ những bước đó trên mọi nhánh và mọi yêu
 cầu gộp mã. Phần lớn kiểm thử ở kho này không kiểm "mã có chạy không" mà kiểm

@@ -45,6 +45,20 @@ export function PhienHoc() {
 
   const docBai = useCallback((b: BaiChoTre) => doc(b.speech), [doc]);
 
+  /*
+   * Ở chế độ phát triển, React gọi hiệu ứng này HAI lần, nên máy chủ mở hai
+   * phiên và phiên đầu bị bỏ không. Trông thì phí, nhưng ĐỪNG chặn bằng một cờ
+   * useRef kiểu "đã mở cho bạn này rồi thì thôi" — đã thử và nó làm hỏng hẳn
+   * màn hình của trẻ:
+   *
+   *   lần chạy 1 đặt cờ rồi gọi máy chủ → React dọn dẹp, đặt huy = true →
+   *   lần chạy 2 thấy cờ nên thoát sớm → kết quả của lần 1 về thì bị huy loại
+   *   bỏ → không bao giờ có bài, màn hình đứng mãi ở "Đang mở vở…".
+   *
+   * Bản phát hành không gọi hai lần, nên phiên thừa chỉ có ở máy người viết mã.
+   * Đổi một phiên bỏ không trong lúc phát triển lấy một màn hình trắng cho trẻ
+   * là món hời cho không ai cả.
+   */
   useEffect(() => {
     if (!childId) return;
     let huy = false;
@@ -199,7 +213,16 @@ export function PhienHoc() {
           <p className="m-0 text-2xl font-semibold leading-snug">{bai.prompt}</p>
         </div>
 
-        <div className="mt-6 flex justify-center overflow-x-auto">
+        {/*
+          KHÔNG dùng flex ở đây.
+
+          Bọc bằng flex justify-center thì hình trở thành phần tử flex, mà phần
+          tử flex co lại vừa nội dung — nên mọi hình tính theo phần trăm hay
+          theo w-full đều teo lại. Để khối thường thì hình nở hết chiều ngang,
+          còn những hình có cỡ cố định tự canh giữa bằng mx-auto bên trong
+          Visual.tsx.
+        */}
+        <div className="mt-6 overflow-x-auto">
           <Visual spec={bai.visual} />
         </div>
 

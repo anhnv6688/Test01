@@ -57,6 +57,30 @@ jobs:
       - name: Dựng bản phát hành
         run: npm run build
 
+  giao-dien:
+    name: Giao diện dựng ra được và nhìn thấy được
+    runs-on: ubuntu-latest
+    # Việc riêng vì nó cần tải trình duyệt thật. Cần có, vì hơn ba trăm bài kiểm
+    # thử kia chạy trong Node và không dựng lấy một điểm ảnh nào — chúng từng để
+    # lọt một lỗi làm MỌI hình minh họa co về bề rộng 0 trên màn hình của trẻ.
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Tải trình duyệt
+        run: npx playwright install --with-deps chromium
+      - name: Kiểm ở chế độ phát triển
+        run: npm run kiem-giao-dien-dev
+        env:
+          OLY_CHROME: ""
+      - name: Kiểm trên bản phát hành
+        run: npm run kiem-giao-dien
+        env:
+          OLY_CHROME: ""
+
   khong-ro-ri:
     name: Không có dữ liệu của trẻ trong kho mã
     runs-on: ubuntu-latest

@@ -18,7 +18,7 @@ export function Visual({ spec }: { spec: VisualSpec }) {
     case "khoi-tram-chuc-donvi": {
       const { hundreds, tens, ones } = spec;
       return (
-        <figure className="m-0 flex flex-wrap items-end gap-4" aria-label="Khối trăm, chục và đơn vị">
+        <figure className="m-0 flex flex-wrap items-end justify-center gap-4" aria-label="Khối trăm, chục và đơn vị">
           {Array.from({ length: hundreds }).map((_, i) => (
             <svg key={`t${i}`} width="56" height="56" viewBox="0 0 56 56" aria-hidden>
               <rect width="56" height="56" rx="4" fill="var(--tim-nen)" stroke="var(--tim)" strokeWidth="2" />
@@ -75,17 +75,29 @@ export function Visual({ spec }: { spec: VisualSpec }) {
     case "doan-thang": {
       const max = Math.max(...spec.segments.map((s) => s.length), 1);
       return (
-        <div className="flex flex-col gap-3" role="img" aria-label="Sơ đồ đoạn thẳng">
+        <div className="flex w-full flex-col gap-3" role="img" aria-label="Sơ đồ đoạn thẳng">
           {spec.segments.map((s, i) => (
             <div key={`${s.label}-${i}`} className="flex items-center gap-3">
               <span className="w-16 shrink-0 text-sm font-semibold">{s.label}</span>
-              <span
-                className="h-5 rounded-full"
-                style={{
-                  width: `${(s.length / max) * 100}%`,
-                  background: i === 0 ? "var(--tim)" : "var(--xanh-la)",
-                }}
-              />
+              {/*
+                Đường ray chiếm hết phần còn lại, rồi thanh mới lấy phần trăm
+                CỦA ĐƯỜNG RAY.
+
+                Trước đây thanh lấy phần trăm ngay trong hàng flex, mà bề rộng
+                hàng lại do chính nội dung quyết định — phần trăm quy chiếu vào
+                một số gần bằng không, và mọi thanh đều rộng 0px. Trẻ chỉ thấy
+                hai cái nhãn chữ, đúng thứ mà BR-01 muốn tránh: bài hình học
+                lặng lẽ biến thành bài đọc hiểu.
+              */}
+              <span className="min-w-0 flex-1">
+                <span
+                  className="block h-5 rounded-full"
+                  style={{
+                    width: `${(s.length / max) * 100}%`,
+                    background: i === 0 ? "var(--tim)" : "var(--xanh-la)",
+                  }}
+                />
+              </span>
             </div>
           ))}
         </div>
@@ -125,7 +137,7 @@ export function Visual({ spec }: { spec: VisualSpec }) {
     case "nhom-hinh": {
       const { rows, perRow, shape } = spec;
       return (
-        <div className="flex flex-col gap-2" role="img" aria-label={`${rows} hàng, mỗi hàng ${perRow} hình`}>
+        <div className="flex flex-col items-center gap-2" role="img" aria-label={`${rows} hàng, mỗi hàng ${perRow} hình`}>
           {Array.from({ length: rows }).map((_, r) => (
             <div key={r} className="flex gap-2">
               {Array.from({ length: perRow }).map((_, c) => (
@@ -151,7 +163,7 @@ export function Visual({ spec }: { spec: VisualSpec }) {
       const kg = kim(gioGoc, 28);
       const kp = kim(phutGoc, 42);
       return (
-        <svg viewBox="0 0 120 120" width="180" height="180" role="img" aria-label="Đồng hồ kim">
+        <svg viewBox="0 0 120 120" width="180" height="180" className="mx-auto block" role="img" aria-label="Đồng hồ kim">
           <circle cx="60" cy="60" r="54" fill="var(--giay)" stroke="var(--muc)" strokeWidth="3" />
           {Array.from({ length: 12 }).map((_, i) => {
             const g = (i * 30 - 90) * (Math.PI / 180);
