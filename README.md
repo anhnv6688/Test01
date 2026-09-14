@@ -282,7 +282,7 @@ chạy tự động ở **mọi** thay đổi, chứ không phải khi ai đó n
 Bước **Nguyên tắc bất di bất dịch** tách riêng và đặt trước bước chạy toàn bộ,
 để khi hỏng thì tên bước đỏ tự nói ra là đã phá vỡ điều gì — không lộ đáp án cho
 trẻ, không quảng cáo hay xếp hạng, ba lớp bảo vệ ảnh, mốc 7 tuổi, mô hình không
-được chấm. 97 bài, chạy trong khoảng ba giây.
+được chấm, mã một lần không lưu dạng rõ. 132 bài, chạy trong khoảng năm giây.
 
 Có một bước riêng chặn **ảnh trang vở và cơ sở dữ liệu lọt vào kho mã**. Chỉ
 `.gitignore` là chưa đủ: `git add -f` đi qua nó, và một tấm ảnh có tên và lớp
