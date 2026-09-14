@@ -1,9 +1,12 @@
 import { createHash } from "node:crypto";
 import type { DangBaiLam } from "@/lib/domain/cham-bai/dang-bai-lam";
+import type { DeDaDoc } from "@/lib/domain/giang-de-doc-duoc";
 import { DO_VAT } from "@/lib/domain/names";
 import { Rng } from "@/lib/domain/rng";
 import { TEMPLATES } from "@/lib/domain/templates";
 import { sinhBai } from "@/lib/domain/generator";
+import { soanLoiGiang } from "@/lib/domain/teaching";
+import type { LoiGiang, MucChiTiet } from "@/lib/domain/teaching";
 import type { GoiGuiDi } from "@/lib/privacy/envelope";
 import {
   GIAI_THICH_LOI,
@@ -34,6 +37,10 @@ export class NhaCungCapGiaLap implements NhaCungCapXuLyAnh {
     ngayKy: "2026-09-13",
   };
 
+  async soanLoiGiang(deBai: string, muc: MucChiTiet): Promise<LoiGiang | null> {
+    return soanLoiGiangGiaLap(deBai, muc);
+  }
+
   async xuLy(goi: GoiGuiDi, chatLuong: ChatLuongAnh): Promise<KetQuaXuLy> {
     const loi = tienKiemChatLuong(chatLuong);
     if (loi) {
@@ -44,15 +51,15 @@ export class NhaCungCapGiaLap implements NhaCungCapXuLyAnh {
     const r = new Rng(hat);
 
     if (goi.loaiViec === "doc-de-bai") {
-      const t = r.pick(TEMPLATES);
-      const bai = sinhBai(t.id, r.int(1, 2_000_000_000));
+      // Xen kẽ đề tầng 1 và đề tầng 2 để cả hai nhánh đều chạy được khi thử.
+      const de = r.next() < 0.6 ? deTang1(r) : deTang2(r);
       return {
         ok: true,
         ketQua: {
           loai: "doc-de-bai",
-          deBai: bai.prompt,
-          khuonDangKhop: t.id,
-          cacSo: (bai.prompt.match(/\d+/g) ?? []).map(Number),
+          deBai: de.nguyenVan,
+          de: de.de,
+          cacSo: (de.nguyenVan.match(/\d+/g) ?? []).map(Number),
           nghiNgo: null,
         },
       };
@@ -110,6 +117,40 @@ export class NhaCungCapGiaLap implements NhaCungCapXuLyAnh {
       },
     };
   }
+}
+
+/** Đề mã nguồn giải được — tầng 1, không tốn tiền gọi mô hình. */
+function deTang1(r: Rng): { nguyenVan: string; de: DeDaDoc } {
+  const kieu = r.int(0, 3);
+  if (kieu === 0) {
+    const dvA = r.int(4, 9);
+    const a = r.int(1, 4) * 10 + dvA;
+    const b = r.int(1, 4) * 10 + r.int(10 - dvA, 9);
+    return { nguyenVan: `Đặt tính rồi tính: ${a} + ${b}`, de: { dang: "phep-tinh", bieuThuc: `${a} + ${b}` } };
+  }
+  if (kieu === 1) {
+    const tong = r.int(10, 40);
+    const bit = r.int(1, tong - 1);
+    const bt = `${tong - bit} + ? = ${tong}`;
+    return { nguyenVan: `Số?  ${tong - bit} + ... = ${tong}`, de: { dang: "dien-so", bieuThuc: bt } };
+  }
+  if (kieu === 2) {
+    const t = r.int(10, 99);
+    const p = r.int(10, 99);
+    return { nguyenVan: `Điền dấu thích hợp: ${t} ... ${p}`, de: { dang: "so-sanh", veTrai: String(t), vePhai: String(p) } };
+  }
+  const met = r.int(2, 9);
+  return {
+    nguyenVan: `Đổi đơn vị: ${met * 100} cm = ... m`,
+    de: { dang: "doi-don-vi", soNguon: met * 100, donViNguon: "cm", donViDich: "m" },
+  };
+}
+
+/** Đề phải nhờ mô hình soạn giảng — tầng 2. */
+function deTang2(r: Rng): { nguyenVan: string; de: DeDaDoc } {
+  const t = TEMPLATES.filter((x) => x.strand === "giai-toan");
+  const bai = sinhBai(r.pick(t).id, r.int(1, 2_000_000_000));
+  return { nguyenVan: bai.prompt, de: { dang: "loi-van", noiDung: bai.prompt } };
 }
 
 function baiThuHai(r: Rng): DangBaiLam {
@@ -194,5 +235,32 @@ function baiGiaiLoiVan(r: Rng): DangBaiLam {
       kieuSai === 3
         ? `${dungKetQua + 1} ${dv.dv}`
         : `${kieuSai === 2 ? dungKetQua + 10 : dungKetQua} ${dv.dv}`,
+  };
+}
+
+/**
+ * Tầng 2 của bản giả lập.
+ *
+ * Bản giả lập không gọi ra mạng, nên nó lắp lời giảng từ đúng thang gợi ý của
+ * khuôn dạng gần nhất trong kho. Kém linh hoạt hơn mô hình thật, nhưng đủ để
+ * chạy trọn luồng và đủ để kiểm thử phần giao diện.
+ */
+export async function soanLoiGiangGiaLap(
+  deBai: string,
+  muc: MucChiTiet,
+): Promise<LoiGiang | null> {
+  const hat = Number.parseInt(createHash("sha256").update(deBai).digest("hex").slice(0, 8), 16);
+  const r = new Rng(hat);
+  const giaiToan = TEMPLATES.filter((t) => t.strand === "giai-toan");
+  const bai = sinhBai(r.pick(giaiToan).id, r.int(1, 2_000_000_000));
+  const mau = soanLoiGiang(bai, muc);
+  return {
+    ...mau,
+    // Giữ nguyên đề thật của phụ huynh; chỉ mượn khuôn các bước giảng.
+    deBai,
+    dapAn: Number.NaN,
+    donVi: undefined,
+    nhanMay:
+      "Bản dựng thử nghiệm: lời giảng này lắp từ khuôn có sẵn, chưa phải do mô hình soạn riêng cho bài của anh chị.",
   };
 }

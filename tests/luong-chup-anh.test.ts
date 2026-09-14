@@ -97,7 +97,7 @@ describe("nhà cung cấp xử lý ảnh", () => {
     );
     expect(kq.ok).toBe(true);
     if (kq.ok && kq.ketQua.loai === "doc-de-bai") {
-      expect(kq.ketQua.khuonDangKhop).toMatch(/^KD-\d+$/);
+      expect(kq.ketQua.de.dang.length).toBeGreaterThan(0);
       expect(kq.ketQua.deBai.length).toBeGreaterThan(10);
     }
   });

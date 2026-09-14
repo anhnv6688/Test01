@@ -63,7 +63,7 @@ Ký hiệu cột "Tình trạng":
 
 | Mã | Yêu cầu | Tình trạng | Thực hiện ở | Kiểm thử |
 |---|---|---|---|---|
-| BR-26 | Chụp đề, nhận lời giải từng bước | Đủ | `domain/teaching.ts`, `api/anh/xu-ly` | `ban-tin-toi` |
+| BR-26 | Chụp đề, nhận lời giải từng bước | Đủ | Hai tầng: `domain/giang-de-doc-duoc.ts` (tất định, không gọi mô hình) và `vision/claude.ts` (mô hình soạn, chỉ cho bài lời văn). Cả hai bám đúng đề trong ảnh | `hai-tang-giang-de` (20 bài) |
 | BR-27 | Viết bằng ngôn ngữ giảng bài, có câu hỏi dẫn dắt | Đủ | `domain/teaching.ts` — mỗi bước bắt buộc có `hoiCon` | `ban-tin-toi` |
 | BR-28 | Chấm bài trên giấy, chỉ đúng bước sai | Đủ | `domain/cham-bai/` — sổ đăng ký 11 bộ chấm, vét cạn theo kiểu | `chan-doan-loi`, `cham-moi-dang-bai` (32 bài) |
 | BR-29 | Sai thì giải thích vì sao, đúng thì nói rõ đúng ở đâu | Đủ | Mỗi bộ chấm đều viết câu `choPhuHuynh` riêng cho cả trường hợp đúng lẫn sai | `chan-doan-loi`, `cham-moi-dang-bai` |
@@ -138,6 +138,8 @@ mới chấm**.
 | Tính lại từng cột, từng biểu thức | Mã nguồn tất định | Mã nguồn không bao giờ tính sai; mô hình thì có lúc |
 | Kết luận đúng hay sai | Mã nguồn tất định | BR-28 đòi chỉ ĐÚNG vị trí bước sai, không phải nêu nhận xét nghe hợp lý |
 | Quyết định có dám kết luận không | Mã nguồn tất định | "Chưa kết luận" phải là lựa chọn có thật, không phụ thuộc vào mức tự tin của mô hình |
+| Giải đề có cấu trúc rồi soạn lời giảng | Mã nguồn tất định (tầng 1) | Phép tính thì mã nguồn không bao giờ sai, và không tốn một đồng nào |
+| Soạn lời giảng cho bài toán có lời văn | Mô hình mạnh (tầng 2) | Cần hiểu ngữ cảnh và diễn đạt sư phạm — việc mã nguồn không làm được |
 
 Ranh giới này có kiểm thử canh: lược đồ đầu ra gửi cho mô hình không có trường
 nào tên `dung`, `correct` hay `diem`, và có bài kiểm thử quét mã để bảo đảm

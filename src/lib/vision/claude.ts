@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import * as z from "zod/v4";
 import type { DangBaiLam } from "@/lib/domain/cham-bai/dang-bai-lam";
+import type { DeDaDoc } from "@/lib/domain/giang-de-doc-duoc";
+import type { LoiGiang, MucChiTiet } from "@/lib/domain/teaching";
 import type { GoiGuiDi } from "@/lib/privacy/envelope";
 import {
   GIAI_THICH_LOI, tienKiemChatLuong,
@@ -30,16 +32,36 @@ import {
  * của BR-34, nên không có đường nào để mã định danh lọt ra ngoài từ đây.
  */
 
-/** Mô hình dùng để đọc ảnh. Đổi bằng biến môi trường, không phải sửa mã. */
-export const MODEL_DOC_ANH = process.env.OLY_MODEL_DOC_ANH ?? "claude-opus-5";
+/**
+ * Hai mô hình cho hai việc khác hẳn nhau về bản chất.
+ *
+ * MODEL_DOC_ANH — phiên âm chữ viết tay thành dữ liệu có cấu trúc. Đây là việc
+ * nhận dạng, làm trên MỌI trang ảnh, và là toàn bộ chi phí biến đổi của nhóm F.
+ * Không cần mô hình đắt: phần khó của việc chấm không nằm ở đây mà nằm ở khâu
+ * tính lại, mà khâu đó do mã nguồn tất định làm và không bao giờ sai.
+ *
+ * MODEL_SOAN_GIANG — soạn lời giảng cho phụ huynh khi đề là bài toán có lời
+ * văn mà mã nguồn không giải được. Đây là việc cần hiểu ngữ cảnh và diễn đạt
+ * sư phạm, nên dùng mô hình mạnh nhất. Nó chỉ chạy ở tầng 2, tức là phần nhỏ
+ * trong tổng số trang, nên ảnh hưởng tới chi phí trung bình là có hạn.
+ *
+ * Cơ sở của cách chia này nằm ở src/lib/domain/mo-hinh-chi-phi.ts, chạy lại
+ * được bằng `npm run chi-phi`.
+ */
+export const MODEL_DOC_ANH = process.env.OLY_MODEL_DOC_ANH ?? "claude-haiku-4-5";
+export const MODEL_SOAN_GIANG = process.env.OLY_MODEL_SOAN_GIANG ?? "claude-opus-5";
 
 /**
  * Mức công sức mô hình bỏ ra. Đây là chỗ đánh đổi chi phí rõ nhất của nhóm F,
  * nên nó nằm ở biến môi trường để đo được bằng số thật trước khi chốt — đúng
  * điều kiện ra mắt số 3 và yêu cầu BR-22.
  */
-const MUC_CONG_SUC = (process.env.OLY_MUC_CONG_SUC ?? "medium") as
-  "low" | "medium" | "high" | "xhigh" | "max";
+type MucCongSuc = "low" | "medium" | "high" | "xhigh" | "max";
+
+const MUC_CONG_SUC = (process.env.OLY_MUC_CONG_SUC ?? "medium") as MucCongSuc;
+
+/** Soạn lời giảng cần nghĩ kỹ hơn đọc chữ, và chỉ chạy ở tầng 2. */
+const MUC_CONG_SUC_GIANG = (process.env.OLY_MUC_CONG_SUC_GIANG ?? "high") as MucCongSuc;
 
 const DON_VI = ["cm", "dm", "m", "kg", "g", "l"] as const;
 
@@ -102,15 +124,56 @@ const TrangSchema = z.object({
   docDuocThoTruoc: z.array(z.string()),
 });
 
+/**
+ * Đề bài đọc từ ảnh.
+ *
+ * Trường `dang` quyết định đề đi vào tầng 1 hay tầng 2, tức là quyết định lần
+ * chụp này có tốn tiền gọi mô hình đắt hay không. Vì vậy mô hình đọc ảnh được
+ * yêu cầu xếp dạng một cách dè dặt: không chắc thì ghi "khac", và đề dạng có
+ * cấu trúc thì phải chép lại biểu thức đủ để mã nguồn tính lại được.
+ */
 const DeBaiSchema = z.object({
   docDuocAnh: z.boolean(),
   lyDoKhongDoc: z.enum([
     "anh-toi-qua", "anh-mo", "anh-nghieng", "khong-thay-chu", "ngoai-pham-vi",
   ]).nullable(),
   deBai: z.string(),
+  dang: z.enum(["phep-tinh", "dien-so", "so-sanh", "doi-don-vi", "loi-van", "khac"]),
+  /** Với phép tính và điền số: biểu thức để mã nguồn tính lại. */
+  bieuThuc: z.string().nullable(),
+  /** Với so sánh: hai vế. */
+  veTrai: z.string().nullable(),
+  vePhai: z.string().nullable(),
+  /** Với đổi đơn vị. */
+  soNguon: z.number().nullable(),
+  donViNguon: z.enum(DON_VI).nullable(),
+  donViDich: z.enum(DON_VI).nullable(),
   cacSo: z.array(z.number()),
   /** Đề có dấu hiệu thiếu dữ kiện hoặc mâu thuẫn không (BR-18). */
   nghiNgo: z.string().nullable(),
+});
+
+/**
+ * Lời giảng do mô hình soạn — tầng 2.
+ *
+ * Lược đồ cố ý bắt mỗi bước phải có câu hỏi con: BR-27 nói phụ huynh cần biết
+ * NÓI VỚI CON thế nào, không cần một bài giải chuẩn mực. Một lược đồ chỉ có
+ * các bước tính sẽ khiến mô hình trả về đúng thứ BR-27 cấm.
+ */
+const LoiGiangSchema = z.object({
+  /** Mô hình có tự tin giảng được bài này không. Không thì nói thẳng. */
+  giangDuoc: z.boolean(),
+  lyDoKhongGiang: z.string().nullable(),
+  yeuCauCanDat: z.string(),
+  buoc: z.array(z.object({
+    tieuDe: z.string(),
+    lamGi: z.string(),
+    hoiCon: z.string(),
+  })),
+  dapAn: z.number().nullable(),
+  donVi: z.string().nullable(),
+  choHaySai: z.array(z.string()),
+  neuVanChuaHieu: z.string(),
 });
 
 /**
@@ -136,11 +199,43 @@ Nếu ảnh quá tối, quá nhòe, quá nghiêng, không thấy chữ, hoặc l
 
 const NHAC_DOC_DE = `Bạn đọc ảnh chụp một đề bài Toán tiểu học Việt Nam lớp 1 hoặc lớp 2.
 
-Việc của bạn là chép lại đề bài thành văn bản, KHÔNG giải, KHÔNG đưa đáp án.
+Việc của bạn là chép lại đề bài thành văn bản và XẾP DẠNG cho nó. Bạn KHÔNG giải, KHÔNG đưa đáp án.
+
+Xếp dạng thế nào:
+- "phep-tinh": đề chỉ yêu cầu tính, ví dụ "Tính: 45 + 27" hoặc "Đặt tính rồi tính 82 - 39". Chép biểu thức vào bieuThuc, dạng "45 + 27".
+- "dien-so": đề có chỗ trống cần điền số, ví dụ "5 + ... = 8". Chép vào bieuThuc, dùng dấu ? cho chỗ trống: "5 + ? = 8".
+- "so-sanh": đề yêu cầu điền dấu lớn hơn, bé hơn hoặc bằng. Chép hai vế vào veTrai và vePhai.
+- "doi-don-vi": đề yêu cầu đổi đơn vị đo, ví dụ "320 cm = ... m". Điền soNguon, donViNguon, donViDich.
+- "loi-van": bài toán có lời văn, có tình huống và nhân vật.
+- "khac": mọi thứ còn lại, hoặc khi bạn không chắc.
+
+Quy tắc quan trọng: XẾP DẠNG DÈ DẶT. Chỉ chọn một dạng có cấu trúc khi bạn chép lại được biểu thức đủ chính xác để người khác tính lại ra đúng con số. Còn lại thì chọn "loi-van" hoặc "khac". Xếp nhầm một bài lời văn thành phép tính sẽ khiến hệ thống giảng sai cho một đứa trẻ.
 
 Nếu đề có dấu hiệu thiếu dữ kiện hoặc mâu thuẫn, ghi điều đó vào trường nghiNgo. Đề trôi nổi trên mạng có thể sai; báo sớm còn hơn để người lớn giảng theo một đề sai.
 
 Nếu ảnh quá tối, quá nhòe, quá nghiêng, không thấy chữ, hoặc là bài ngoài phạm vi lớp 1–2, hãy đặt docDuocAnh là false và nêu lý do.`;
+
+/**
+ * Lời nhắc cho tầng 2. Viết dài và cụ thể vì đây là chỗ duy nhất trong sản phẩm
+ * mà một mô hình tự do soạn nội dung đến tay người dùng, nên ranh giới phải rõ.
+ */
+const NHAC_SOAN_GIANG = `Bạn giúp một phụ huynh Việt Nam giảng lại một bài Toán cho con đang học lớp 1 hoặc lớp 2.
+
+Người đọc lời bạn viết là BỐ MẸ, không phải đứa trẻ, và cũng không phải giáo viên. Họ thương con nhưng không có chuyên môn sư phạm, và họ chỉ có khoảng ba mươi phút mỗi tối.
+
+Viết bằng NGÔN NGỮ GIẢNG BÀI, không phải ngôn ngữ trình bày toán học. Phụ huynh cần biết NÓI VỚI CON THẾ NÀO, không cần một bài giải chuẩn mực.
+
+Bắt buộc:
+- Mỗi bước phải có một câu để HỎI CON, viết nguyên văn như lời nói, đặt trong trường hoiCon. Không được để trống.
+- Nêu chỗ trẻ lứa tuổi này hay hiểu sai ở dạng bài đó, trong choHaySai.
+- Bám cách dạy của sách giáo khoa hiện hành: nhìn hình hoặc sơ đồ trước, viết phép tính sau. Đừng dạy mẹo tắt của người lớn, vì cô giáo dạy kiểu khác thì trẻ sẽ rối.
+- Dùng tên riêng và bối cảnh Việt Nam nếu cần ví dụ.
+
+Tuyệt đối không:
+- Không đưa ra bất kỳ nhận định nào về tâm lý, sức khỏe, năng lực hay sự phát triển của đứa trẻ. Không dùng các từ như tăng động, giảm chú ý, rối loạn, chậm phát triển, chẩn đoán. Bạn chỉ nhìn thấy một bài toán, bạn không biết gì về đứa trẻ đó.
+- Không bảo phụ huynh đọc đáp án cho con chép.
+
+Nếu bạn không chắc mình hiểu đúng đề, hãy đặt giangDuoc là false và nói rõ vì sao. Thà nói không biết còn hơn giảng sai cho một đứa trẻ bảy tuổi.`;
 
 export class ThieuThoaThuanError extends Error {
   constructor() {
@@ -181,6 +276,10 @@ export class NhaCungCapClaude implements NhaCungCapXuLyAnh {
     this.client = new Anthropic();
   }
 
+  soanLoiGiang(deBai: string, muc: MucChiTiet): Promise<LoiGiang | null> {
+    return soanLoiGiangBangMay(deBai, muc, this.client);
+  }
+
   async xuLy(goi: GoiGuiDi, chatLuong: ChatLuongAnh): Promise<KetQuaXuLy> {
     // Chặn sớm ở máy khách: ảnh hỏng rõ ràng thì không gửi đi, vừa đỡ tiền vừa
     // trả lời phụ huynh nhanh hơn (BR-19, BR-31).
@@ -214,8 +313,7 @@ export class NhaCungCapClaude implements NhaCungCapXuLyAnh {
         ketQua: {
           loai: "doc-de-bai",
           deBai: kq.deBai,
-          // Việc khớp về khuôn dạng nào là của kho nội dung, không phải của mô hình.
-          khuonDangKhop: null,
+          de: xepDang(kq),
           cacSo: kq.cacSo,
           nghiNgo: kq.nghiNgo,
         },
@@ -341,4 +439,85 @@ export function chuyenDoi(b: BaiPhang): DangBaiLam {
     case "chua-nhan-dang":
       return chuaNhanDang(b.ghiChu ?? "Mô hình không xếp được bài này vào dạng nào.");
   }
+}
+
+type DePhang = z.infer<typeof DeBaiSchema>;
+
+/**
+ * Ghép đề phẳng về đúng dạng, và HẠ CẤP khi thiếu dữ liệu.
+ *
+ * Mô hình bảo đây là phép tính nhưng không chép được biểu thức thì đề rơi
+ * xuống "khac" chứ không được coi là phép tính rỗng. Hạ cấp là an toàn: nó chỉ
+ * đẩy đề sang tầng 2, tốn thêm tiền chứ không giảng sai.
+ */
+export function xepDang(d: DePhang): DeDaDoc {
+  switch (d.dang) {
+    case "phep-tinh":
+      return d.bieuThuc ? { dang: "phep-tinh", bieuThuc: d.bieuThuc } : { dang: "khac", noiDung: d.deBai };
+    case "dien-so":
+      return d.bieuThuc ? { dang: "dien-so", bieuThuc: d.bieuThuc } : { dang: "khac", noiDung: d.deBai };
+    case "so-sanh":
+      return d.veTrai && d.vePhai
+        ? { dang: "so-sanh", veTrai: d.veTrai, vePhai: d.vePhai }
+        : { dang: "khac", noiDung: d.deBai };
+    case "doi-don-vi":
+      return d.soNguon !== null && d.donViNguon && d.donViDich
+        ? { dang: "doi-don-vi", soNguon: d.soNguon, donViNguon: d.donViNguon, donViDich: d.donViDich }
+        : { dang: "khac", noiDung: d.deBai };
+    case "loi-van":
+      return { dang: "loi-van", noiDung: d.deBai };
+    default:
+      return { dang: "khac", noiDung: d.deBai };
+  }
+}
+
+/**
+ * Tầng 2 — nhờ mô hình mạnh soạn lời giảng.
+ *
+ * Chỉ gọi khi mã nguồn không giải được đề, và chỉ khi phụ huynh đã bật mục đích
+ * "soạn lời giảng" trong phần Quyền riêng tư (BR-37). Đây là lần gọi đắt nhất
+ * trong toàn sản phẩm, nên nơi gọi nó phải đếm được — xem route xử lý ảnh.
+ *
+ * Lưu ý về dữ liệu cá nhân: hàm này nhận NỘI DUNG ĐỀ đã đọc ra thành chữ, chứ
+ * không nhận ảnh và không nhận bất kỳ mã định danh nào. Không có gì ở đây truy
+ * ngược được về hộ gia đình.
+ */
+export async function soanLoiGiangBangMay(
+  deBai: string,
+  muc: MucChiTiet,
+  client = new Anthropic(),
+): Promise<LoiGiang | null> {
+  const doDai =
+    muc === "nhac-lai"
+      ? "Phụ huynh này chỉ cần được nhắc lại cách làm, nên viết gọn trong một hoặc hai bước."
+      : "Phụ huynh này cần được giảng từ đầu, nên viết đủ các bước, khoảng ba đến năm bước.";
+
+  const tra = await client.messages.parse({
+    model: MODEL_SOAN_GIANG,
+    max_tokens: 8192,
+    thinking: { type: "adaptive" },
+    system: [{ type: "text", text: NHAC_SOAN_GIANG, cache_control: { type: "ephemeral" } }],
+    output_config: { effort: MUC_CONG_SUC_GIANG, format: zodOutputFormat(LoiGiangSchema) },
+    messages: [{ role: "user", content: `Đề bài:\n\n${deBai}\n\n${doDai}` }],
+  });
+
+  const kq = tra.parsed_output;
+  if (!kq || !kq.giangDuoc || kq.buoc.length === 0) return null;
+
+  return {
+    mucChiTiet: muc,
+    deBai,
+    yeuCauCanDat: kq.yeuCauCanDat,
+    buoc: kq.buoc,
+    // Đáp án có thể null khi mô hình không tự tin; giao diện xử lý được.
+    dapAn: kq.dapAn ?? Number.NaN,
+    donVi: kq.donVi ?? undefined,
+    choHaySai: kq.choHaySai.length > 0
+      ? kq.choHaySai
+      : ["Dạng này chưa ghi nhận lỗi phổ biến nào; anh chị để ý xem con vướng ở bước nào."],
+    neuVanChuaHieu: kq.neuVanChuaHieu,
+    // BR-25 và CR-07: nội dung do máy tạo phải gắn nhãn hiển thị.
+    nhanMay:
+      "Phần lời giảng này do trí tuệ nhân tạo soạn riêng cho bài anh chị vừa chụp, chưa qua giáo viên duyệt. Anh chị đọc qua trước khi giảng cho con.",
+  };
 }

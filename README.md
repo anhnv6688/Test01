@@ -106,6 +106,31 @@ sai. Việc chấm do mã tất định trong `src/lib/domain/cham-bai` làm. Đ
 tay là việc mô hình làm tốt hơn hẳn mã nguồn; cộng trừ có nhớ là việc mã nguồn
 không bao giờ sai còn mô hình thì có lúc sai.
 
+## Hai tầng, hai mô hình
+
+Việc nhận dạng và việc soạn lời giảng khác hẳn nhau về bản chất, nên chúng dùng
+hai mô hình khác nhau.
+
+| | Chạy khi nào | Mô hình | Chi phí |
+|---|---|---|---|
+| **Phiên âm ảnh** | Mọi trang ảnh | Haiku 4.5 | ~309đ |
+| **Giảng tầng 1** | Đề có cấu trúc mã nguồn giải được | *không gọi mô hình nào* | 0đ |
+| **Giảng tầng 2** | Đề là bài toán có lời văn | Opus 5 | ~2.386đ |
+
+Tầng 1 phủ phép tính, điền số, so sánh và đổi đơn vị: đáp án tính tất định, lời
+giảng lắp từ khuôn có sẵn. Tầng 2 chỉ chạy cho bài toán có lời văn, và chỉ khi
+phụ huynh đã bật mục Soạn lời giảng trong phần Quyền riêng tư.
+
+**Luồng chấm bài không bao giờ chạm tầng 2.** Vì phần lớn lượt chụp là chấm bài
+con làm chứ không phải nhờ giảng đề, tỷ lệ tầng 2 trên tổng số trang nhiều khả
+năng thấp — nhưng chưa ai đo. Mỗi lượt xử lý được ghi kèm tầng trong bảng
+`meter_events` để đo được con số đó ngay khi có người dùng thật.
+
+Một điều cả hai tầng đều phải giữ: **lời giảng bám đúng đề trong ảnh của phụ
+huynh**. Bản trước sinh một bài khác từ kho rồi giảng bài đó, nghĩa là hộ chụp
+"45 + 27" có thể nhận lời giảng cho "38 + 24". Có một bài kiểm thử canh riêng
+điều này.
+
 **"Chưa kết luận" là một kết quả hợp lệ.** Chấm được mọi dạng không đồng nghĩa
 với dám kết luận mọi bài. Khi Ô Ly không chắc, nó nói thẳng thay vì đoán — và
 con số đó hiện ngang hàng với đúng và sai chứ không giấu xuống dưới.
@@ -135,6 +160,7 @@ tế, để lượt làm mới đúng lúc nửa đêm ở nhà người dùng.
 npm run chi-phi                      # bảng lỗ lãi theo từng mô hình đọc ảnh
 npm run chi-phi -- --suy-nghi 2500   # thử mức token suy nghĩ khác
 npm run chi-phi -- --gia-trang 450   # cắm chi phí THẬT đo được vào
+npm run chi-phi -- --tang-2 0.1      # thử tần suất tầng 2 khác
 ```
 
 BR-22 đòi theo dõi chi phí liên tục, điều kiện ra mắt số 3 đòi đo chi phí thật
@@ -150,12 +176,14 @@ khác nghe cũng hợp lý.
 
 | Mô hình đọc ảnh | Chi phí/trang | Hộ trả phí lỗ khi vượt | Hộ miễn phí chỉ được trung bình |
 |---|---|---|---|
-| Claude Opus 5 | ~1.664đ | **36 trang/tháng** | 0,6 trang/tháng |
-| Claude Sonnet 5 | ~666đ | 91 trang/tháng | 5,4 trang/tháng |
-| Claude Haiku 4.5 | ~309đ | 197 trang/tháng | 14,6 trang/tháng |
+| Haiku + Opus, tầng 2 ở 10% *(đang dùng)* | ~547đ | 111 trang/tháng | 7,0 trang/tháng |
+| Opus 5 cho mọi việc | ~1.664đ | **36 trang/tháng** | 0,6 trang/tháng |
+| Sonnet 5 cho mọi việc | ~666đ | 91 trang/tháng | 5,4 trang/tháng |
+| Haiku 4.5 cho mọi việc | ~309đ | 197 trang/tháng | 14,6 trang/tháng |
 
-Cột thứ ba là con số chết người của Opus: trần gói trả phí là 60 trang/tháng,
-nên **một hộ trả phí dùng nhiều sẽ lỗ ngay trong tập khách hàng hài lòng nhất**.
+Cột thứ ba là con số chết người của việc dùng Opus cho mọi việc: trần gói trả
+phí là 60 trang/tháng, nên **một hộ trả phí dùng nhiều sẽ lỗ ngay trong tập
+khách hàng hài lòng nhất**. Cách chia hai tầng đưa con số đó lên 111 trang.
 
 > **Cảnh báo tài chính, ghi lại để không trôi mất.** Mức trần này cho phép một
 > hộ miễn phí dùng tới khoảng 60 trang mỗi tháng. Theo đúng các giả định của mô

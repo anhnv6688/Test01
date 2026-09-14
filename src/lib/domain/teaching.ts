@@ -31,6 +31,12 @@ export interface LoiGiang {
   yeuCauCanDat: string;
   buoc: BuocGiang[];
   dapAn: number;
+  /**
+   * Đáp án viết bằng chữ, dùng cho dạng mà đáp án không phải một con số — ví dụ
+   * bài so sánh thì đáp án là một cái dấu. Có trường này thì giao diện hiện nó
+   * thay cho dapAn.
+   */
+  dapAnChu?: string;
   donVi?: string;
   /** Chỗ trẻ hay hiểu sai ở dạng bài này (BR-27). */
   choHaySai: string[];

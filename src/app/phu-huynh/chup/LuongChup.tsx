@@ -13,7 +13,14 @@ import {
 type LoaiViec = "doc-de-bai" | "cham-bai-lam";
 
 type KetQua =
-  | { loai: "loi-giang"; loiGiang: LoiGiang; coGoiYCachHoi: boolean; deBaiDocDuoc: string }
+  | {
+      loai: "loi-giang";
+      loiGiang: LoiGiang;
+      coGoiYCachHoi: boolean;
+      deBaiDocDuoc: string;
+      nghiNgo: string | null;
+      tang: 1 | 2;
+    }
   | {
       loai: "cham-bai";
       cham: KetQuaCham[];
@@ -238,7 +245,11 @@ export function LuongChup({
         <BangChamTrang cham={ketQua.cham} tomTat={ketQua.tomTat} />
       )}
       {ketQua?.loai === "loi-giang" && (
-        <BangLoiGiang lg={ketQua.loiGiang} coGoiYCachHoi={ketQua.coGoiYCachHoi} />
+        <BangLoiGiang
+          lg={ketQua.loiGiang}
+          coGoiYCachHoi={ketQua.coGoiYCachHoi}
+          nghiNgo={ketQua.nghiNgo}
+        />
       )}
     </div>
   );
@@ -373,13 +384,29 @@ function TheMotBai({ kq, thuTu }: { kq: KetQuaCham; thuTu: number }) {
 }
 
 /** BR-26, BR-27: lời giải viết bằng ngôn ngữ giảng bài, kèm câu để hỏi con. */
-function BangLoiGiang({ lg, coGoiYCachHoi }: { lg: LoiGiang; coGoiYCachHoi: boolean }) {
+function BangLoiGiang({
+  lg, coGoiYCachHoi, nghiNgo,
+}: {
+  lg: LoiGiang;
+  coGoiYCachHoi: boolean;
+  nghiNgo: string | null;
+}) {
   return (
     <section className="the p-6">
       <h2 className="mt-0 text-lg font-bold">Anh chị giảng lại cho con thế này</h2>
       <p className="the p-4 text-sm" style={{ background: "var(--giay)" }}>
-        <strong>Đề bài:</strong> {lg.deBai}
+        <strong>Đề Ô Ly đọc được:</strong> {lg.deBai}
       </p>
+      <p className="text-xs" style={{ color: "var(--muc-nhat)" }}>
+        Anh chị đối chiếu giúp dòng trên với trang giấy của con. Nếu Ô Ly đọc sai đề thì phần
+        giảng bên dưới cũng sai theo.
+      </p>
+      {nghiNgo && (
+        <p className="the mt-3 p-4 text-sm" style={{ background: "var(--cam-nen)", borderColor: "var(--cam)" }}>
+          <strong>Ô Ly thấy đề này có chỗ đáng ngờ:</strong> {nghiNgo} Đề trôi nổi trên mạng có thể
+          sai; anh chị xem lại trước khi giảng cho con.
+        </p>
+      )}
       <p className="text-xs" style={{ color: "var(--muc-nhat)" }}>
         Bài này thuộc yêu cầu cần đạt: {lg.yeuCauCanDat}
       </p>
@@ -419,7 +446,11 @@ function BangLoiGiang({ lg, coGoiYCachHoi }: { lg: LoiGiang; coGoiYCachHoi: bool
           Xem đáp số (anh chị tự kiểm tra, đừng đọc cho con)
         </summary>
         <p className="mt-2 mb-0 text-lg font-bold">
-          {lg.dapAn} {lg.donVi ?? ""}
+          {lg.dapAnChu
+            ? lg.dapAnChu
+            : Number.isFinite(lg.dapAn)
+              ? `${lg.dapAn} ${lg.donVi ?? ""}`
+              : "Ô Ly không dám chốt đáp số cho bài này — anh chị tự kiểm theo các bước ở trên."}
         </p>
       </details>
 

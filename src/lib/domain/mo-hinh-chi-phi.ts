@@ -97,6 +97,40 @@ export function chiPhiMotTrang(maModel: string, tham: ThamSoTrang = THAM_SO_MAC_
   return usd * tham.tyGia;
 }
 
+/**
+ * Chi phí trung bình một trang khi chia việc cho hai mô hình.
+ *
+ * Mọi trang đều phải phiên âm, nên chi phí phiên âm là chi phí sàn. Chỉ những
+ * trang thuộc tầng 2 — đề là bài toán có lời văn mà mã nguồn không giải được —
+ * mới phải gọi thêm mô hình soạn giảng.
+ *
+ * Biến tyLeTang2 là thứ CHƯA AI ĐO. Nó phụ thuộc vào tỷ lệ bài lời văn trong
+ * đề thật, mà theo quan sát 6 của BRD thì đề lớp 2 có 6 trên 10 điểm là tự
+ * luận. Tuy nhiên phần lớn lượt chụp của phụ huynh là chấm bài con làm, không
+ * phải nhờ giảng đề — và luồng chấm bài KHÔNG bao giờ chạm tầng 2. Vì vậy tỷ lệ
+ * tầng 2 trên tổng số trang nhiều khả năng thấp hơn hẳn 60%.
+ *
+ * Đặt nó thành tham số thay vì hằng số chính vì chưa đo được.
+ */
+export function chiPhiTrungBinhMoiTrang(
+  maModelDocAnh: string,
+  maModelSoanGiang: string,
+  tyLeTang2: number,
+  tham: ThamSoTrang = THAM_SO_MAC_DINH,
+): number {
+  const phienAm = chiPhiMotTrang(maModelDocAnh, tham);
+  // Tầng 2 không có ảnh: chỉ gửi chữ của đề đi, nên phần token ảnh bằng không.
+  const thamGiang: ThamSoTrang = {
+    ...tham,
+    anhRong: 0,
+    anhCao: 0,
+    tokenJson: 1200,
+    tokenSuyNghi: tham.tokenSuyNghi * 2,
+  };
+  const soanGiang = chiPhiMotTrang(maModelSoanGiang, thamGiang);
+  return phienAm + tyLeTang2 * soanGiang;
+}
+
 /** Giả định kinh doanh, lấy từ mục 9 và 9.1 của BRD ngày 13/9/2026. */
 export interface GiaDinhKinhDoanh {
   doanhThuMoiHo: number;

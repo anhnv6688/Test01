@@ -11,8 +11,27 @@ import { GOI, type MaGoi } from "./pricing";
  * sau khi đã có kết quả trả về cho phụ huynh, không ghi lúc nhận ảnh.
  */
 
-/** Giả định GD-02 của BRD: chi phí xử lý một trang khoảng 800 đồng, chưa đo thật. */
+/**
+ * Chi phí ước tính mỗi lần xử lý, tách theo tầng.
+ *
+ * Tầng 1 chỉ phiên âm ảnh bằng mô hình rẻ. Tầng 2 phải gọi thêm mô hình mạnh để
+ * soạn lời giảng cho một bài toán có lời văn, và đắt hơn tầng 1 khoảng bảy lần.
+ *
+ * Hai con số này là ƯỚC TÍNH lấy từ src/lib/domain/mo-hinh-chi-phi.ts, chưa đo
+ * trên hóa đơn thật. Điều kiện ra mắt số 3 đòi thay chúng bằng số đo thật trước
+ * khi mở bán. Chúng nằm ở đây, cạnh chỗ ghi lượt, để việc thay là sửa hai dòng.
+ */
+export const CHI_PHI_TANG_1 = 309;
+export const CHI_PHI_TANG_2 = 309 + 2386;
+
+/** Giả định GD-02 của BRD, giữ lại để đối chiếu: khoảng 800 đồng một trang. */
 export const CHI_PHI_MOI_TRANG_GIA_DINH = 800;
+
+export type TangXuLy = 1 | 2;
+
+export function chiPhiTheoTang(tang: TangXuLy): number {
+  return tang === 2 ? CHI_PHI_TANG_2 : CHI_PHI_TANG_1;
+}
 
 export type HanhViCoPhi = "xu-ly-trang-anh";
 
@@ -22,6 +41,19 @@ export interface LuotDung {
   at: string;
   /** Chi phí ước tính, đồng. Thay bằng số thật khi có hóa đơn của nhà cung cấp. */
   chiPhiUocTinh: number;
+  tang: TangXuLy;
+}
+
+/**
+ * Tỷ lệ lượt thuộc tầng 2 — biến quyết định chi phí trung bình mỗi trang.
+ *
+ * Đây chính là con số mà mô hình chi phí đang phải đoán. Khi có dữ liệu vận
+ * hành thật, lấy số này cắm vào `npm run chi-phi -- --tang-2` là ra bức tranh
+ * lỗ lãi thật.
+ */
+export function tyLeTang2(luot: LuotDung[]): number {
+  if (luot.length === 0) return 0;
+  return luot.filter((l) => l.tang === 2).length / luot.length;
 }
 
 export interface TinhTrangTran {

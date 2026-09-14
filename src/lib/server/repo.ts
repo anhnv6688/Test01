@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "./db";
-import { CHI_PHI_MOI_TRANG_GIA_DINH, type LuotDung } from "@/lib/domain/metering";
+import { chiPhiTheoTang, type LuotDung, type TangXuLy } from "@/lib/domain/metering";
 import { PHIEN_BAN_VAN_BAN_DONG_Y, type BanGhiDongY, type MucDich } from "@/lib/privacy/consent";
 import type { MaGoi, DiaBan } from "@/lib/domain/pricing";
 import type { Attempt } from "@/lib/domain/types";
@@ -206,11 +206,19 @@ export function lichSuDongY(householdId: string): BanGhiDongY[] {
   }));
 }
 
-/** BR-31: chỉ gọi hàm này SAU khi đã có kết quả trả về cho phụ huynh. */
-export function ghiLuotXuLyTrang(householdId: string): void {
+/**
+ * Ghi một lượt xử lý trang ảnh.
+ *
+ * BR-31: chỉ gọi hàm này SAU khi đã có kết quả trả về cho phụ huynh.
+ * Tham số tang cho biết lượt này có phải gọi thêm mô hình soạn giảng không, để
+ * đo được tần suất tầng 2 trong vận hành thật (BR-22).
+ */
+export function ghiLuotXuLyTrang(householdId: string, tang: TangXuLy = 1): void {
   getDb()
-    .prepare("INSERT INTO meter_events (household_id, hanh_vi, chi_phi_uoc_tinh, at) VALUES (?,?,?,?)")
-    .run(householdId, "xu-ly-trang-anh", CHI_PHI_MOI_TRANG_GIA_DINH, new Date().toISOString());
+    .prepare(
+      "INSERT INTO meter_events (household_id, hanh_vi, chi_phi_uoc_tinh, tang, at) VALUES (?,?,?,?,?)",
+    )
+    .run(householdId, "xu-ly-trang-anh", chiPhiTheoTang(tang), tang, new Date().toISOString());
 }
 
 export function soTrangDaDungThangNay(householdId: string, moc = new Date()): number {
@@ -266,12 +274,15 @@ function demTrang(householdId: string, tienTo: string): number {
 export function luotDungCuaHo(householdId: string): LuotDung[] {
   const rs = getDb()
     .prepare("SELECT * FROM meter_events WHERE household_id = ? ORDER BY at")
-    .all(householdId) as { household_id: string; hanh_vi: string; chi_phi_uoc_tinh: number; at: string }[];
+    .all(householdId) as {
+    household_id: string; hanh_vi: string; chi_phi_uoc_tinh: number; tang: number; at: string;
+  }[];
   return rs.map((r) => ({
     householdId: r.household_id,
     hanhVi: "xu-ly-trang-anh",
     at: r.at,
     chiPhiUocTinh: r.chi_phi_uoc_tinh,
+    tang: r.tang === 2 ? 2 : 1,
   }));
 }
 

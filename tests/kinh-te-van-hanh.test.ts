@@ -122,7 +122,7 @@ describe("theo dõi chi phí ở mức từng hộ (BR-22)", () => {
   it("tính đúng chi phí trung bình mỗi hộ", () => {
     const luot: LuotDung[] = Array.from({ length: 10 }, () => ({
       householdId: "h1", hanhVi: "xu-ly-trang-anh" as const,
-      at: "2026-09-13T00:00:00Z", chiPhiUocTinh: CHI_PHI_MOI_TRANG_GIA_DINH,
+      at: "2026-09-13T00:00:00Z", chiPhiUocTinh: CHI_PHI_MOI_TRANG_GIA_DINH, tang: 1 as const,
     }));
     expect(chiPhiTrungBinhMoiHo(luot, 1)).toBe(10 * CHI_PHI_MOI_TRANG_GIA_DINH);
     expect(chiPhiTrungBinhMoiHo(luot, 2)).toBe(5 * CHI_PHI_MOI_TRANG_GIA_DINH);

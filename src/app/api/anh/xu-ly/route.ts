@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { chamCaTrang, tomTatTrang } from "@/lib/domain/cham-bai";
-import { sinhBai } from "@/lib/domain/generator";
 import { kiemTraQuyen } from "@/lib/domain/metering";
-import { soanLoiGiang, type MucChiTiet } from "@/lib/domain/teaching";
+import type { LoiGiang, MucChiTiet } from "@/lib/domain/teaching";
+import { giaiDeTatDinh, soanLoiGiangTatDinh } from "@/lib/domain/giang-de-doc-duoc";
 import { dangBat } from "@/lib/privacy/consent";
 import { dungGoiGuiDi } from "@/lib/privacy/envelope";
 import { kiemTraChungTuChe, ThieuCheAnhError } from "@/lib/privacy/redaction";
@@ -116,35 +116,66 @@ export async function POST(req: Request) {
   }
 
   let ketQua: unknown;
+  let tangDaDung: 1 | 2 = 1;
   if (kq.ketQua.loai === "doc-de-bai") {
-    const khuon = kq.ketQua.khuonDangKhop;
-    if (!khuon) {
+    const doc = kq.ketQua;
+    const muc: MucChiTiet = body.mucChiTiet ?? "giang-tu-dau";
+    const batSoanGiang = dangBat(dongY, "sinh-loi-giang");
+
+    /*
+     * Hai tầng soạn lời giảng.
+     *
+     * Tầng 1 — đề có cấu trúc mà mã nguồn giải được. Đáp án tính tất định, lời
+     * giảng lắp từ khuôn có sẵn, KHÔNG gọi mô hình nào. Đây là phần lớn số
+     * trang và là lý do chi phí trung bình mỗi trang thấp.
+     *
+     * Tầng 2 — bài toán có lời văn. Phải nhờ mô hình mạnh soạn, và đây là lần
+     * gọi đắt nhất trong toàn sản phẩm.
+     *
+     * Điểm quan trọng chung cho cả hai tầng: lời giảng bám ĐÚNG đề trong ảnh
+     * của phụ huynh. Phiên bản trước sinh một bài khác từ kho rồi giảng bài đó,
+     * nghĩa là hộ chụp "45 + 27" có thể nhận về lời giảng cho "38 + 24" — còn
+     * tệ hơn không giảng gì.
+     */
+    const giai = giaiDeTatDinh(doc.de);
+    let loiGiang: LoiGiang | null = null;
+
+    if (giai) {
+      loiGiang = soanLoiGiangTatDinh(doc.de, giai, muc, doc.deBai);
+    } else if (batSoanGiang) {
+      tangDaDung = 2;
+      loiGiang = await layNhaCungCap().soanLoiGiang(doc.deBai, muc);
+    }
+
+    if (!loiGiang) {
       ghiViecAnh({
         householdId: ho.id, loai: loaiViec, thanhCong: false, ketQua: null,
         maLoi: "ngoai-pham-vi", vungDaChe: body.chungTuChe,
       });
+      // Không trừ lượt: Ô Ly không giao được thứ phụ huynh cần (BR-31).
       return NextResponse.json({
         ok: false,
         khongDocDuoc: true,
         maLoi: "ngoai-pham-vi",
-        thongBao:
-          "Ô Ly đọc được chữ trong ảnh nhưng chưa nhận ra dạng bài này trong chương trình lớp 1–2, nên không dám giảng để khỏi giảng sai. Lần chụp này không bị trừ lượt.",
+        thongBao: !batSoanGiang
+          ? "Bài này là bài toán có lời văn nên Ô Ly cần bật mục Soạn lời giảng trong phần Quyền riêng tư mới giảng được. Các phần khác vẫn dùng bình thường. Lần chụp này không bị trừ lượt."
+          : "Ô Ly đọc được chữ trong ảnh nhưng chưa đủ chắc chắn để giảng bài này, nên không dám giảng để khỏi giảng sai. Lần chụp này không bị trừ lượt.",
         truLuot: false,
       });
     }
-    const bai = sinhBai(khuon, Math.floor(Math.random() * 2_000_000_000));
-    const muc: MucChiTiet = body.mucChiTiet ?? "giang-tu-dau";
-    const loiGiang = soanLoiGiang(bai, muc);
-    // BR-37: tắt mục đích soạn lời giảng thì mất phần gợi ý cách hỏi con,
-    // các bước giải vẫn còn nguyên — không sập cả tính năng.
-    const batSoanGiang = dangBat(dongY, "sinh-loi-giang");
+
     ketQua = {
       loai: "loi-giang",
       loiGiang: batSoanGiang
         ? loiGiang
+        // BR-37: tắt mục đích soạn lời giảng thì mất phần gợi ý cách hỏi con,
+        // các bước giải vẫn còn nguyên — không sập cả tính năng.
         : { ...loiGiang, buoc: loiGiang.buoc.map((b) => ({ ...b, hoiCon: "" })) },
       coGoiYCachHoi: batSoanGiang,
-      deBaiDocDuoc: kq.ketQua.deBai,
+      deBaiDocDuoc: doc.deBai,
+      // Hiện cho phụ huynh biết đề có dấu hiệu bất thường không (BR-18).
+      nghiNgo: doc.nghiNgo,
+      tang: tangDaDung,
     };
   } else {
     const c = kq.ketQua;
@@ -163,7 +194,8 @@ export async function POST(req: Request) {
     maLoi: null, vungDaChe: body.chungTuChe,
   });
   // Chỉ tới đây mới ghi lượt: kết quả đã có, phụ huynh sắp nhận được.
-  ghiLuotXuLyTrang(ho.id);
+  // Ghi kèm tầng để đo được tần suất tầng 2 trong vận hành thật (BR-22).
+  ghiLuotXuLyTrang(ho.id, tangDaDung);
 
   return NextResponse.json({
     ok: true,

@@ -91,11 +91,16 @@ function taoBang(d: Database.Database): void {
       phien_ban_van_ban TEXT NOT NULL
     );
 
+    -- Cột tang ghi lần xử lý này thuộc tầng nào: 1 là chỉ phiên âm, 2 là có
+    -- gọi thêm mô hình soạn giảng. Tách ra để đo được TẦN SUẤT TẦNG 2 trong
+    -- vận hành thật — đó là biến quyết định chi phí trung bình mỗi trang, và
+    -- hiện chưa ai đo (BR-22, điều kiện ra mắt số 3).
     CREATE TABLE IF NOT EXISTS meter_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
       hanh_vi TEXT NOT NULL,
       chi_phi_uoc_tinh INTEGER NOT NULL,
+      tang INTEGER NOT NULL DEFAULT 1,
       at TEXT NOT NULL
     );
 

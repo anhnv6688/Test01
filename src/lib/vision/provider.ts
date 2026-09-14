@@ -1,4 +1,6 @@
 import type { DangBaiLam } from "@/lib/domain/cham-bai/dang-bai-lam";
+import type { DeDaDoc } from "@/lib/domain/giang-de-doc-duoc";
+import type { LoiGiang, MucChiTiet } from "@/lib/domain/teaching";
 import type { GoiGuiDi } from "@/lib/privacy/envelope";
 
 /**
@@ -47,9 +49,13 @@ export interface BuocDocDuoc {
 
 export interface KetQuaDocDe {
   loai: "doc-de-bai";
+  /** Nguyên văn đề đọc được, để phụ huynh tự đối chiếu với trang giấy. */
   deBai: string;
-  /** Khuôn dạng khớp trong kho, nếu nhận ra. Không nhận ra thì null. */
-  khuonDangKhop: string | null;
+  /**
+   * Đề đã xếp dạng. Dạng quyết định lần chụp này đi vào tầng 1 (mã nguồn giải,
+   * không tốn gì) hay tầng 2 (nhờ mô hình mạnh soạn giảng, tốn tiền).
+   */
+  de: DeDaDoc;
   cacSo: number[];
   /** Cờ nghi ngờ đề có vấn đề, ví dụ thiếu dữ kiện (BR-18). */
   nghiNgo: string | null;
@@ -88,6 +94,18 @@ export interface NhaCungCapXuLyAnh {
     ngayKy: string | null;
   };
   xuLy(goi: GoiGuiDi, chatLuongAnh: ChatLuongAnh): Promise<KetQuaXuLy>;
+
+  /**
+   * Tầng 2 — soạn lời giảng cho một đề mà mã nguồn không giải được.
+   *
+   * Nằm sau giao diện này chứ không gọi thẳng, vì hai lẽ. Một: bản giả lập phải
+   * chạy trọn vẹn được mà không gọi ra mạng. Hai: RR-08 đòi thay được nhà cung
+   * cấp, và nếu route gọi thẳng một nhà cung cấp cụ thể thì ràng buộc đó gãy.
+   *
+   * Trả về null nghĩa là không soạn được — phụ huynh sẽ được nói thẳng như vậy
+   * và không bị trừ lượt.
+   */
+  soanLoiGiang(deBai: string, muc: MucChiTiet): Promise<LoiGiang | null>;
 }
 
 /**
