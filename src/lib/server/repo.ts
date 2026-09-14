@@ -279,17 +279,19 @@ export function ghiNguoiGiamHo(v: {
   hoTen: string;
   phuongThuc: PhuongThucXacMinh;
   tuXacNhanDaiDien: boolean;
+  haiSoCuoi?: string | null;
 }): NguoiGiamHo {
   const xacMinhLuc = new Date().toISOString();
+  const haiSoCuoi = v.haiSoCuoi ?? null;
   getDb()
     .prepare(
-      "INSERT INTO guardians (household_id, quan_he, ho_ten, phuong_thuc, tu_xac_nhan_dai_dien, phien_ban_van_ban, xac_minh_luc) VALUES (?,?,?,?,?,?,?)",
+      "INSERT INTO guardians (household_id, quan_he, ho_ten, phuong_thuc, tu_xac_nhan_dai_dien, phien_ban_van_ban, xac_minh_luc, hai_so_cuoi) VALUES (?,?,?,?,?,?,?,?)",
     )
     .run(
       v.householdId, v.quanHe, v.hoTen, v.phuongThuc,
-      v.tuXacNhanDaiDien ? 1 : 0, PHIEN_BAN_VAN_BAN_DONG_Y, xacMinhLuc,
+      v.tuXacNhanDaiDien ? 1 : 0, PHIEN_BAN_VAN_BAN_DONG_Y, xacMinhLuc, haiSoCuoi,
     );
-  return { ...v, xacMinhLuc, phienBanVanBan: PHIEN_BAN_VAN_BAN_DONG_Y };
+  return { ...v, haiSoCuoi, xacMinhLuc, phienBanVanBan: PHIEN_BAN_VAN_BAN_DONG_Y };
 }
 
 /** Bản ghi đang có hiệu lực là bản mới nhất; các bản cũ giữ lại làm bằng chứng. */
@@ -299,6 +301,7 @@ export function nguoiGiamHoHienTai(householdId: string): NguoiGiamHo | null {
     .get(householdId) as {
     household_id: string; quan_he: QuanHe; ho_ten: string; phuong_thuc: PhuongThucXacMinh;
     tu_xac_nhan_dai_dien: number; phien_ban_van_ban: string; xac_minh_luc: string;
+    hai_so_cuoi: string | null;
   } | undefined;
   if (!r) return null;
   return {
@@ -306,6 +309,7 @@ export function nguoiGiamHoHienTai(householdId: string): NguoiGiamHo | null {
     quanHe: r.quan_he,
     hoTen: r.ho_ten,
     phuongThuc: r.phuong_thuc,
+    haiSoCuoi: r.hai_so_cuoi,
     tuXacNhanDaiDien: r.tu_xac_nhan_dai_dien === 1,
     phienBanVanBan: r.phien_ban_van_ban,
     xacMinhLuc: r.xac_minh_luc,

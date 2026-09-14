@@ -16,6 +16,7 @@ const NGUOI_GIAM_HO: NguoiGiamHo = {
   quanHe: "me",
   hoTen: "Nguyễn Thị A",
   phuongThuc: "otp-dien-thoai",
+  haiSoCuoi: "78",
   xacMinhLuc: "2026-09-01T00:00:00Z",
   phienBanVanBan: "v1",
   tuXacNhanDaiDien: true,

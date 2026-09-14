@@ -48,6 +48,7 @@ hỏng lời hứa của sản phẩm.
 | Ba lớp bảo vệ ảnh: che tại máy, danh sách trắng, xóa ảnh | `privacy/` | `ba-lop-bao-ve.test.ts` |
 | Trẻ từ đủ 7 tuổi phải tự đồng ý, tính lại theo thời gian | `privacy/tuoi.ts` | `nguoi-giam-ho.test.ts` |
 | Ảnh và dữ liệu của trẻ không vào kho mã | `scripts/khong-ro-ri.ts` | `khong-ro-ri.test.ts` |
+| Mã một lần và số điện thoại không lưu dạng rõ; mức xác minh phải giành được | `privacy/ma-mot-lan.ts` | `ma-mot-lan.test.ts` |
 
 Nếu một thay đổi làm những bài này trượt, **sửa thay đổi, đừng sửa bài kiểm
 thử** — trừ khi chủ đầu tư đã đổi chính yêu cầu nghiệp vụ, và khi đó phải sửa
@@ -75,6 +76,12 @@ chấm.
 Khi một hộ yêu cầu xóa dữ liệu và Ô Ly xóa thật, dấu vết "đã nhận yêu cầu này,
 xử lý lúc này, đúng hạn hay không" phải sống sót. Nếu bảng đó cũng bị xóa dây
 chuyền thì việc tuân thủ tốt nhất lại xóa mất bằng chứng tuân thủ.
+
+**Mức xác minh ghi đúng thứ đã thật sự xảy ra.** `mucDatDuocQuaMaMotLan()` là
+chỗ duy nhất quyết định ghi mức nào, và nó nhận vào sự thật kỹ thuật — tin nhắn
+có được gửi ra ngoài không — chứ không nhận lời khai từ biểu mẫu. Đừng bao giờ
+thêm lại một ô cho người dùng tự chọn mức xác minh: ghi mức mạnh hơn thứ đã làm
+là tạo ra hồ sơ trông như đã tuân thủ trong khi không có gì được xác minh.
 
 ## Dữ liệu thật của trẻ
 

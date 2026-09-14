@@ -247,7 +247,9 @@ kiểu "chốt rồi lưu" đều trượt đúng bài đó.
 | Cổng chặn dùng chung cho giao diện và tuyến xử lý | `server/du-dieu-kien.ts` | Đủ |
 | Giao diện khai báo và hỏi con | `app/phu-huynh/nguoi-giam-ho` | Đủ |
 | Người đại diện nằm trong bản xuất dữ liệu và bị xóa cùng hộ | `server/thuc-thi-yeu-cau.ts` | Đủ |
-| **Phương thức xác minh mạnh hơn tự khai** | — | **Chưa** — mới có chỗ khai báo, chưa nối mã một lần hay thanh toán |
+| Luồng mã một lần qua số điện thoại | `privacy/ma-mot-lan.ts`, `server/ma-mot-lan.ts` | Đủ phần thuộc phần mềm |
+| Giao diện nhà cung cấp tin nhắn, có bản giả lập | `sms/` | Đủ |
+| **Cổng tin nhắn thật** | — | **Chưa** — cần hợp đồng với nhà mạng hoặc cổng tin nhắn, là việc ngoài mã nguồn |
 | **Xác nhận phương thức nào là đủ** | — | **Ngoài phần mềm** — câu hỏi pháp lý, không phải hằng số trong mã nguồn |
 
 Ba quyết định thiết kế đáng ghi lại:
@@ -268,6 +270,34 @@ trẻ phải là chỗ con làm toán, không phải chỗ con gặp một bức
 hỏi viết cho một bạn bảy tuổi tự đọc được — trường `hoiCon` của từng mục đích —
 và người lớn ngồi cạnh khi con trả lời. Con nói không cũng được, và phần luyện
 tập vẫn chạy đủ.
+
+**Mức xác minh phải giành được, không phải khai ra.** Bản đầu của phần này có
+một lỗ hổng do chính cách dựng giao diện tạo ra: trang người đại diện cho phụ
+huynh tự chọn mức xác minh bằng một danh sách nút tròn, nên bất cứ ai cũng bấm
+được vào "đã xác minh bằng mã một lần" mà không làm gì cả — và lời cảnh báo về
+mức yếu thì im bặt. Thứ đó tệ hơn việc không có xác minh, vì nó tạo ra một hồ sơ
+trông như đã tuân thủ.
+
+Nay mức xác minh do `mucDatDuocQuaMaMotLan()` quyết định, và hàm đó nhận vào sự
+thật kỹ thuật — tin nhắn có thật sự được gửi ra ngoài không — chứ không nhận lời
+khai của ai. Hệ quả trực tiếp: khi chạy bằng bản giả lập, mã hiện ngay trên màn
+hình nên người bấm không chứng minh được gì, và hồ sơ ghi mức `otp-gia-lap` với
+độ mạnh 1, không ghi `otp-dien-thoai`. Lời cảnh báo vẫn kêu.
+
+**Ô Ly không giữ số điện thoại.** Chỉ giữ hai số cuối để phụ huynh nhận ra số
+của mình, cộng một vân tay băm có khóa để đếm được số lần đã nhắn tới cùng một
+thuê bao. Việc cần làm là chứng minh một lần rằng người xác nhận giữ một thuê
+bao chính chủ, chứ không phải giữ một danh bạ số máy của các bậc phụ huynh — mà
+danh bạ đó thì mất mát được, bị đòi cung cấp được, và bán được.
+
+Mã lưu bằng scrypt kèm muối riêng từng dòng, không lưu dạng rõ ở đâu cả. Mã chỉ
+có sáu chữ số nên SHA-256 dò hết một triệu khả năng mất chưa tới một giây; scrypt
+cố ý chậm. Cộng thêm hạn năm phút, trần năm lần sai, và mỗi lúc chỉ một mã sống.
+
+Việc chặn gửi dồn đếm theo **cả hộ lẫn số máy**. Đếm theo hộ chặn một tài khoản
+tự bấm liên tục; đếm theo số máy chặn việc dùng Ô Ly làm công cụ nhắn tin quấy
+rối một người ngoài — kẻ muốn làm vậy chỉ cần lập nhiều tài khoản là qua được
+giới hạn theo hộ, nhưng số máy nạn nhân thì vẫn chỉ có một.
 
 Điều khoản cụ thể và cách diễn giải phải do luật sư rà lại. Mã nguồn thực hiện
 quy tắc nội dung; nó không thay cho ý kiến pháp lý.

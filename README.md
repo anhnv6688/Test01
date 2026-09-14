@@ -18,7 +18,7 @@ Cu Tí lớp 1) và dữ liệu nằm trong `.data/oly.sqlite`. **Mã PIN của 
 bố mẹ là `1234`.**
 
 ```bash
-npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 307 bài kiểm thử
+npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 342 bài kiểm thử
 npm test             # chỉ chạy kiểm thử
 npm run build        # dựng bản phát hành
 ```
@@ -313,11 +313,38 @@ con là chỗ làm toán, không phải chỗ gặp một bức tường pháp l
 một bạn bảy tuổi tự đọc được, người lớn ngồi cạnh, và **con nói không cũng
 được**: phần luyện tập vẫn chạy đủ.
 
-Mức xác minh hiện tại được nói thẳng chứ không giấu: mỗi phương thức khai rõ nó
-chứng minh được gì và **không** chứng minh được gì, và trang người đại diện cảnh
-báo khi mức đang dùng còn yếu. Một ô đánh dấu "tôi là cha mẹ cháu" không xác
-minh gì cả, và gọi nó là xác minh thì còn tệ hơn không có — vì nó tạo ra hồ sơ
-trông như đã tuân thủ.
+### Xác minh phải giành được, không phải khai ra
+
+Bản đầu của phần này có một lỗ hổng do chính cách dựng giao diện tạo ra: trang
+người đại diện cho phụ huynh **tự chọn** mức xác minh bằng một danh sách nút
+tròn. Nghĩa là bất cứ ai cũng bấm được vào "đã xác minh bằng mã một lần" mà
+không làm gì cả — và lời cảnh báo về mức yếu thì im bặt. Thứ đó tệ hơn việc
+không có xác minh, vì nó tạo ra một hồ sơ trông như đã tuân thủ.
+
+Nay mức xác minh do `mucDatDuocQuaMaMotLan()` quyết định, và hàm đó nhận vào sự
+thật kỹ thuật — tin nhắn có thật sự được gửi ra ngoài không — chứ không nhận lời
+khai của ai. Hệ quả trực tiếp, và nó đúng với bản dựng đang chạy: bản giả lập
+hiện mã ngay trên màn hình, nên người bấm không chứng minh được gì, và hồ sơ ghi
+mức `otp-gia-lap` với độ mạnh 1. Lời cảnh báo vẫn kêu.
+
+**Ô Ly không giữ số điện thoại.** Chỉ hai số cuối để phụ huynh nhận ra số của
+mình, cộng một vân tay băm có khóa để đếm được đã nhắn tới cùng thuê bao mấy
+lần. Việc cần làm là chứng minh một lần rằng người xác nhận giữ một thuê bao
+chính chủ, chứ không phải giữ một danh bạ số máy của các bậc phụ huynh — danh bạ
+đó thì mất mát được, bị đòi cung cấp được, và bán được. Cái gì không giữ thì
+không lộ.
+
+Mã sáu chữ số lưu bằng **scrypt** kèm muối riêng từng dòng, không lưu dạng rõ ở
+đâu cả. Sáu chữ số là một triệu khả năng — SHA-256 dò hết mất chưa tới một giây,
+còn scrypt thì cố ý chậm. Cộng hạn năm phút, trần năm lần sai, mỗi lúc chỉ một
+mã sống, và so sánh bằng `timingSafeEqual`.
+
+Chặn gửi dồn đếm theo **cả hộ lẫn số máy**. Đếm theo hộ chặn một tài khoản tự
+bấm liên tục; đếm theo số máy chặn việc dùng Ô Ly làm công cụ nhắn tin quấy rối
+một người ngoài — kẻ muốn vậy chỉ cần lập nhiều tài khoản là qua được giới hạn
+theo hộ, nhưng số máy nạn nhân thì vẫn chỉ có một. Số được chuẩn hóa **trước
+khi** băm, nếu không thì viết `+84912345678` thay cho `0912345678` là lách được
+cả phần đếm.
 
 ## Bộ đo ảnh
 
@@ -363,7 +390,7 @@ src/
   app/be/          bề mặt của trẻ
   app/phu-huynh/   bề mặt của phụ huynh
   app/api/         chấm bài, mở gợi ý, xử lý ảnh — nơi duy nhất biết đáp án
-tests/             307 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
+tests/             342 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
 docs/              ma trận truy vết yêu cầu nghiệp vụ
 ```
 
@@ -379,9 +406,9 @@ Nói rõ để không ai nhầm bản dựng này với sản phẩm sẵn sàng
   nhận dạng trên bộ ảnh thật **chưa được đo** (RR-10, điều kiện ra mắt số 9) —
   nhưng cái thước để đo thì đã dựng xong và đã tự kiểm được, xem phần Bộ đo ảnh.
 - **Chưa có tài khoản thật.** Mã PIN bốn số chỉ chặn một đứa trẻ tò mò, đúng
-  mối đe dọa mà NT-10 cần chặn. Phần người đại diện theo pháp luật (CR-05) đã
-  làm, nhưng phương thức xác minh mạnh nhất đang dùng được mới là **tự khai** —
-  chưa nối mã một lần qua số điện thoại hay xác nhận qua thanh toán.
+  mối đe dọa mà NT-10 cần chặn. Luồng mã một lần qua số điện thoại đã dựng xong
+  (CR-05), nhưng **chưa có cổng tin nhắn thật** — cần hợp đồng với nhà mạng hoặc
+  một cổng tin nhắn. Đang chạy bằng bản giả lập, và hồ sơ ghi đúng như vậy.
 - **Chưa có thanh toán** (CR-12, CR-13). Gói cước hiện là dữ liệu tĩnh.
 - **Kho nội dung mới có 32 khuôn dạng**, chưa phải khoảng 350 khuôn dạng mà
   GD-03 ước tính cần để phủ lớp 1–2.

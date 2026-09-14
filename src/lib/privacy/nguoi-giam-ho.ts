@@ -25,6 +25,7 @@ export const TEN_QUAN_HE: Record<QuanHe, string> = {
 
 export type PhuongThucXacMinh =
   | "tu-khai"
+  | "otp-gia-lap"
   | "otp-dien-thoai"
   | "the-thanh-toan"
   | "giay-to-truc-tiep";
@@ -47,6 +48,15 @@ export const PHUONG_THUC: MoTaPhuongThuc[] = [
     chungMinhDuoc: "Có một người đã đọc văn bản và bấm xác nhận.",
     khongChungMinhDuoc:
       "Không chứng minh người bấm là người thành niên, cũng không chứng minh họ là cha, mẹ hay người giám hộ của cháu. Một đứa trẻ tám tuổi bấm được nút này.",
+  },
+  {
+    ma: "otp-gia-lap",
+    ten: "Mã một lần, nhưng gửi bằng bản giả lập",
+    doManh: 1,
+    chungMinhDuoc:
+      "Người xác nhận đã đi hết luồng nhập mã. Chỉ vậy thôi.",
+    khongChungMinhDuoc:
+      "Bản giả lập hiện mã ngay trên màn hình nên người bấm chỉ chép lại con số vừa thấy; nó không chứng minh họ giữ số máy đó. Mức này tồn tại để hồ sơ ghi đúng thứ đã xảy ra, thay vì ghi nhầm thành đã xác minh thật.",
   },
   {
     ma: "otp-dien-thoai",
@@ -78,6 +88,20 @@ export const PHUONG_THUC: MoTaPhuongThuc[] = [
 
 export const PHUONG_THUC_BY_MA = new Map(PHUONG_THUC.map((p) => [p.ma, p]));
 
+/**
+ * Mức xác minh THẬT SỰ đạt được, tùy theo tin nhắn có được gửi ra ngoài không.
+ *
+ * Hàm này là chỗ duy nhất quyết định ghi mức nào vào hồ sơ, và nó nhận vào sự
+ * thật kỹ thuật (nhà cung cấp có phải bản giả lập không) chứ không nhận vào lời
+ * khai của ai. Trước đây trang người đại diện cho phụ huynh tự chọn mức trong
+ * một danh sách nút tròn — nghĩa là bất cứ ai cũng bấm được vào "đã xác minh
+ * bằng mã một lần" mà không làm gì cả, và lời cảnh báo về mức yếu thì im bặt.
+ * Xác minh phải GIÀNH ĐƯỢC, không phải KHAI RA.
+ */
+export function mucDatDuocQuaMaMotLan(laGiaLap: boolean): PhuongThucXacMinh {
+  return laGiaLap ? "otp-gia-lap" : "otp-dien-thoai";
+}
+
 /** Phương thức yếu nhất mà bản dựng hiện tại chấp nhận trước khi mở bán. */
 export const PHUONG_THUC_TOI_THIEU_DE_MO_BAN: PhuongThucXacMinh = "otp-dien-thoai";
 
@@ -87,6 +111,15 @@ export interface NguoiGiamHo {
   /** Tên người xác nhận. Cần để gắn trách nhiệm vào bản ghi đồng ý. */
   hoTen: string;
   phuongThuc: PhuongThucXacMinh;
+  /**
+   * Hai số cuối của số máy đã xác minh, để phụ huynh nhận ra số của mình.
+   *
+   * Ô Ly KHÔNG giữ cả số điện thoại. Việc cần làm là chứng minh một lần rằng
+   * người xác nhận giữ một thuê bao chính chủ, chứ không phải giữ một danh bạ
+   * số máy của các bậc phụ huynh — mà danh bạ đó thì mất mát được, bị đòi cung
+   * cấp được, và bán được. Cái gì không giữ thì không lộ.
+   */
+  haiSoCuoi: string | null;
   xacMinhLuc: string;
   /** Bằng chứng: phiên bản văn bản họ đã đọc khi xác nhận. */
   phienBanVanBan: string;

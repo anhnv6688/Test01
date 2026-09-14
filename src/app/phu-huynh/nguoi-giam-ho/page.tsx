@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { MUC_DICH, dangBat, treDaDongY } from "@/lib/privacy/consent";
-import {
-  PHUONG_THUC, PHUONG_THUC_BY_MA, TEN_QUAN_HE, canhBaoXacMinh,
-} from "@/lib/privacy/nguoi-giam-ho";
+import { PHUONG_THUC_BY_MA, TEN_QUAN_HE, canhBaoXacMinh } from "@/lib/privacy/nguoi-giam-ho";
+import { cheSo } from "@/lib/privacy/so-dien-thoai";
 import { TUOI_TU_DONG_Y, cheDoDongY, ngayChuyenCheDo, tuoiTron } from "@/lib/privacy/tuoi";
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
 import { danhSachCon, lichSuDongY, nguoiGiamHoHienTai } from "@/lib/server/repo";
@@ -10,6 +9,7 @@ import { CongPin } from "../CongPin";
 import {
   hanhDongConDongY, hanhDongGhiNguoiGiamHo, hanhDongGhiThangNamSinh,
 } from "../actions";
+import { XacMinhSoDienThoai } from "./XacMinhSoDienThoai";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +56,9 @@ export default async function TrangNguoiGiamHo() {
         {ng ? (
           <p className="m-0 text-sm">
             <strong>{ng.hoTen}</strong> — {TEN_QUAN_HE[ng.quanHe]}. Xác minh bằng{" "}
-            {hienTai?.ten.toLowerCase()}, lúc {new Date(ng.xacMinhLuc).toLocaleString("vi-VN")}.
+            {hienTai?.ten.toLowerCase()}
+            {ng.haiSoCuoi ? ` tới số ${cheSo(ng.haiSoCuoi)}` : ""}, lúc{" "}
+            {new Date(ng.xacMinhLuc).toLocaleString("vi-VN")}.
           </p>
         ) : (
           <p className="m-0 text-sm" style={{ color: "var(--muc-nhat)" }}>
@@ -64,49 +66,52 @@ export default async function TrangNguoiGiamHo() {
           </p>
         )}
 
-        <form action={hanhDongGhiNguoiGiamHo} className="mt-4 space-y-3">
-          <div className="flex flex-wrap gap-3">
-            <label className="text-sm">
-              Họ tên
-              <input name="hoTen" required defaultValue={ng?.hoTen ?? ""}
-                className="the ml-2 px-3 py-2 text-sm" />
-            </label>
-            <label className="text-sm">
-              Quan hệ với con
-              <select name="quanHe" defaultValue={ng?.quanHe ?? "me"} className="the ml-2 px-3 py-2 text-sm">
-                {(["cha", "me", "nguoi-giam-ho"] as const).map((q) => (
-                  <option key={q} value={q}>{TEN_QUAN_HE[q]}</option>
-                ))}
-              </select>
-            </label>
-          </div>
+        <XacMinhSoDienThoai
+          quanHeMacDinh={ng?.quanHe ?? "me"}
+          hoTenMacDinh={ng?.hoTen ?? ""}
+        />
 
-          <fieldset className="the m-0 p-4">
-            <legend className="px-2 text-sm font-semibold">Cách xác minh</legend>
-            <div className="space-y-2">
-              {PHUONG_THUC.map((p) => (
-                <label key={p.ma} className="flex items-start gap-2 text-sm">
-                  <input type="radio" name="phuongThuc" value={p.ma} className="mt-1"
-                    defaultChecked={(ng?.phuongThuc ?? "tu-khai") === p.ma} />
-                  <span>
-                    <strong>{p.ten}</strong> — {p.chungMinhDuoc}{" "}
-                    <span style={{ color: "var(--muc-nhat)" }}>{p.khongChungMinhDuoc}</span>
-                  </span>
-                </label>
-              ))}
+        {/*
+          Lối tự khai vẫn giữ, và cố ý để BÊN DƯỚI lối xác minh bằng mã.
+          Chặn cứng ở đây sẽ khóa luôn cả phần luyện tập của con khi nhà mạng
+          trục trặc, mà phần luyện tập thì không xử lý dữ liệu gì cần mức xác
+          minh cao. Nhưng nó không còn là một lựa chọn ngang hàng: nó ghi xuống
+          mức "tự khai", và lời cảnh báo bên dưới sẽ không im.
+        */}
+        <details className="the mt-4 p-5">
+          <summary className="cursor-pointer text-sm font-semibold">
+            Chưa nhận được tin nhắn? Khai tạm không qua xác minh
+          </summary>
+          <p className="m-0 mt-3 text-sm" style={{ color: "var(--muc-nhat)" }}>
+            Cách này <strong>không xác minh được gì</strong> — một đứa trẻ tám tuổi cũng bấm được.
+            Ô Ly ghi đúng như vậy vào hồ sơ, và vẫn nhắc anh chị xác minh lại bằng mã khi tiện.
+          </p>
+          <form action={hanhDongGhiNguoiGiamHo} className="mt-3 space-y-3">
+            <div className="flex flex-wrap gap-3">
+              <label className="text-sm">
+                Họ tên
+                <input name="hoTen" required defaultValue={ng?.hoTen ?? ""}
+                  className="the ml-2 px-3 py-2 text-sm" />
+              </label>
+              <label className="text-sm">
+                Quan hệ với con
+                <select name="quanHe" defaultValue={ng?.quanHe ?? "me"} className="the ml-2 px-3 py-2 text-sm">
+                  {(["cha", "me", "nguoi-giam-ho"] as const).map((q) => (
+                    <option key={q} value={q}>{TEN_QUAN_HE[q]}</option>
+                  ))}
+                </select>
+              </label>
             </div>
-          </fieldset>
-
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name="tuXacNhan" value="1" className="mt-1" required />
-            <span>
-              Tôi xác nhận tôi đã thành niên và là cha, mẹ hoặc người giám hộ của cháu, và tôi
-              đồng ý chịu trách nhiệm về các lựa chọn quyền riêng tư của tài khoản này.
-            </span>
-          </label>
-
-          <button type="submit" className="nut">Lưu xác nhận</button>
-        </form>
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="tuXacNhan" value="1" className="mt-1" required />
+              <span>
+                Tôi xác nhận tôi đã thành niên và là cha, mẹ hoặc người giám hộ của cháu, và tôi
+                đồng ý chịu trách nhiệm về các lựa chọn quyền riêng tư của tài khoản này.
+              </span>
+            </label>
+            <button type="submit" className="nut text-sm">Khai tạm</button>
+          </form>
+        </details>
 
         {canhBao && (
           <p className="the mt-4 mb-0 p-4 text-sm"

@@ -198,6 +198,49 @@ function taoBang(d: Database.Database): void {
       at TEXT NOT NULL
     );
 
+    /*
+     * Mã một lần gửi qua số điện thoại (CR-05).
+     *
+     * KHÔNG có cột nào chứa mã dưới dạng rõ, và không có cột nào chứa số điện
+     * thoại dưới dạng rõ. Mã lưu bản băm scrypt kèm muối riêng từng dòng; số
+     * máy lưu bản băm có khóa, cộng hai số cuối để phụ huynh nhận ra số của
+     * mình. Xem src/lib/privacy/ma-mot-lan.ts.
+     *
+     * Cột so_may_bam tồn tại để đếm được số lần Ô Ly đã nhắn tới CÙNG một thuê
+     * bao, kể cả khi các lần đó đến từ những hộ khác nhau — nếu không thì chỉ
+     * cần lập nhiều tài khoản là dùng được Ô Ly để nhắn tin quấy rối một người
+     * ngoài.
+     */
+    CREATE TABLE IF NOT EXISTS ma_mot_lan (
+      id TEXT PRIMARY KEY,
+      household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      so_may_bam TEXT NOT NULL,
+      hai_so_cuoi TEXT NOT NULL,
+      ma_bam TEXT NOT NULL,
+      muoi TEXT NOT NULL,
+      tao_luc TEXT NOT NULL,
+      het_han_luc TEXT NOT NULL,
+      so_lan_sai INTEGER NOT NULL DEFAULT 0,
+      da_dung INTEGER NOT NULL DEFAULT 0
+    );
+
+    /*
+     * Khóa để băm số điện thoại.
+     *
+     * Sinh một lần rồi dùng mãi, vì việc đếm theo thuê bao cần cùng một số máy
+     * luôn ra cùng một vân tay. Khóa nằm cạnh chính dữ liệu nó bảo vệ, nên nói
+     * cho rõ nó chống được gì: nó chống việc số điện thoại lộ ra qua bản xuất
+     * dữ liệu, bản sao lưu từng bảng hay dòng nhật ký. Nó KHÔNG chống được
+     * người đã lấy trọn cơ sở dữ liệu.
+     */
+    CREATE TABLE IF NOT EXISTS bi_mat (
+      ten TEXT PRIMARY KEY,
+      gia_tri TEXT NOT NULL,
+      tao_luc TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_ma_mot_lan_ho ON ma_mot_lan(household_id, tao_luc);
+    CREATE INDEX IF NOT EXISTS idx_ma_mot_lan_so ON ma_mot_lan(so_may_bam, tao_luc);
     CREATE INDEX IF NOT EXISTS idx_guardians_ho ON guardians(household_id, xac_minh_luc);
     CREATE INDEX IF NOT EXISTS idx_nhat_ky_ma ON nhat_ky_xu_ly(ma_yeu_cau, at);
     CREATE INDEX IF NOT EXISTS idx_attempts_child ON attempts(child_id, at);
@@ -220,6 +263,7 @@ function diTru(d: Database.Database): void {
   themCotNeuThieu(d, "children", "thang_sinh", "INTEGER");
   themCotNeuThieu(d, "consents", "nguoi_dong_y", "TEXT NOT NULL DEFAULT 'nguoi-giam-ho'");
   themCotNeuThieu(d, "consents", "child_id", "TEXT");
+  themCotNeuThieu(d, "guardians", "hai_so_cuoi", "TEXT");
 }
 
 function themCotNeuThieu(
