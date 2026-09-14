@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "kiem-tra": "tsc --noEmit && eslint --max-warnings=0 && vitest run",
     "chi-phi": "tsx scripts/mo-hinh-chi-phi.ts",
-    "kho": "tsx scripts/do-kho-noi-dung.ts"
+    "kho": "tsx scripts/do-kho-noi-dung.ts",
+    "do-anh": "tsx scripts/do-bo-anh.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

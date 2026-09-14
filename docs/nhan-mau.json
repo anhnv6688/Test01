@@ -1,0 +1,267 @@
+{
+  "moTa": "Mẫu tệp nhãn. Chép tệp này thành nhan.json trong thư mục ảnh rồi sửa lại theo ảnh thật.",
+  "nguoiGanNhan": "ghi tên người gắn nhãn ở đây",
+  "ganNhanLuc": "2026-09-14",
+  "anh": [
+    {
+      "tep": "01-cot-doc.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "tot",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "cacBai": [
+        {
+          "dang": "cot-doc",
+          "soA": 47,
+          "soB": 28,
+          "phep": "+",
+          "chuSoTre": [
+            5,
+            7
+          ]
+        },
+        {
+          "dang": "cot-doc",
+          "soA": 63,
+          "soB": 25,
+          "phep": "-",
+          "chuSoTre": [
+            2,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "tep": "02-hang-ngang.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "den-ban-buoi-toi",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "cacBai": [
+        {
+          "dang": "hang-ngang",
+          "veTrai": "35 + 24",
+          "ketQuaTre": 59
+        },
+        {
+          "dang": "hang-ngang",
+          "veTrai": "18 + 7",
+          "ketQuaTre": 24
+        },
+        {
+          "dang": "hang-ngang",
+          "veTrai": "4 x 6",
+          "ketQuaTre": 24
+        }
+      ]
+    },
+    {
+      "tep": "03-dien-so-so-sanh.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "tot",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "cacBai": [
+        {
+          "dang": "dien-so",
+          "bieuThuc": "5 + ? = 12",
+          "soTre": 7
+        },
+        {
+          "dang": "dien-so",
+          "bieuThuc": "? - 9 = 15",
+          "soTre": 23
+        },
+        {
+          "dang": "so-sanh",
+          "veTrai": "45",
+          "vePhai": "54",
+          "dauTre": "<"
+        },
+        {
+          "dang": "so-sanh",
+          "veTrai": "3 x 4",
+          "vePhai": "10 + 2",
+          "dauTre": "="
+        }
+      ]
+    },
+    {
+      "tep": "04-trac-nghiem.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "nghieng",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "cacBai": [
+        {
+          "dang": "trac-nghiem",
+          "luaChon": [
+            "18",
+            "20",
+            "22",
+            "24"
+          ],
+          "chonTre": 2,
+          "dapAnDung": 2
+        },
+        {
+          "dang": "trac-nghiem",
+          "luaChon": [
+            "A",
+            "B",
+            "C"
+          ],
+          "chonTre": 0,
+          "dapAnDung": null
+        }
+      ]
+    },
+    {
+      "tep": "05-bai-giai.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "tot",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "cacBai": [
+        {
+          "dang": "bai-giai-loi-van",
+          "deBai": "Lan có 32 quả cam, Lan cho bạn 8 quả. Hỏi Lan còn lại bao nhiêu quả cam?",
+          "cauLoiGiai": "Số quả cam Lan còn lại là:",
+          "phepTinh": "32 - 8 = 24",
+          "dapSo": "24 quả"
+        },
+        {
+          "dang": "bai-giai-loi-van",
+          "deBai": "Mỗi hộp có 5 cái bút. Hỏi 4 hộp có bao nhiêu cái bút?",
+          "cauLoiGiai": null,
+          "phepTinh": "5 x 4 = 20",
+          "dapSo": "20 cái bút"
+        }
+      ]
+    },
+    {
+      "tep": "06-do-luong.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "thieu-sang",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "cacBai": [
+        {
+          "dang": "doi-don-vi",
+          "soNguon": 3,
+          "donViNguon": "m",
+          "donViDich": "cm",
+          "ketQuaTre": 300
+        },
+        {
+          "dang": "doi-don-vi",
+          "soNguon": 250,
+          "donViNguon": "cm",
+          "donViDich": "dm",
+          "ketQuaTre": 25
+        },
+        {
+          "dang": "dem-hinh",
+          "soThat": 7,
+          "ketQuaTre": 7
+        },
+        {
+          "dang": "dem-hinh",
+          "soThat": 5,
+          "ketQuaTre": 6
+        }
+      ]
+    },
+    {
+      "tep": "07-xem-gio-noi-ghep.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "tot",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "cacBai": [
+        {
+          "dang": "xem-gio",
+          "gioThat": 8,
+          "phutThat": 30,
+          "gioTre": 8,
+          "phutTre": 30
+        },
+        {
+          "dang": "xem-gio",
+          "gioThat": 3,
+          "phutThat": 15,
+          "gioTre": 3,
+          "phutTre": 45
+        },
+        {
+          "dang": "noi-ghep",
+          "capTre": [
+            {
+              "trai": "2 x 3",
+              "phai": "6"
+            },
+            {
+              "trai": "4 x 5",
+              "phai": "20"
+            }
+          ],
+          "capDung": [
+            {
+              "trai": "2 x 3",
+              "phai": "6"
+            },
+            {
+              "trai": "4 x 5",
+              "phai": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tep": "08-chua-nhan-dang.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "mat-goc",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "cacBai": [
+        {
+          "dang": "chua-nhan-dang",
+          "docDuoc": "Vẽ thêm hình để được hình vuông",
+          "ghiChu": "bài vẽ, Ô Ly không kết luận được"
+        }
+      ]
+    },
+    {
+      "tep": "09-qua-nhoe.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "nhoe",
+      "nguoiDocDuoc": false,
+      "lop": 2
+    },
+    {
+      "tep": "10-qua-toi.png",
+      "loaiViec": "cham-bai-lam",
+      "dieuKienChup": "thieu-sang",
+      "nguoiDocDuoc": false,
+      "lop": 2
+    },
+    {
+      "tep": "11-de-tang-1.png",
+      "loaiViec": "doc-de-bai",
+      "dieuKienChup": "tot",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "deBai": "Đặt tính rồi tính: 56 + 37"
+    },
+    {
+      "tep": "12-de-tang-2.png",
+      "loaiViec": "doc-de-bai",
+      "dieuKienChup": "den-ban-buoi-toi",
+      "nguoiDocDuoc": true,
+      "lop": 2,
+      "deBai": "Một cửa hàng có 45 kg gạo, buổi sáng bán được 18 kg. Hỏi cửa hàng còn lại bao nhiêu ki-lô-gam gạo?"
+    }
+  ]
+}

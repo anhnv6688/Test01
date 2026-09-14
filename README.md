@@ -18,7 +18,7 @@ Cu Tí lớp 1) và dữ liệu nằm trong `.data/oly.sqlite`. **Mã PIN của 
 bố mẹ là `1234`.**
 
 ```bash
-npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 167 bài kiểm thử
+npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 274 bài kiểm thử
 npm test             # chỉ chạy kiểm thử
 npm run build        # dựng bản phát hành
 ```
@@ -267,6 +267,36 @@ khách hàng hài lòng nhất**. Cách chia hai tầng đưa con số đó lên
 > `TRAN_HOA_VON_TRANG_HO_MIEN_PHI` và có một bài kiểm thử canh nó. Tỷ lệ dùng
 > hết trần thật chưa ai đo — đó là con số cần đo sớm nhất sau khi mở bán.
 
+## Bộ đo ảnh
+
+Điều kiện ra mắt số 9 đòi đo tỷ lệ nhận dạng thành công **trên bộ ảnh chụp trong
+điều kiện thật**, và điều kiện số 3 đòi đo chi phí thật một trang. Cả hai đều
+cần một cái thước dựng sẵn, chạy được ngay khi ảnh về.
+
+```bash
+npm run do-anh                            # diễn tập, không gọi ra mạng
+npm run do-anh -- --thu-muc bo-anh-do     # chạy trên bộ ảnh thật
+```
+
+Chế độ diễn tập tự sinh ảnh, tự gài lỗi đã biết trước, rồi đòi bộ đo nêu đúng
+những lỗi ấy ra. Nó **không** cho biết gì về sản phẩm thật; việc của nó là chứng
+minh cái thước chạy được trước khi có ảnh. Một bộ đo chưa ai thử mà báo "0 báo
+động giả" thì con số đó có thể nghĩa là sản phẩm tốt, cũng có thể nghĩa là hàm
+so sánh hỏng — và không cách nào phân biệt.
+
+Điểm thiết kế đáng nói nhất: bộ đo chạy **bộ chấm trên cả hai đầu vào** — nhãn
+và phiên âm của mô hình — rồi so hai kết luận. Vì thế mọi khác biệt về kết luận
+đều quy được về đúng một nguyên nhân là lỗi đọc, không lẫn với lỗi của bộ chấm.
+
+Đo độ chính xác phiên âm thôi là chưa đủ. Thứ làm hại một gia đình không phải là
+máy đọc nhầm một chữ số, mà là **máy nói với bố mẹ rằng con làm sai trong khi
+con làm đúng**. Nên báo cáo xếp bốn kiểu lệch kết luận theo mức tai hại, báo
+động giả đứng đầu, và đặt cả mục đó lên trước tỷ lệ phiên âm.
+
+Hướng dẫn chụp và gắn nhãn: [`docs/bo-do-anh.md`](docs/bo-do-anh.md). Quy tắc
+gắn nhãn dễ làm sai nhất, nhắc lại ở đây: **nhãn ghi những gì trẻ đã viết trên
+giấy, không phải đáp án đúng của bài.**
+
 ## Bố cục mã nguồn
 
 ```
@@ -275,11 +305,12 @@ src/
                    phần thưởng theo nỗ lực, bản tin tối, chấm cột dọc, lời giảng
   lib/privacy/     ba lớp bảo vệ và cơ chế đồng ý theo từng mục đích
   lib/vision/      giao diện nhà cung cấp xử lý ảnh và bản giả lập
+  lib/do-anh/      bộ đo độ chính xác trên bộ ảnh thật, có bản diễn tập tự kiểm
   lib/server/      cơ sở dữ liệu, kho dữ liệu, cổng mã PIN, yêu cầu của người dùng
   app/be/          bề mặt của trẻ
   app/phu-huynh/   bề mặt của phụ huynh
   app/api/         chấm bài, mở gợi ý, xử lý ảnh — nơi duy nhất biết đáp án
-tests/             115 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
+tests/             274 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
 docs/              ma trận truy vết yêu cầu nghiệp vụ
 ```
 
@@ -292,12 +323,13 @@ Nói rõ để không ai nhầm bản dựng này với sản phẩm sẵn sàng
   chạy nếu chưa bật đủ ba cờ xác nhận đã ký thỏa thuận xử lý dữ liệu — CR-03 và
   CR-16 đòi ký trước khi xử lý dữ liệu thật. Chưa đủ điều kiện thì hệ thống quay
   về bản giả lập `src/lib/vision/mock.ts` và ghi một dòng cảnh báo. Chất lượng
-  nhận dạng trên bộ ảnh thật **chưa được đo** (RR-10, điều kiện ra mắt số 9).
+  nhận dạng trên bộ ảnh thật **chưa được đo** (RR-10, điều kiện ra mắt số 9) —
+  nhưng cái thước để đo thì đã dựng xong và đã tự kiểm được, xem phần Bộ đo ảnh.
 - **Chưa có tài khoản thật.** Mã PIN bốn số chỉ chặn một đứa trẻ tò mò, đúng
   mối đe dọa mà NT-10 cần chặn. Phần xác minh độ tuổi và sự đồng ý của người đại
   diện theo pháp luật (CR-05) chưa làm.
 - **Chưa có thanh toán** (CR-12, CR-13). Gói cước hiện là dữ liệu tĩnh.
-- **Kho nội dung mới có 12 khuôn dạng**, chưa phải khoảng 350 khuôn dạng mà
+- **Kho nội dung mới có 32 khuôn dạng**, chưa phải khoảng 350 khuôn dạng mà
   GD-03 ước tính cần để phủ lớp 1–2.
 - **BR-18 mới có chỗ cắm**, chưa có cơ chế thật để đánh dấu đề đầu vào nghi ngờ.
 - Toàn bộ hạng mục Giai đoạn 2 và Giai đoạn 3 chưa làm, đúng như phạm vi đã

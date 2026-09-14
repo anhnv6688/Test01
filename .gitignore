@@ -42,3 +42,9 @@ next-env.d.ts
 
 # Cơ sở dữ liệu cục bộ của bản dựng phát triển
 .data/
+
+# Ảnh trang vở của trẻ. Tuyệt đối không đưa vào kho mã: đây là dữ liệu cá nhân
+# của trẻ em, và một lần lỡ tay đẩy lên là không gỡ lại được khỏi lịch sử git.
+bo-anh-do/
+.bo-anh-dien-tap/
+*.bao-cao.json

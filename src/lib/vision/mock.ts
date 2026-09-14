@@ -12,6 +12,7 @@ import {
   GIAI_THICH_LOI,
   tienKiemChatLuong,
   type ChatLuongAnh,
+  type ChiPhiLanGoi,
   type KetQuaXuLy,
   type NhaCungCapXuLyAnh,
 } from "./provider";
@@ -42,9 +43,14 @@ export class NhaCungCapGiaLap implements NhaCungCapXuLyAnh {
   }
 
   async xuLy(goi: GoiGuiDi, chatLuong: ChatLuongAnh): Promise<KetQuaXuLy> {
+    const batDau = Date.now();
     const loi = tienKiemChatLuong(chatLuong);
     if (loi) {
-      return { ok: false, loi: { ma: loi, noiGiVoiPhuHuynh: GIAI_THICH_LOI[loi] } };
+      return {
+        ok: false,
+        loi: { ma: loi, noiGiVoiPhuHuynh: GIAI_THICH_LOI[loi] },
+        chiPhi: chiPhiGiaLap(goi, batDau),
+      };
     }
 
     const hat = Number.parseInt(createHash("sha256").update(goi.anhBase64).digest("hex").slice(0, 8), 16);
@@ -55,6 +61,7 @@ export class NhaCungCapGiaLap implements NhaCungCapXuLyAnh {
       const de = r.next() < 0.6 ? deTang1(r) : deTang2(r);
       return {
         ok: true,
+        chiPhi: chiPhiGiaLap(goi, batDau),
         ketQua: {
           loai: "doc-de-bai",
           deBai: de.nguyenVan,
@@ -106,6 +113,7 @@ export class NhaCungCapGiaLap implements NhaCungCapXuLyAnh {
 
     return {
       ok: true,
+      chiPhi: chiPhiGiaLap(goi, batDau),
       ketQua: {
         loai: "cham-bai-lam",
         cacBai,
@@ -117,6 +125,25 @@ export class NhaCungCapGiaLap implements NhaCungCapXuLyAnh {
       },
     };
   }
+}
+
+/**
+ * Chi phí giả lập.
+ *
+ * Ước tính từ kích thước ảnh theo đúng công thức ô 28×28 của mô hình thật, để
+ * bộ đo chạy được trọn vẹn khi chưa có khóa API. Con số này KHÔNG phải số đo
+ * thật và bộ đo phải nói rõ như vậy — điều kiện ra mắt số 3 đòi số đo thật.
+ */
+function chiPhiGiaLap(goi: GoiGuiDi, batDau: number): ChiPhiLanGoi {
+  const soByte = Math.ceil((goi.anhBase64.length * 3) / 4);
+  return {
+    // Xấp xỉ: ảnh nén JPEG khoảng 0,15 byte mỗi điểm ảnh, mỗi ô 28×28 là 1 token.
+    tokenVaoMoi: Math.max(64, Math.round(soByte / 0.15 / (28 * 28))),
+    tokenVaoTuDem: 2000,
+    tokenRa: 800,
+    thoiGianMs: Date.now() - batDau,
+    model: "gia-lap-noi-bo",
+  };
 }
 
 /** Đề mã nguồn giải được — tầng 1, không tốn tiền gọi mô hình. */

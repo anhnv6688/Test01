@@ -183,3 +183,34 @@ trực."
 
 Phần mềm đã sẵn sàng để quy trình chạy thử. Hai dòng cuối là việc của tổ chức,
 không phải của mã nguồn, nhưng chúng vẫn nằm giữa Ô Ly và điều kiện số 5.
+
+## Điều kiện ra mắt số 3 và số 9 — chi phí thật và tỷ lệ nhận dạng thật
+
+BRD mục 13: chi phí xử lý một trang "đã được đo trên dữ liệu thật, không còn là
+ước lượng", và tỷ lệ nhận dạng thành công ngay lần chụp đầu "đo trên bộ ảnh chụp
+trong điều kiện thật" đạt ngưỡng do chủ đầu tư đặt.
+
+Hai điều kiện này **chưa đạt**, và không thể đạt bằng mã nguồn: chúng cần ảnh
+thật. Thứ mã nguồn làm được là dựng sẵn cái thước, để ngày có ảnh thì đo được
+ngay chứ không mất thêm một vòng phát triển.
+
+| Phần | Ở đâu | Trạng thái |
+|---|---|---|
+| Nhà cung cấp báo số token và thời gian thật | `vision/provider.ts` — `ChiPhiLanGoi` | Đủ |
+| Quy token thật ra tiền theo bảng giá | `do-anh/bao-cao.ts` | Đủ |
+| Lược đồ nhãn và phần kiểm nhãn trước khi chạy | `do-anh/nhan.ts` | Đủ |
+| So phiên âm **và so kết luận** của bộ chấm | `do-anh/so-khop.ts` | Đủ |
+| Tách theo dạng bài và theo điều kiện chụp | `do-anh/bao-cao.ts` | Đủ |
+| Cắm chi phí đo được vào mô hình lỗ lãi | `do-anh/in-bao-cao.ts` | Đủ |
+| Bản diễn tập tự kiểm, chạy không cần mạng | `do-anh/nha-cung-cap-dien-tap.ts`, `do-anh/tu-kiem.ts` | Đủ |
+| **Bộ ảnh thật, đã gắn nhãn** | — | **Chưa có** |
+| **Thỏa thuận xử lý dữ liệu đã ký** (CR-03, CR-16) | — | **Chưa** — thiếu thì không gọi được nhà cung cấp thật |
+| **Ngưỡng đạt do chủ đầu tư đặt** | — | **Chưa** — bộ đo cố ý không tự đặt ngưỡng |
+
+Bộ đo đo **kết luận**, không chỉ đo phiên âm. Nó chạy bộ chấm trên cả nhãn lẫn
+phiên âm của mô hình rồi so hai kết luận, nên mọi khác biệt đều quy được về đúng
+một nguyên nhân là lỗi đọc. Bốn kiểu lệch xếp theo mức tai hại, và báo động giả
+— con làm đúng mà Ô Ly bảo sai — đứng đầu, vì đó là kiểu lệch duy nhất khiến một
+đứa trẻ bị mắng oan.
+
+Cách chụp và cách gắn nhãn: `docs/bo-do-anh.md`.

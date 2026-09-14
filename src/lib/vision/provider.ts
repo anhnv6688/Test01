@@ -76,9 +76,31 @@ export interface KetQuaChamAnh {
   buocDocDuoc: BuocDocDuoc[];
 }
 
+/**
+ * Chi phí và công sức thật của một lần gọi.
+ *
+ * Điều kiện ra mắt số 3 đòi chi phí xử lý một trang phải được ĐO trên dữ liệu
+ * thật, không còn là ước lượng. Muốn đo thì nhà cung cấp phải báo lại số token
+ * đã dùng, nên nó là một phần của giao diện chứ không phải thứ thêm vào riêng
+ * cho bộ đo — trong vận hành thật cũng cần đúng con số này để BR-22 theo dõi
+ * chi phí liên tục thay vì lấy hằng số ước tính.
+ *
+ * Để trống khi nhà cung cấp không báo được; bộ đo sẽ nói rõ là chưa đo được
+ * chứ không lấp bằng số ước tính.
+ */
+export interface ChiPhiLanGoi {
+  tokenVaoMoi: number;
+  tokenVaoTuDem: number;
+  tokenRa: number;
+  /** Mili giây từ lúc gửi tới lúc nhận kết quả — phụ huynh đứng chờ bằng đó. */
+  thoiGianMs: number;
+  /** Mô hình thật sự đã phục vụ lần gọi này. */
+  model: string;
+}
+
 export type KetQuaXuLy =
-  | { ok: true; ketQua: KetQuaDocDe | KetQuaChamAnh }
-  | { ok: false; loi: LoiDocAnh };
+  | { ok: true; ketQua: KetQuaDocDe | KetQuaChamAnh; chiPhi?: ChiPhiLanGoi }
+  | { ok: false; loi: LoiDocAnh; chiPhi?: ChiPhiLanGoi };
 
 export interface NhaCungCapXuLyAnh {
   ten: string;

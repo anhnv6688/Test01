@@ -53,7 +53,23 @@ describe("nhà cung cấp xử lý ảnh", () => {
   it("cùng một ảnh cho cùng một kết quả, để đo được chi phí và bấm giờ", async () => {
     const a = await ncc.xuLy(goi("bWFuaC1hbmgtbW90"), TOT);
     const b = await ncc.xuLy(goi("bWFuaC1hbmgtbW90"), TOT);
-    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    // So phần KẾT QUẢ, không so đồng hồ: thoiGianMs vốn phải khác nhau giữa
+    // hai lần chạy, và đó chính là con số bộ đo cần.
+    expect(a.ok && b.ok && JSON.stringify(a.ketQua) === JSON.stringify(b.ketQua)).toBe(true);
+  });
+
+  it("báo lại số token và thời gian, để đo được chi phí thật (điều kiện ra mắt số 3)", async () => {
+    const kq = await ncc.xuLy(goi("Y2hpLXBoaQ"), TOT);
+    expect(kq.chiPhi).toBeDefined();
+    expect(kq.chiPhi!.tokenVaoMoi).toBeGreaterThan(0);
+    expect(kq.chiPhi!.tokenRa).toBeGreaterThan(0);
+    expect(kq.chiPhi!.model.length).toBeGreaterThan(0);
+  });
+
+  it("ảnh bị từ chối vẫn báo chi phí, vì lần gọi đó cũng tốn thời gian", async () => {
+    const kq = await ncc.xuLy(goi("QUFB"), { ...TOT, doSang: 10 });
+    expect(kq.ok).toBe(false);
+    expect(kq.chiPhi).toBeDefined();
   });
 
   it("kết quả trả về là phiên âm nhiều bài trên trang, không phải một bài", async () => {

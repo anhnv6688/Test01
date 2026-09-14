@@ -7,8 +7,27 @@ import type { LoiGiang, MucChiTiet } from "@/lib/domain/teaching";
 import type { GoiGuiDi } from "@/lib/privacy/envelope";
 import {
   GIAI_THICH_LOI, tienKiemChatLuong,
-  type ChatLuongAnh, type KetQuaXuLy, type NhaCungCapXuLyAnh,
+  type ChatLuongAnh, type ChiPhiLanGoi, type KetQuaXuLy, type NhaCungCapXuLyAnh,
 } from "./provider";
+
+/** Gom số liệu dùng tài nguyên từ một lần trả lời của mô hình. */
+function doChiPhi(
+  usage: {
+    input_tokens?: number | null;
+    output_tokens?: number | null;
+    cache_read_input_tokens?: number | null;
+  } | undefined,
+  model: string,
+  batDau: number,
+): ChiPhiLanGoi {
+  return {
+    tokenVaoMoi: usage?.input_tokens ?? 0,
+    tokenVaoTuDem: usage?.cache_read_input_tokens ?? 0,
+    tokenRa: usage?.output_tokens ?? 0,
+    thoiGianMs: Date.now() - batDau,
+    model,
+  };
+}
 
 /**
  * Nhà cung cấp xử lý ảnh thật, dùng mô hình đọc ảnh của Anthropic.
@@ -294,6 +313,7 @@ export class NhaCungCapClaude implements NhaCungCapXuLyAnh {
     };
 
     if (goi.loaiViec === "doc-de-bai") {
+      const batDau = Date.now();
       const tra = await this.client.messages.parse({
         model: MODEL_DOC_ANH,
         max_tokens: 4096,
@@ -303,13 +323,15 @@ export class NhaCungCapClaude implements NhaCungCapXuLyAnh {
         output_config: { effort: MUC_CONG_SUC, format: zodOutputFormat(DeBaiSchema) },
         messages: [{ role: "user", content: [anh, { type: "text", text: `Lớp ${goi.lop}.` }] }],
       });
+      const chiPhi = doChiPhi(tra.usage, tra.model ?? MODEL_DOC_ANH, batDau);
       const kq = tra.parsed_output;
       if (!kq || !kq.docDuocAnh) {
         const ma = kq?.lyDoKhongDoc ?? "khong-thay-chu";
-        return { ok: false, loi: { ma, noiGiVoiPhuHuynh: GIAI_THICH_LOI[ma] } };
+        return { ok: false, loi: { ma, noiGiVoiPhuHuynh: GIAI_THICH_LOI[ma] }, chiPhi };
       }
       return {
         ok: true,
+        chiPhi,
         ketQua: {
           loai: "doc-de-bai",
           deBai: kq.deBai,
@@ -320,6 +342,7 @@ export class NhaCungCapClaude implements NhaCungCapXuLyAnh {
       };
     }
 
+    const batDau = Date.now();
     const tra = await this.client.messages.parse({
       model: MODEL_DOC_ANH,
       max_tokens: 8192,
@@ -329,20 +352,23 @@ export class NhaCungCapClaude implements NhaCungCapXuLyAnh {
       messages: [{ role: "user", content: [anh, { type: "text", text: `Lớp ${goi.lop}.` }] }],
     });
 
+    const chiPhi = doChiPhi(tra.usage, tra.model ?? MODEL_DOC_ANH, batDau);
     const kq = tra.parsed_output;
     if (!kq || !kq.docDuocAnh) {
       const ma = kq?.lyDoKhongDoc ?? "khong-thay-chu";
-      return { ok: false, loi: { ma, noiGiVoiPhuHuynh: GIAI_THICH_LOI[ma] } };
+      return { ok: false, loi: { ma, noiGiVoiPhuHuynh: GIAI_THICH_LOI[ma] }, chiPhi };
     }
     if (kq.cacBai.length === 0) {
       return {
         ok: false,
         loi: { ma: "khong-thay-chu", noiGiVoiPhuHuynh: GIAI_THICH_LOI["khong-thay-chu"] },
+        chiPhi,
       };
     }
 
     return {
       ok: true,
+      chiPhi,
       ketQua: {
         loai: "cham-bai-lam",
         cacBai: kq.cacBai.map(chuyenDoi),
