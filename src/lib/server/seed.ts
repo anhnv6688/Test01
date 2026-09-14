@@ -26,12 +26,24 @@ export function moiDuLieu(): { householdId: string } {
     "INSERT INTO households (id, ten, dia_ban, goi, het_han_at, pin, created_at) VALUES (?,?,?,?,?,?,?)",
   ).run(hoId, "Hộ nhà mình", "do-thi", "vo-nhap", null, "1234", now);
 
-  d.prepare("INSERT INTO children (id, household_id, ten_goi, lop, created_at) VALUES (?,?,?,?,?)").run(
-    randomUUID(), hoId, "Bống", 2, now,
+  /*
+   * Hai bạn cố ý nằm hai bên mốc 7 tuổi (CR-05).
+   *
+   * Bống tám tuổi nên cần CẢ sự đồng ý của chính em lẫn của người giám hộ; Cu
+   * Tí sáu tuổi thì chỉ cần người giám hộ. Đặt tuổi theo thời điểm chạy chứ
+   * không gắn năm cứng, để bản trình diễn còn thể hiện được hai chế độ đó về
+   * sau, thay vì cả hai bạn cùng già đi rồi rơi vào một chế độ.
+   *
+   * Bản ghi người giám hộ thì CỐ Ý để trống: hộ mới thì chưa ai xác minh, và
+   * luồng chụp ảnh phải bị chặn cho tới khi có người xác nhận thật.
+   */
+  const namNay = new Date().getUTCFullYear();
+  const thangNay = new Date().getUTCMonth() + 1;
+  const themCon = d.prepare(
+    "INSERT INTO children (id, household_id, ten_goi, lop, nam_sinh, thang_sinh, created_at) VALUES (?,?,?,?,?,?,?)",
   );
-  d.prepare("INSERT INTO children (id, household_id, ten_goi, lop, created_at) VALUES (?,?,?,?,?)").run(
-    randomUUID(), hoId, "Cu Tí", 1, now,
-  );
+  themCon.run(randomUUID(), hoId, "Bống", 2, namNay - 8, thangNay, now);
+  themCon.run(randomUUID(), hoId, "Cu Tí", 1, namNay - 6, thangNay, now);
 
   return { householdId: hoId };
 }

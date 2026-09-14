@@ -105,7 +105,7 @@ hiệu lực nếu có thứ gì đó kiểm tra nó ở mỗi lần chạy ki�
 | CR-02 | Đủ | Khử nhận dạng trước khi gửi ra ngoài — `privacy/envelope.ts` |
 | CR-03 | Đủ phần thuộc phần mềm | `NhaCungCapClaude` TỪ CHỐI dựng nếu chưa bật đủ ba cờ xác nhận đã ký; hệ thống quay về bản giả lập thay vì gửi dữ liệu thật. Bản hợp đồng là việc ngoài mã nguồn |
 | CR-04 | Đủ | Đồng ý tách theo mục đích, không đánh dấu sẵn, lưu bằng chứng kèm phiên bản văn bản |
-| CR-05 | Chưa | Xác minh độ tuổi và sự đồng ý của người đại diện theo pháp luật |
+| CR-05 | Đủ phần thuộc phần mềm | Bản ghi người đại diện có phương thức xác minh và độ mạnh; tháng năm sinh của trẻ; chế độ đồng ý tính lại theo thời gian quanh mốc 7 tuổi; cổng chặn ở tuyến xử lý ảnh. Xem mục riêng bên dưới. Việc chọn phương thức xác minh nào là đủ cần ý kiến pháp lý |
 | CR-06 | Đủ | Đầu mối công khai, hạn xử lý, và nhật ký xử lý đầy đủ ở bảng trực. Nhật ký không có khóa ngoại nên sống sót cả khi hộ đã bị xóa theo yêu cầu |
 | CR-07 | Đủ | Nhãn hiển thị và dấu máy đọc được trong `domain/generator.ts` |
 | CR-08 | Đủ | Bản ghi người duyệt là điều kiện chặn ở cổng phát hành |
@@ -214,3 +214,60 @@ một nguyên nhân là lỗi đọc. Bốn kiểu lệch xếp theo mức tai h
 đứa trẻ bị mắng oan.
 
 Cách chụp và cách gắn nhãn: `docs/bo-do-anh.md`.
+
+## CR-05 — người đại diện theo pháp luật và xác minh tuổi
+
+Quy định về dữ liệu cá nhân của trẻ em đặt ra hai chế độ, và mốc chia là 7 tuổi:
+
+| Tuổi của trẻ | Cần sự đồng ý của ai |
+|---|---|
+| Dưới 7 | Cha, mẹ hoặc người giám hộ |
+| Từ đủ 7 | **Cả trẻ, và** cha, mẹ hoặc người giám hộ |
+
+Với phần lớn sản phẩm, đây là một dòng trong hồ sơ pháp lý. Với Ô Ly thì không:
+Ô Ly phục vụ lớp 1 và lớp 2, tức trẻ khoảng 6 đến 8 tuổi, nên **mốc đó cắt ngang
+giữa tập người dùng**. Bé lớp 1 sáu tuổi và bé lớp 2 tám tuổi trong cùng một hộ
+chịu hai chế độ khác nhau.
+
+Hệ quả kiến trúc quan trọng nhất, và cũng là chỗ dễ làm sai nhất: **chế độ đồng
+ý không phải một trạng thái lưu được.** Một hộ hợp lệ hôm nay trở thành thiếu
+điều kiện vào hôm con tròn bảy tuổi, mà không có sự kiện nào xảy ra để đánh dấu
+— không ai bấm gì, chỉ có thời gian trôi. Vì vậy `cheDoDongY()` nhận mốc thời
+gian và được gọi lại ở **mỗi lần xử lý**, không chốt một lần lúc đăng ký. Có một
+bài kiểm thử canh đúng điều này (`tests/nguoi-giam-ho.test.ts`), và mọi cách làm
+kiểu "chốt rồi lưu" đều trượt đúng bài đó.
+
+| Phần | Ở đâu | Trạng thái |
+|---|---|---|
+| Mốc 7 tuổi, tính lại theo thời gian | `privacy/tuoi.ts` | Đủ |
+| Tháng năm sinh, không lưu ngày | `children.nam_sinh`, `children.thang_sinh` | Đủ |
+| Bản ghi người đại diện, có lịch sử | bảng `guardians` | Đủ |
+| Phương thức xác minh và độ mạnh | `privacy/nguoi-giam-ho.ts` | Đủ |
+| Sự đồng ý của trẻ, tách khỏi của người lớn | `consents.nguoi_dong_y`, `consents.child_id` | Đủ |
+| Cổng chặn dùng chung cho giao diện và tuyến xử lý | `server/du-dieu-kien.ts` | Đủ |
+| Giao diện khai báo và hỏi con | `app/phu-huynh/nguoi-giam-ho` | Đủ |
+| Người đại diện nằm trong bản xuất dữ liệu và bị xóa cùng hộ | `server/thuc-thi-yeu-cau.ts` | Đủ |
+| **Phương thức xác minh mạnh hơn tự khai** | — | **Chưa** — mới có chỗ khai báo, chưa nối mã một lần hay thanh toán |
+| **Xác nhận phương thức nào là đủ** | — | **Ngoài phần mềm** — câu hỏi pháp lý, không phải hằng số trong mã nguồn |
+
+Ba quyết định thiết kế đáng ghi lại:
+
+**Chỉ lưu tháng và năm sinh, không lưu ngày.** Mục đích là biết trẻ đã đủ bảy
+tuổi chưa, và tháng năm đủ làm việc đó với sai số nhiều nhất một tháng. Ngày
+sinh đầy đủ là một mã định danh mạnh hơn hẳn, gắn với giấy khai sinh, mà Ô Ly
+không cần. Cũng không lưu một cờ "đã đủ bảy tuổi", vì cờ đó hỏng theo thời gian.
+
+**Thiếu ngày thì làm tròn về phía hỏi thêm.** Không biết ngày sinh thì phải làm
+tròn về một phía. Coi như sinh cuối tháng sẽ khiến một em vừa tròn bảy tuổi bị
+tính là sáu trong tối đa một tháng — tức là THIẾU sự đồng ý. Coi như sinh đầu
+tháng thì cùng lắm hỏi thừa một câu, mà câu hỏi đó không lấy thêm dữ liệu nào.
+Thiếu sự đồng ý là vi phạm; thừa một câu hỏi thì không.
+
+**Phần hỏi con nằm ở bề mặt phụ huynh, không nằm ở bề mặt của trẻ.** Bề mặt của
+trẻ phải là chỗ con làm toán, không phải chỗ con gặp một bức tường pháp lý. Câu
+hỏi viết cho một bạn bảy tuổi tự đọc được — trường `hoiCon` của từng mục đích —
+và người lớn ngồi cạnh khi con trả lời. Con nói không cũng được, và phần luyện
+tập vẫn chạy đủ.
+
+Điều khoản cụ thể và cách diễn giải phải do luật sư rà lại. Mã nguồn thực hiện
+quy tắc nội dung; nó không thay cho ý kiến pháp lý.

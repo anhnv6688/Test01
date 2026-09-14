@@ -42,12 +42,34 @@ function taoBang(d: Database.Database): void {
 
     -- Không có cột ảnh, không có cột ngày sinh đầy đủ: chỉ giữ đúng mức cần để
     -- chọn đúng khối lớp (nguyên tắc tối thiểu hóa dữ liệu).
+    -- Cột nam_sinh và thang_sinh thêm ở phần di trú bên dưới, không lưu NGÀY
+    -- sinh: xem src/lib/privacy/tuoi.ts để biết vì sao tháng năm là mức tối
+    -- thiểu mà vẫn tính lại được mốc 7 tuổi về sau (CR-05).
     CREATE TABLE IF NOT EXISTS children (
       id TEXT PRIMARY KEY,
       household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
       ten_goi TEXT NOT NULL,
       lop INTEGER NOT NULL CHECK (lop IN (1,2)),
       created_at TEXT NOT NULL
+    );
+
+    /*
+     * Người đại diện theo pháp luật của trẻ (CR-05).
+     *
+     * Bảng riêng chứ không phải vài cột trong households, vì đây là bằng chứng
+     * pháp lý có thời điểm và có phiên bản văn bản: nó phải giữ được cả bản ghi
+     * cũ khi người giám hộ xác minh lại bằng phương thức mạnh hơn. Bản đang có
+     * hiệu lực là bản mới nhất.
+     */
+    CREATE TABLE IF NOT EXISTS guardians (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      quan_he TEXT NOT NULL CHECK (quan_he IN ('cha','me','nguoi-giam-ho')),
+      ho_ten TEXT NOT NULL,
+      phuong_thuc TEXT NOT NULL,
+      tu_xac_nhan_dai_dien INTEGER NOT NULL,
+      phien_ban_van_ban TEXT NOT NULL,
+      xac_minh_luc TEXT NOT NULL
     );
 
     -- Kế hoạch phiên nằm ở đây chứ không chỉ trong bộ nhớ tiến trình: trẻ tải
@@ -82,6 +104,16 @@ function taoBang(d: Database.Database): void {
       at TEXT NOT NULL
     );
 
+    /*
+     * Sự đồng ý. Hai cột nguoi_dong_y và child_id thêm ở phần di trú bên dưới.
+     *
+     * Vì sao phải phân biệt AI đồng ý: với trẻ từ đủ 7 tuổi, quy định đòi sự
+     * đồng ý của CẢ trẻ lẫn người giám hộ. Hai sự đồng ý đó không thay thế được
+     * cho nhau, nên không thể gộp vào cùng một dòng. Sự đồng ý của người giám
+     * hộ áp cho cả hộ (child_id để trống); sự đồng ý của trẻ gắn với đúng đứa
+     * trẻ đó, vì một hộ có thể có bé lớp 1 sáu tuổi và bé lớp 2 tám tuổi, và
+     * hai bé thuộc hai chế độ khác nhau.
+     */
     CREATE TABLE IF NOT EXISTS consents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
@@ -166,8 +198,37 @@ function taoBang(d: Database.Database): void {
       at TEXT NOT NULL
     );
 
+    CREATE INDEX IF NOT EXISTS idx_guardians_ho ON guardians(household_id, xac_minh_luc);
     CREATE INDEX IF NOT EXISTS idx_nhat_ky_ma ON nhat_ky_xu_ly(ma_yeu_cau, at);
     CREATE INDEX IF NOT EXISTS idx_attempts_child ON attempts(child_id, at);
     CREATE INDEX IF NOT EXISTS idx_meter_household ON meter_events(household_id, at);
   `);
+  diTru(d);
+}
+
+/**
+ * Thêm cột cho cơ sở dữ liệu đã tồn tại.
+ *
+ * CREATE TABLE IF NOT EXISTS không đụng tới bảng đã có, nên cột mới phải thêm
+ * riêng. Mọi cột thêm ở đây đều phải cho phép rỗng hoặc có giá trị mặc định:
+ * một hộ đã đăng ký từ trước không có gì để điền vào cột mới, và cổng kiểm tra
+ * ở src/lib/privacy/nguoi-giam-ho.ts sẽ coi ô rỗng là CHƯA đủ điều kiện chứ
+ * không coi là đã đủ.
+ */
+function diTru(d: Database.Database): void {
+  themCotNeuThieu(d, "children", "nam_sinh", "INTEGER");
+  themCotNeuThieu(d, "children", "thang_sinh", "INTEGER");
+  themCotNeuThieu(d, "consents", "nguoi_dong_y", "TEXT NOT NULL DEFAULT 'nguoi-giam-ho'");
+  themCotNeuThieu(d, "consents", "child_id", "TEXT");
+}
+
+function themCotNeuThieu(
+  d: Database.Database,
+  bang: string,
+  cot: string,
+  kieu: string,
+): void {
+  const cols = d.prepare(`PRAGMA table_info(${bang})`).all() as { name: string }[];
+  if (cols.some((c) => c.name === cot)) return;
+  d.exec(`ALTER TABLE ${bang} ADD COLUMN ${cot} ${kieu}`);
 }

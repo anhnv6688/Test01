@@ -9,6 +9,7 @@ const MUC = [
   { href: "/phu-huynh/chup", ten: "Chụp bài" },
   { href: "/phu-huynh/lich-su", ten: "Lịch sử học" },
   { href: "/phu-huynh/quyen-rieng-tu", ten: "Quyền riêng tư" },
+  { href: "/phu-huynh/nguoi-giam-ho", ten: "Người đại diện của con" },
   { href: "/phu-huynh/goi-cuoc", ten: "Chi phí và gói" },
   { href: "/phu-huynh/du-lieu-cua-toi", ten: "Dữ liệu của tôi" },
 ];

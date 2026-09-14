@@ -1,6 +1,11 @@
 import { getDb } from "./db";
-import { danhSachCon, ghiDongY, layHo, lichSuCuaCon, lichSuDongY, lichSuViecAnh, luotDungCuaHo } from "./repo";
+import {
+  danhSachCon, ghiDongY, layHo, lichSuCuaCon, lichSuDongY, lichSuViecAnh,
+  luotDungCuaHo, nguoiGiamHoHienTai,
+} from "./repo";
 import { MUC_DICH } from "@/lib/privacy/consent";
+import type { NguoiGiamHo } from "@/lib/privacy/nguoi-giam-ho";
+import type { ThangNamSinh } from "@/lib/privacy/tuoi";
 
 /**
  * Thực thi yêu cầu của người dùng về dữ liệu của mình.
@@ -23,7 +28,12 @@ import { MUC_DICH } from "@/lib/privacy/consent";
 export interface BanXuatDuLieu {
   xuatLuc: string;
   ho: { ten: string; diaBan: string; goi: string; hetHanAt: string | null };
-  con: { tenGoi: string; lop: number; soLuotBai: number }[];
+  con: {
+    tenGoi: string; lop: number; soLuotBai: number;
+    thangNamSinh: ThangNamSinh | null;
+  }[];
+  /** Người đại diện theo pháp luật đang có hiệu lực (CR-05). */
+  nguoiDaiDien: NguoiGiamHo | null;
   lichSuHocTap: unknown[];
   lichSuDongY: unknown[];
   luotXuLyAnh: { at: string; loai: string; thanhCong: boolean; maLoi: string | null }[];
@@ -42,8 +52,12 @@ export function xuatDuLieuHo(householdId: string): BanXuatDuLieu | null {
     con: con.map((c) => ({
       tenGoi: c.tenGoi,
       lop: c.lop,
+      // Tháng năm sinh nằm trong bản xuất vì nó là dữ liệu cá nhân Ô Ly đang
+      // giữ; giấu nó đi thì bản xuất không còn là "toàn bộ" nữa (CR-05).
+      thangNamSinh: c.thangNamSinh,
       soLuotBai: lichSuCuaCon(c.id, 5000).length,
     })),
+    nguoiDaiDien: nguoiGiamHoHienTai(householdId),
     lichSuHocTap: con.flatMap((c) =>
       lichSuCuaCon(c.id, 5000).map((a) => ({ tenGoi: c.tenGoi, ...a })),
     ),
@@ -56,6 +70,7 @@ export function xuatDuLieuHo(householdId: string): BanXuatDuLieu | null {
       "Ô Ly không giữ ảnh nào. Mỗi ảnh chụp bị xóa ngay sau khi trả kết quả, chỉ giữ lại phần đã đọc ra thành chữ và số.",
       "Ô Ly không giữ ảnh khuôn mặt của trẻ, và không lưu nét chữ dưới bất kỳ dạng nào có thể dùng để nhận ra trẻ.",
       "Bản xuất này gồm toàn bộ dữ liệu Ô Ly đang giữ về hộ gia đình, tại thời điểm ghi ở trường xuatLuc.",
+      "Ô Ly chỉ giữ THÁNG và NĂM sinh của con, không giữ ngày sinh — chừng đó là đủ để biết con đã đủ 7 tuổi hay chưa.",
     ],
   };
 }
@@ -115,6 +130,7 @@ export function conSotLaiCuaHo(householdId: string): number {
     ["households", "id"],
     ["children", "household_id"],
     ["consents", "household_id"],
+    ["guardians", "household_id"],
     ["meter_events", "household_id"],
     ["photo_jobs", "household_id"],
     ["data_requests", "household_id"],

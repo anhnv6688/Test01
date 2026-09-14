@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { MUC_DICH, PHIEN_BAN_VAN_BAN_DONG_Y, dangBat } from "@/lib/privacy/consent";
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
 import { lichSuDongY } from "@/lib/server/repo";
@@ -27,6 +28,13 @@ export default async function TrangQuyenRiengTu() {
       <p style={{ color: "var(--muc-nhat)" }}>
         Ô Ly không bật sẵn giúp anh chị mục nào. Mỗi việc dưới đây phải được anh chị bật riêng, và
         tắt lại lúc nào cũng được. Tắt một mục thì chỉ mất đúng phần việc của mục đó.
+      </p>
+
+      <p className="the mt-4 p-4 text-sm">
+        Những lựa chọn dưới đây là lựa chọn của <strong>anh chị</strong>. Với bạn nào trong nhà đã
+        từ 7 tuổi, quy định về dữ liệu trẻ em đòi hỏi chính bạn ấy cũng được hỏi và đồng ý — anh
+        chị đồng ý thay không đủ.{" "}
+        <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>
       </p>
 
       <div className="mt-6 space-y-5">

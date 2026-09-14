@@ -18,7 +18,7 @@ Cu Tí lớp 1) và dữ liệu nằm trong `.data/oly.sqlite`. **Mã PIN của 
 bố mẹ là `1234`.**
 
 ```bash
-npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 274 bài kiểm thử
+npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 300 bài kiểm thử
 npm test             # chỉ chạy kiểm thử
 npm run build        # dựng bản phát hành
 ```
@@ -267,6 +267,36 @@ khách hàng hài lòng nhất**. Cách chia hai tầng đưa con số đó lên
 > `TRAN_HOA_VON_TRANG_HO_MIEN_PHI` và có một bài kiểm thử canh nó. Tỷ lệ dùng
 > hết trần thật chưa ai đo — đó là con số cần đo sớm nhất sau khi mở bán.
 
+## Người đại diện của con và mốc 7 tuổi
+
+Quy định về dữ liệu trẻ em chia hai chế độ: dưới 7 tuổi thì cha mẹ đồng ý là đủ,
+từ đủ 7 tuổi thì **chính đứa trẻ cũng phải được hỏi**. Ô Ly phục vụ lớp 1 và lớp
+2, tức khoảng 6 đến 8 tuổi, nên mốc đó **cắt ngang giữa tập người dùng** — bé
+lớp 1 sáu tuổi và bé lớp 2 tám tuổi trong cùng một hộ chịu hai chế độ khác nhau.
+
+Hệ quả kiến trúc, và là chỗ dễ làm sai nhất: chế độ đồng ý **không phải trạng
+thái lưu được**. Một hộ hợp lệ hôm nay thành thiếu điều kiện vào hôm con tròn
+bảy tuổi, mà không có sự kiện nào xảy ra để đánh dấu — không ai bấm gì, chỉ có
+thời gian trôi. Nên `cheDoDongY()` nhận mốc thời gian và được gọi lại ở mỗi lần
+xử lý. Có một bài kiểm thử canh đúng chuyện đó, và mọi cách làm kiểu "chốt lúc
+đăng ký rồi lưu" đều trượt đúng bài ấy.
+
+Ô Ly chỉ lưu **tháng và năm sinh**, không lưu ngày: chừng đó đủ để biết con đã
+đủ bảy tuổi chưa, còn ngày sinh đầy đủ là một mã định danh mạnh hơn hẳn mà sản
+phẩm không cần. Khi không biết ngày thì làm tròn về phía **hỏi thêm**, vì hỏi
+thừa một câu thì không sao, còn thiếu một sự đồng ý thì có.
+
+Phần hỏi con nằm ở bề mặt phụ huynh chứ không nằm trong bề mặt của trẻ — chỗ của
+con là chỗ làm toán, không phải chỗ gặp một bức tường pháp lý. Câu hỏi viết cho
+một bạn bảy tuổi tự đọc được, người lớn ngồi cạnh, và **con nói không cũng
+được**: phần luyện tập vẫn chạy đủ.
+
+Mức xác minh hiện tại được nói thẳng chứ không giấu: mỗi phương thức khai rõ nó
+chứng minh được gì và **không** chứng minh được gì, và trang người đại diện cảnh
+báo khi mức đang dùng còn yếu. Một ô đánh dấu "tôi là cha mẹ cháu" không xác
+minh gì cả, và gọi nó là xác minh thì còn tệ hơn không có — vì nó tạo ra hồ sơ
+trông như đã tuân thủ.
+
 ## Bộ đo ảnh
 
 Điều kiện ra mắt số 9 đòi đo tỷ lệ nhận dạng thành công **trên bộ ảnh chụp trong
@@ -303,14 +333,15 @@ giấy, không phải đáp án đúng của bài.**
 src/
   lib/domain/      kho khuôn dạng, ngân hàng bẫy, thang gợi ý, nhịp phiên,
                    phần thưởng theo nỗ lực, bản tin tối, chấm cột dọc, lời giảng
-  lib/privacy/     ba lớp bảo vệ và cơ chế đồng ý theo từng mục đích
+  lib/privacy/     ba lớp bảo vệ, cơ chế đồng ý theo từng mục đích, người đại
+                   diện theo pháp luật và mốc 7 tuổi
   lib/vision/      giao diện nhà cung cấp xử lý ảnh và bản giả lập
   lib/do-anh/      bộ đo độ chính xác trên bộ ảnh thật, có bản diễn tập tự kiểm
   lib/server/      cơ sở dữ liệu, kho dữ liệu, cổng mã PIN, yêu cầu của người dùng
   app/be/          bề mặt của trẻ
   app/phu-huynh/   bề mặt của phụ huynh
   app/api/         chấm bài, mở gợi ý, xử lý ảnh — nơi duy nhất biết đáp án
-tests/             274 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
+tests/             300 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
 docs/              ma trận truy vết yêu cầu nghiệp vụ
 ```
 
@@ -326,8 +357,9 @@ Nói rõ để không ai nhầm bản dựng này với sản phẩm sẵn sàng
   nhận dạng trên bộ ảnh thật **chưa được đo** (RR-10, điều kiện ra mắt số 9) —
   nhưng cái thước để đo thì đã dựng xong và đã tự kiểm được, xem phần Bộ đo ảnh.
 - **Chưa có tài khoản thật.** Mã PIN bốn số chỉ chặn một đứa trẻ tò mò, đúng
-  mối đe dọa mà NT-10 cần chặn. Phần xác minh độ tuổi và sự đồng ý của người đại
-  diện theo pháp luật (CR-05) chưa làm.
+  mối đe dọa mà NT-10 cần chặn. Phần người đại diện theo pháp luật (CR-05) đã
+  làm, nhưng phương thức xác minh mạnh nhất đang dùng được mới là **tự khai** —
+  chưa nối mã một lần qua số điện thoại hay xác nhận qua thanh toán.
 - **Chưa có thanh toán** (CR-12, CR-13). Gói cước hiện là dữ liệu tĩnh.
 - **Kho nội dung mới có 32 khuôn dạng**, chưa phải khoảng 350 khuôn dạng mà
   GD-03 ước tính cần để phủ lớp 1–2.

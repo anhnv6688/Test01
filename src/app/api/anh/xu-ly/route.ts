@@ -5,11 +5,12 @@ import { kiemTraQuyen } from "@/lib/domain/metering";
 import type { LoiGiang, MucChiTiet } from "@/lib/domain/teaching";
 import { giaiDeTatDinh, soanLoiGiangTatDinh } from "@/lib/domain/giang-de-doc-duoc";
 import { dangBat } from "@/lib/privacy/consent";
+import { dieuKienXuLy } from "@/lib/server/du-dieu-kien";
 import { dungGoiGuiDi } from "@/lib/privacy/envelope";
 import { kiemTraChungTuChe, ThieuCheAnhError } from "@/lib/privacy/redaction";
 import { dungAnhRoiXoa } from "@/lib/privacy/retention";
 import {
-  ghiLuotXuLyTrang, ghiViecAnh, hoDauTien, lichSuDongY, mucDaDung,
+  danhSachCon, ghiLuotXuLyTrang, ghiViecAnh, hoDauTien, lichSuDongY, mucDaDung,
 } from "@/lib/server/repo";
 import { layNhaCungCap } from "@/lib/vision/chon-nha-cung-cap";
 import type { ChatLuongAnh } from "@/lib/vision/provider";
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
     chungTuChe?: unknown;
     chatLuong?: ChatLuongAnh;
     mucChiTiet?: MucChiTiet;
-    lop?: 1 | 2;
+    childId?: string;
   };
   const loaiViec = body.loaiViec;
   if (!loaiViec || !body.anhBase64 || !body.chatLuong) {
@@ -48,16 +49,40 @@ export async function POST(req: Request) {
   const ho = hoDauTien();
   if (!ho) return NextResponse.json({ loi: "chưa có hộ nào" }, { status: 404 });
 
-  // Bước 1 — sự đồng ý, tách riêng theo mục đích.
+  /*
+   * Ảnh này là bài của ĐỨA TRẺ NÀO.
+   *
+   * Trước CR-05, luồng ảnh không cần biết điều đó và lớp học lấy thẳng từ máy
+   * khách. Bây giờ thì cần, vì chế độ đồng ý phụ thuộc vào tuổi của chính đứa
+   * trẻ có bài trong ảnh: một hộ có bé lớp 1 sáu tuổi và bé lớp 2 tám tuổi thì
+   * hai bé thuộc hai chế độ khác nhau. Lớp cũng lấy từ bản ghi của trẻ chứ
+   * không nhận từ máy khách nữa — máy khách không phải chỗ quyết định việc đó.
+   */
+  const cacCon = danhSachCon(ho.id);
+  const con = body.childId ? cacCon.find((c) => c.id === body.childId) : cacCon[0];
+  if (!con) {
+    return NextResponse.json(
+      { ok: false, thongBao: "Anh chị chọn giúp đây là bài của bạn nào trong nhà nhé." },
+      { status: 200 },
+    );
+  }
+
+  // Bước 1 — căn cứ xử lý dữ liệu của trẻ: người đại diện theo pháp luật đã
+  // xác minh, đã đồng ý đúng mục đích, và nếu con từ đủ 7 tuổi thì chính con
+  // cũng đã được hỏi và đồng ý (CR-05, BR-37, CR-04).
   const mucDich = loaiViec === "doc-de-bai" ? "doc-anh-de-bai" : "cham-bai-viet-tay";
   const dongY = lichSuDongY(ho.id);
-  if (!dangBat(dongY, mucDich)) {
+  const dieuKien = dieuKienXuLy(ho.id, con, mucDich);
+  if (!dieuKien.duDieuKien) {
     return NextResponse.json(
       {
         ok: false,
-        canDongY: mucDich,
-        thongBao:
-          "Tính năng này cần anh chị bật riêng trong mục Quyền riêng tư. Ô Ly không bật sẵn giúp, và các phần khác của ứng dụng vẫn dùng bình thường nếu anh chị để tắt.",
+        thieu: dieuKien.thieu,
+        // Giữ lại trường cũ cho giao diện: chỉ thiếu mỗi phần bật mục đích thì
+        // chỗ cần đi tới vẫn là trang Quyền riêng tư.
+        canDongY: dieuKien.thieu.includes("chua-co-dong-y-nguoi-giam-ho") ? mucDich : undefined,
+        tenCon: con.tenGoi,
+        thongBao: dieuKien.noiGiVoiPhuHuynh,
       },
       { status: 200 },
     );
@@ -84,7 +109,7 @@ export async function POST(req: Request) {
   // Bước 4 — lớp thứ hai: gói gửi đi không mang theo mã truy ngược nào.
   const goi = dungGoiGuiDi({
     loaiViec: loaiViec === "doc-de-bai" ? "doc-de-bai" : "cham-bai-lam",
-    lop: body.lop ?? 2,
+    lop: con.lop,
     hocKy: 2,
     anhBase64: body.anhBase64,
   });

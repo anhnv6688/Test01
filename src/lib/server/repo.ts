@@ -1,7 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "./db";
 import { chiPhiTheoTang, type LuotDung, type TangXuLy } from "@/lib/domain/metering";
-import { PHIEN_BAN_VAN_BAN_DONG_Y, type BanGhiDongY, type MucDich } from "@/lib/privacy/consent";
+import {
+  PHIEN_BAN_VAN_BAN_DONG_Y,
+  type BanGhiDongY, type MucDich, type NguoiDongY,
+} from "@/lib/privacy/consent";
+import type {
+  NguoiGiamHo, PhuongThucXacMinh, QuanHe,
+} from "@/lib/privacy/nguoi-giam-ho";
+import type { ThangNamSinh } from "@/lib/privacy/tuoi";
 import type { MaGoi, DiaBan } from "@/lib/domain/pricing";
 import type { Attempt } from "@/lib/domain/types";
 
@@ -19,17 +26,36 @@ export interface Con {
   householdId: string;
   tenGoi: string;
   lop: 1 | 2;
+  /**
+   * Tháng năm sinh, không có ngày (CR-05). null nghĩa là CHƯA KHAI — và chưa
+   * khai thì cổng kiểm tra coi là chưa đủ điều kiện xử lý, chứ không đoán tuổi
+   * theo khối lớp. Đoán theo lớp sẽ sai với mọi trẻ học sớm hay học muộn một
+   * năm, mà đó lại đúng là những em nằm hai bên mốc 7 tuổi.
+   */
+  thangNamSinh: ThangNamSinh | null;
 }
 
 type HoRow = { id: string; ten: string; dia_ban: DiaBan; goi: MaGoi; het_han_at: string | null; pin: string };
-type ConRow = { id: string; household_id: string; ten_goi: string; lop: 1 | 2 };
+type ConRow = {
+  id: string; household_id: string; ten_goi: string; lop: 1 | 2;
+  nam_sinh: number | null; thang_sinh: number | null;
+};
 
 function doiHo(r: HoRow): Ho {
   return { id: r.id, ten: r.ten, diaBan: r.dia_ban, goi: r.goi, hetHanAt: r.het_han_at, pin: r.pin };
 }
 
 function doiCon(r: ConRow): Con {
-  return { id: r.id, householdId: r.household_id, tenGoi: r.ten_goi, lop: r.lop };
+  return {
+    id: r.id,
+    householdId: r.household_id,
+    tenGoi: r.ten_goi,
+    lop: r.lop,
+    thangNamSinh:
+      r.nam_sinh !== null && r.thang_sinh !== null
+        ? { nam: r.nam_sinh, thang: r.thang_sinh }
+        : null,
+  };
 }
 
 export function layHo(id: string): Ho | null {
@@ -55,12 +81,23 @@ export function layCon(id: string): Con | null {
   return r ? doiCon(r) : null;
 }
 
-export function themCon(householdId: string, tenGoi: string, lop: 1 | 2): Con {
+export function themCon(
+  householdId: string,
+  tenGoi: string,
+  lop: 1 | 2,
+  thangNamSinh: ThangNamSinh | null = null,
+): Con {
   const id = randomUUID();
   getDb()
-    .prepare("INSERT INTO children (id, household_id, ten_goi, lop, created_at) VALUES (?,?,?,?,?)")
-    .run(id, householdId, tenGoi, lop, new Date().toISOString());
-  return { id, householdId, tenGoi, lop };
+    .prepare(
+      "INSERT INTO children (id, household_id, ten_goi, lop, nam_sinh, thang_sinh, created_at) VALUES (?,?,?,?,?,?,?)",
+    )
+    .run(
+      id, householdId, tenGoi, lop,
+      thangNamSinh?.nam ?? null, thangNamSinh?.thang ?? null,
+      new Date().toISOString(),
+    );
+  return { id, householdId, tenGoi, lop, thangNamSinh };
 }
 
 export interface TienDoPhien {
@@ -183,19 +220,41 @@ export function lanTraLoiTrongNgay(childId: string, ngay: string): Attempt[] {
   return rs.map(doiAttempt);
 }
 
-export function ghiDongY(householdId: string, mucDich: MucDich, dongY: boolean): void {
+/**
+ * Ghi một lần bật hoặc tắt sự đồng ý.
+ *
+ * Ghi THÊM một dòng chứ không sửa dòng cũ: bằng chứng đồng ý phải giữ được cả
+ * lịch sử rút lại, vì việc rút lại sự đồng ý cũng là một sự kiện phải chứng
+ * minh được (CR-04, CR-05).
+ */
+export function ghiDongY(
+  householdId: string,
+  mucDich: MucDich,
+  dongY: boolean,
+  nguoiDongY: NguoiDongY = "nguoi-giam-ho",
+  childId: string | null = null,
+): void {
+  if (nguoiDongY === "tre-em" && !childId) {
+    // Sự đồng ý của trẻ mà không biết là trẻ nào thì không dùng được: một hộ có
+    // thể có bé sáu tuổi và bé tám tuổi, thuộc hai chế độ khác nhau.
+    throw new Error("Sự đồng ý của trẻ phải gắn với đúng một đứa trẻ (thiếu childId).");
+  }
   getDb()
     .prepare(
-      "INSERT INTO consents (household_id, muc_dich, dong_y, at, phien_ban_van_ban) VALUES (?,?,?,?,?)",
+      "INSERT INTO consents (household_id, muc_dich, dong_y, at, phien_ban_van_ban, nguoi_dong_y, child_id) VALUES (?,?,?,?,?,?,?)",
     )
-    .run(householdId, mucDich, dongY ? 1 : 0, new Date().toISOString(), PHIEN_BAN_VAN_BAN_DONG_Y);
+    .run(
+      householdId, mucDich, dongY ? 1 : 0, new Date().toISOString(),
+      PHIEN_BAN_VAN_BAN_DONG_Y, nguoiDongY, childId,
+    );
 }
 
 export function lichSuDongY(householdId: string): BanGhiDongY[] {
   const rs = getDb()
     .prepare("SELECT * FROM consents WHERE household_id = ? ORDER BY at")
     .all(householdId) as {
-    household_id: string; muc_dich: MucDich; dong_y: number; at: string; phien_ban_van_ban: string;
+    household_id: string; muc_dich: MucDich; dong_y: number; at: string;
+    phien_ban_van_ban: string; nguoi_dong_y: NguoiDongY | null; child_id: string | null;
   }[];
   return rs.map((r) => ({
     householdId: r.household_id,
@@ -203,7 +262,60 @@ export function lichSuDongY(householdId: string): BanGhiDongY[] {
     dongY: r.dong_y === 1,
     at: r.at,
     phienBanVanBan: r.phien_ban_van_ban,
+    // Dòng ghi từ trước khi có CR-05 không có cột này; chúng đều là sự đồng ý
+    // của người lớn đang cầm máy, nên quy về người giám hộ.
+    nguoiDongY: r.nguoi_dong_y ?? "nguoi-giam-ho",
+    childId: r.child_id,
   }));
+}
+
+/* ------------------------------------------------------------------ */
+/* Người đại diện theo pháp luật và tháng năm sinh của trẻ (CR-05)     */
+/* ------------------------------------------------------------------ */
+
+export function ghiNguoiGiamHo(v: {
+  householdId: string;
+  quanHe: QuanHe;
+  hoTen: string;
+  phuongThuc: PhuongThucXacMinh;
+  tuXacNhanDaiDien: boolean;
+}): NguoiGiamHo {
+  const xacMinhLuc = new Date().toISOString();
+  getDb()
+    .prepare(
+      "INSERT INTO guardians (household_id, quan_he, ho_ten, phuong_thuc, tu_xac_nhan_dai_dien, phien_ban_van_ban, xac_minh_luc) VALUES (?,?,?,?,?,?,?)",
+    )
+    .run(
+      v.householdId, v.quanHe, v.hoTen, v.phuongThuc,
+      v.tuXacNhanDaiDien ? 1 : 0, PHIEN_BAN_VAN_BAN_DONG_Y, xacMinhLuc,
+    );
+  return { ...v, xacMinhLuc, phienBanVanBan: PHIEN_BAN_VAN_BAN_DONG_Y };
+}
+
+/** Bản ghi đang có hiệu lực là bản mới nhất; các bản cũ giữ lại làm bằng chứng. */
+export function nguoiGiamHoHienTai(householdId: string): NguoiGiamHo | null {
+  const r = getDb()
+    .prepare("SELECT * FROM guardians WHERE household_id = ? ORDER BY xac_minh_luc DESC, id DESC LIMIT 1")
+    .get(householdId) as {
+    household_id: string; quan_he: QuanHe; ho_ten: string; phuong_thuc: PhuongThucXacMinh;
+    tu_xac_nhan_dai_dien: number; phien_ban_van_ban: string; xac_minh_luc: string;
+  } | undefined;
+  if (!r) return null;
+  return {
+    householdId: r.household_id,
+    quanHe: r.quan_he,
+    hoTen: r.ho_ten,
+    phuongThuc: r.phuong_thuc,
+    tuXacNhanDaiDien: r.tu_xac_nhan_dai_dien === 1,
+    phienBanVanBan: r.phien_ban_van_ban,
+    xacMinhLuc: r.xac_minh_luc,
+  };
+}
+
+export function ghiThangNamSinh(childId: string, ns: ThangNamSinh): void {
+  getDb()
+    .prepare("UPDATE children SET nam_sinh = ?, thang_sinh = ? WHERE id = ?")
+    .run(ns.nam, ns.thang, childId);
 }
 
 /**

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { tinhTran } from "@/lib/domain/metering";
-import { dangBat } from "@/lib/privacy/consent";
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
-import { lichSuDongY, mucDaDung } from "@/lib/server/repo";
+import { dieuKienXuLy } from "@/lib/server/du-dieu-kien";
+import { danhSachCon, mucDaDung } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
-import { LuongChup } from "./LuongChup";
+import { LuongChup, type ConChonDuoc } from "./LuongChup";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +12,16 @@ export default async function TrangChup() {
   const ho = await daMoCong();
   if (!ho) return <CongPin />;
 
-  const dongY = lichSuDongY(ho.id);
   const tran = tinhTran(ho.goi, mucDaDung(ho.id));
+  const cacCon: ConChonDuoc[] = danhSachCon(ho.id).map((c) => ({
+    id: c.id,
+    tenGoi: c.tenGoi,
+    lop: c.lop,
+    vuongGi: {
+      "doc-de-bai": dieuKienXuLy(ho.id, c, "doc-anh-de-bai").noiGiVoiPhuHuynh,
+      "cham-bai-lam": dieuKienXuLy(ho.id, c, "cham-bai-viet-tay").noiGiVoiPhuHuynh,
+    },
+  }));
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -24,8 +32,7 @@ export default async function TrangChup() {
       </p>
 
       <LuongChup
-        batDocDe={dangBat(dongY, "doc-anh-de-bai")}
-        batChamBai={dangBat(dongY, "cham-bai-viet-tay")}
+        cacCon={cacCon}
         conLaiHomNay={tran.conLaiHomNay}
         tranNgay={tran.tranNgay}
         conLaiThangNay={tran.conLaiThangNay}

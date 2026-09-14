@@ -37,11 +37,26 @@ type KetQua =
  * huynh vẫn kéo rộng thêm được, vì lời phê của cô giáo hay ghi chú riêng của gia
  * đình cũng là thứ không nên rời khỏi máy (RR-13).
  */
+/**
+ * Một bạn trong nhà, kèm lý do vì sao chưa chụp được cho bạn ấy.
+ *
+ * Lý do tính theo TỪNG BẠN chứ không theo cả hộ, vì chế độ đồng ý phụ thuộc
+ * tuổi của chính đứa trẻ (CR-05): bé lớp 2 tám tuổi cần cả sự đồng ý của chính
+ * em, còn bé lớp 1 sáu tuổi thì không. Máy chủ vẫn kiểm lại; phần này chỉ để
+ * phụ huynh biết trước thay vì bấm chụp xong mới bị chặn.
+ */
+export interface ConChonDuoc {
+  id: string;
+  tenGoi: string;
+  lop: 1 | 2;
+  /** null nghĩa là chụp được. Chuỗi là câu nói cho phụ huynh. */
+  vuongGi: Record<LoaiViec, string | null>;
+}
+
 export function LuongChup({
-  batDocDe, batChamBai, conLaiHomNay, tranNgay, conLaiThangNay, tranThang,
+  cacCon, conLaiHomNay, tranNgay, conLaiThangNay, tranThang,
 }: {
-  batDocDe: boolean;
-  batChamBai: boolean;
+  cacCon: ConChonDuoc[];
   conLaiHomNay: number | null;
   tranNgay: number | null;
   conLaiThangNay: number | null;
@@ -50,6 +65,7 @@ export function LuongChup({
   // Trần ngày chặn trước trần tháng, nên nó là con số phụ huynh cần thấy.
   const hetLuot = conLaiHomNay === 0 || conLaiThangNay === 0;
   const [loaiViec, setLoaiViec] = useState<LoaiViec>("cham-bai-lam");
+  const [childId, setChildId] = useState<string>(cacCon[0]?.id ?? "");
   const [mucChiTiet, setMucChiTiet] = useState<MucChiTiet>("giang-tu-dau");
   const [anh, setAnh] = useState<AnhDaChe | null>(null);
   const [cheCao, setCheCao] = useState(VUNG_DAU_TRANG_MAC_DINH.h);
@@ -59,7 +75,9 @@ export function LuongChup({
   const [canhBaoChatLuong, setCanhBaoChatLuong] = useState<string | null>(null);
   const canvasGoc = useRef<HTMLCanvasElement | null>(null);
 
-  const daBat = loaiViec === "doc-de-bai" ? batDocDe : batChamBai;
+  const con = cacCon.find((c) => c.id === childId) ?? cacCon[0] ?? null;
+  const vuongGi = con?.vuongGi[loaiViec] ?? "Hộ mình chưa có bạn nào trong danh sách.";
+  const daBat = vuongGi === null;
 
   const dungVung = useCallback((cao: number): VungDaChe[] => [{ x: 0, y: 0, w: 1, h: cao }], []);
 
@@ -108,7 +126,7 @@ export function LuongChup({
           chungTuChe: anh.chungTu,
           chatLuong: anh.chatLuong,
           mucChiTiet,
-          lop: 2,
+          childId,
         }),
       });
       const d = await r.json();
@@ -160,10 +178,26 @@ export function LuongChup({
           </div>
         )}
 
-        {!daBat && (
+        {cacCon.length > 1 && (
+          <div className="mt-4">
+            <p className="m-0 mb-2 text-sm font-semibold">Đây là bài của bạn nào</p>
+            <div className="flex flex-wrap gap-3">
+              {cacCon.map((c) => (
+                <button key={c.id} type="button" className="nut text-sm"
+                  style={vienChon(c.id === childId)}
+                  onClick={() => setChildId(c.id)}>
+                  {c.tenGoi} · lớp {c.lop}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {vuongGi !== null && (
           <p className="the mt-4 mb-0 p-4 text-sm" style={{ background: "var(--cam-nen)", borderColor: "var(--cam)" }}>
-            Việc này đang tắt. Ô Ly không tự bật giúp anh chị.{" "}
-            <Link href="/phu-huynh/quyen-rieng-tu">Bật trong mục Quyền riêng tư →</Link>
+            {vuongGi}{" "}
+            <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>{" "}
+            <Link href="/phu-huynh/quyen-rieng-tu">Mở mục Quyền riêng tư →</Link>
           </p>
         )}
       </fieldset>

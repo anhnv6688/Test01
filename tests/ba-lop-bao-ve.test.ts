@@ -122,15 +122,15 @@ describe("sự đồng ý tách theo từng mục đích (BR-37, CR-04)", () => 
 
   it("lấy bản ghi mới nhất, nên tắt lại thì có hiệu lực ngay", () => {
     const ds: BanGhiDongY[] = [
-      { householdId: "h", mucDich: "doc-anh-de-bai", dongY: true, at: "2026-09-01T00:00:00Z", phienBanVanBan: "v1" },
-      { householdId: "h", mucDich: "doc-anh-de-bai", dongY: false, at: "2026-09-02T00:00:00Z", phienBanVanBan: "v1" },
+      { householdId: "h", mucDich: "doc-anh-de-bai", dongY: true, at: "2026-09-01T00:00:00Z", phienBanVanBan: "v1", nguoiDongY: "nguoi-giam-ho", childId: null },
+      { householdId: "h", mucDich: "doc-anh-de-bai", dongY: false, at: "2026-09-02T00:00:00Z", phienBanVanBan: "v1", nguoiDongY: "nguoi-giam-ho", childId: null },
     ];
     expect(dangBat(ds, "doc-anh-de-bai")).toBe(false);
   });
 
   it("bật một mục đích không kéo theo bật mục đích khác", () => {
     const ds: BanGhiDongY[] = [
-      { householdId: "h", mucDich: "doc-anh-de-bai", dongY: true, at: "2026-09-01T00:00:00Z", phienBanVanBan: "v1" },
+      { householdId: "h", mucDich: "doc-anh-de-bai", dongY: true, at: "2026-09-01T00:00:00Z", phienBanVanBan: "v1", nguoiDongY: "nguoi-giam-ho", childId: null },
     ];
     expect(dangBat(ds, "doc-anh-de-bai")).toBe(true);
     expect(dangBat(ds, "cham-bai-viet-tay")).toBe(false);
