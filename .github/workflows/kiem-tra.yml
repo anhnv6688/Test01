@@ -1,0 +1,85 @@
+name: Kiểm tra
+
+# Chạy trên mọi nhánh và mọi yêu cầu gộp mã. Các bài kiểm thử ở kho này phần
+# lớn không kiểm "mã có chạy không" mà kiểm "sản phẩm có còn giữ đúng những
+# điều đã hứa không" — không lộ đáp án cho trẻ, không quảng cáo, không xếp
+# hạng, không xử lý dữ liệu trẻ em khi chưa đủ căn cứ. Những điều đó chỉ có giá
+# trị nếu được kiểm tự động ở mọi thay đổi, chứ không phải khi ai đó nhớ chạy.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  kiem-tra:
+    name: Kiểm kiểu, lint và kiểm thử
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Cài đặt đúng theo tệp khóa
+        run: npm ci
+
+      - name: Kiểm kiểu
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint --max-warnings=0
+
+      # Tách riêng khỏi bước chạy toàn bộ, và đặt TRƯỚC, để khi hỏng thì tên
+      # bước đỏ tự nói ra là đã phá vỡ điều gì — chứ không phải "có bài kiểm
+      # thử nào đó trượt".
+      - name: Nguyên tắc bất di bất dịch
+        run: >
+          npx vitest run
+          tests/khong-lo-dap-an.test.ts
+          tests/nguyen-tac-bat-di-bat-dich.test.ts
+          tests/ba-lop-bao-ve.test.ts
+          tests/nguoi-giam-ho.test.ts
+          tests/khong-ro-ri.test.ts
+          tests/luong-chup-anh.test.ts
+          tests/nha-cung-cap-that.test.ts
+
+      - name: Toàn bộ kiểm thử
+        run: npx vitest run
+
+      # Bộ đo ảnh tự gài lỗi rồi đòi chính nó nêu đúng. Chạy ở đây để cái thước
+      # đo không hỏng âm thầm giữa hai lần có ảnh thật.
+      - name: Bộ đo ảnh tự kiểm
+        run: npm run do-anh
+
+      - name: Dựng bản phát hành
+        run: npm run build
+
+  khong-ro-ri:
+    name: Không có dữ liệu của trẻ trong kho mã
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run khong-ro-ri
+
+  phu-thuoc:
+    name: Rà soát phụ thuộc
+    runs-on: ubuntu-latest
+    # Việc riêng, vì nó hỏng vì lý do nằm ngoài thay đổi của người gửi mã: một
+    # lỗ hổng mới được công bố là đủ làm nó đỏ. Tách ra để nó không che mất kết
+    # quả của phần kiểm thử, mà vẫn hiện thành một dấu đỏ chứ không bị nuốt đi.
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Không được có lỗ hổng mức cao trở lên
+        run: npm audit --audit-level=high

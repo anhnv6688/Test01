@@ -18,7 +18,7 @@ Cu Tí lớp 1) và dữ liệu nằm trong `.data/oly.sqlite`. **Mã PIN của 
 bố mẹ là `1234`.**
 
 ```bash
-npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 300 bài kiểm thử
+npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 307 bài kiểm thử
 npm test             # chỉ chạy kiểm thử
 npm run build        # dựng bản phát hành
 ```
@@ -267,6 +267,28 @@ khách hàng hài lòng nhất**. Cách chia hai tầng đưa con số đó lên
 > `TRAN_HOA_VON_TRANG_HO_MIEN_PHI` và có một bài kiểm thử canh nó. Tỷ lệ dùng
 > hết trần thật chưa ai đo — đó là con số cần đo sớm nhất sau khi mở bán.
 
+## Kiểm tra tự động
+
+```bash
+npm run kiem-tra      # kiểm kiểu, lint, toàn bộ kiểm thử
+npm run khong-ro-ri   # không có ảnh hay dữ liệu của trẻ lọt vào kho mã
+```
+
+`.github/workflows/kiem-tra.yml` chạy đủ những bước đó trên mọi nhánh và mọi yêu
+cầu gộp mã. Phần lớn kiểm thử ở kho này không kiểm "mã có chạy không" mà kiểm
+"sản phẩm có còn giữ đúng những điều đã hứa không", nên chúng chỉ có giá trị khi
+chạy tự động ở **mọi** thay đổi, chứ không phải khi ai đó nhớ chạy.
+
+Bước **Nguyên tắc bất di bất dịch** tách riêng và đặt trước bước chạy toàn bộ,
+để khi hỏng thì tên bước đỏ tự nói ra là đã phá vỡ điều gì — không lộ đáp án cho
+trẻ, không quảng cáo hay xếp hạng, ba lớp bảo vệ ảnh, mốc 7 tuổi, mô hình không
+được chấm. 97 bài, chạy trong khoảng ba giây.
+
+Có một bước riêng chặn **ảnh trang vở và cơ sở dữ liệu lọt vào kho mã**. Chỉ
+`.gitignore` là chưa đủ: `git add -f` đi qua nó, và một tấm ảnh có tên và lớp
+của một đứa trẻ đã vào lịch sử git thì không gỡ lại được. Bộ canh soát trên danh
+sách tệp git **đang theo dõi**, nên nó bắt cả trường hợp thêm bằng `-f`.
+
 ## Người đại diện của con và mốc 7 tuổi
 
 Quy định về dữ liệu trẻ em chia hai chế độ: dưới 7 tuổi thì cha mẹ đồng ý là đủ,
@@ -341,7 +363,7 @@ src/
   app/be/          bề mặt của trẻ
   app/phu-huynh/   bề mặt của phụ huynh
   app/api/         chấm bài, mở gợi ý, xử lý ảnh — nơi duy nhất biết đáp án
-tests/             300 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
+tests/             307 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
 docs/              ma trận truy vết yêu cầu nghiệp vụ
 ```
 

@@ -12,25 +12,25 @@
     "kiem-tra": "tsc --noEmit && eslint --max-warnings=0 && vitest run",
     "chi-phi": "tsx scripts/mo-hinh-chi-phi.ts",
     "kho": "tsx scripts/do-kho-noi-dung.ts",
-    "do-anh": "tsx scripts/do-bo-anh.ts"
+    "do-anh": "tsx scripts/do-bo-anh.ts",
+    "khong-ro-ri": "tsx scripts/khong-ro-ri.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
     "better-sqlite3": "^13.0.3",
-    "next": "15.5.25",
+    "next": "16.3.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "zod": "^4.6.4"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^9.6.0",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.25",
+    "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",

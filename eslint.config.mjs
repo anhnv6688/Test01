@@ -1,16 +1,16 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import coreWebVitals from "eslint-config-next/core-web-vitals";
+import typescript from "eslint-config-next/typescript";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
+/**
+ * Cấu hình ESLint.
+ *
+ * Từ eslint-config-next 16, gói này xuất thẳng cấu hình phẳng, nên không còn
+ * phải bắc cầu qua FlatCompat của @eslint/eslintrc nữa. Bắc cầu qua đó với bản
+ * 16 sẽ hỏng ngay lúc nạp cấu hình.
+ */
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...coreWebVitals,
+  ...typescript,
   {
     ignores: [
       "node_modules/**",
