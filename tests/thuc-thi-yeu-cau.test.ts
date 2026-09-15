@@ -16,7 +16,7 @@ beforeAll(async () => {
   repo = await import("@/lib/server/repo");
   req = await import("@/lib/server/requests");
   thuc = await import("@/lib/server/thuc-thi-yeu-cau");
-  hoId = seed.moiDuLieu().householdId;
+  hoId = seed.moiDuLieu().householdId!;
 
   // Dựng một hộ có dữ liệu thật để việc xóa có cái mà xóa.
   const con = repo.danhSachCon(hoId)[0];
@@ -69,7 +69,7 @@ describe("rút toàn bộ sự đồng ý", () => {
 describe("xóa dữ liệu — xóa thật, nhưng bằng chứng tuân thủ sống sót", () => {
   it("xóa sạch mọi bảng có dính tới hộ", async () => {
     const seed = await import("@/lib/server/seed");
-    const hoXoa = seed.moiDuLieu().householdId;
+    const hoXoa = seed.moiDuLieu().householdId!;
     const con = repo.themCon(hoXoa, "Bé sẽ xóa", 2);
     repo.moPhien("phien-xoa", con.id, new Date().toISOString());
     repo.ghiLanTraLoi("phien-xoa", con.id, {
@@ -91,7 +91,7 @@ describe("xóa dữ liệu — xóa thật, nhưng bằng chứng tuân thủ s�
 
   it("NHẬT KÝ XỬ LÝ SỐNG SÓT sau khi xóa hộ", async () => {
     const seed = await import("@/lib/server/seed");
-    const hoXoa = seed.moiDuLieu().householdId;
+    const hoXoa = seed.moiDuLieu().householdId!;
     const yc = req.taoYeuCauDuLieu(hoXoa, "xoa", "Xin xóa toàn bộ dữ liệu của cháu.");
 
     req.ghiNhatKy({

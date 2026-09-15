@@ -222,7 +222,7 @@ beforeAll(async () => {
   repo = await import("@/lib/server/repo");
   cong = await import("@/lib/server/du-dieu-kien");
   thuc = await import("@/lib/server/thuc-thi-yeu-cau");
-  hoId = seed.moiDuLieu().householdId;
+  hoId = seed.moiDuLieu().householdId!;
 });
 
 describe("lưu xuống cơ sở dữ liệu và đọc lại", () => {

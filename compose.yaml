@@ -1,0 +1,22 @@
+# Chạy Ô Ly bằng một lệnh: docker compose up -d
+#
+# Vùng đĩa oly-du-lieu là chỗ duy nhất giữ dữ liệu của các hộ. Xóa nó là xóa
+# sạch tài khoản, lịch sử học và bằng chứng đồng ý — không khôi phục được.
+services:
+  o-ly:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - oly-du-lieu:/du-lieu
+    environment:
+      # BẮT BUỘC. Chưa đặt thì bảng trực khóa hẳn. Đặt một chuỗi dài, khó đoán.
+      OLY_MA_TRUC: ${OLY_MA_TRUC:?hãy đặt OLY_MA_TRUC trong tệp .env}
+      # Bật hộ mẫu để mở thử bằng điện thoại. Bản phục vụ người thật thì bỏ hai
+      # dòng này đi.
+      OLY_DU_LIEU_MAU: ${OLY_DU_LIEU_MAU:-false}
+      OLY_PIN_MAU: ${OLY_PIN_MAU:-}
+    restart: unless-stopped
+
+volumes:
+  oly-du-lieu:

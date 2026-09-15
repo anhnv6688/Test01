@@ -226,17 +226,37 @@ async function main(): Promise<void> {
   const goc = gocNgoai ?? `http://localhost:${cong}`;
   let mayChu: ChildProcess | null = null;
 
+  /*
+   * Bộ kiểm tự khai báo hộ mẫu cho máy chủ nó dựng lên.
+   *
+   * Từ khi có chốt ở src/lib/server/moi-truong.ts, bản phát hành KHÔNG tự dựng
+   * hộ mẫu nữa — đó là chủ đích, vì một hộ có PIN biết trước nằm trên địa chỉ
+   * công khai là một tài khoản không chủ. Nhưng bộ kiểm giao diện thì cần có
+   * một bạn để bấm vào, nên nó phải nói rõ là mình muốn hộ mẫu, đúng như người
+   * dựng bản trình diễn phải làm.
+   */
+  const bienMoiTruong = {
+    ...process.env,
+    OLY_DU_LIEU_MAU: "true",
+    OLY_PIN_MAU: "884417",
+    OLY_MA_TRUC: "ma-truc-cua-bo-kiem",
+  };
+
   if (!gocNgoai) {
     if (cheDoDev) {
       console.log("Chạy ở chế độ phát triển…");
-      mayChu = spawn("npx", ["next", "dev", "-p", String(cong)], { stdio: "ignore", detached: true });
+      mayChu = spawn("npx", ["next", "dev", "-p", String(cong)], {
+        stdio: "ignore", detached: true, env: bienMoiTruong,
+      });
     } else {
       console.log("Dựng bản phát hành rồi chạy thử…");
       await new Promise<void>((xong, hong) => {
         const d = spawn("npm", ["run", "build"], { stdio: "inherit" });
         d.on("exit", (m) => (m === 0 ? xong() : hong(new Error(`dựng hỏng, mã ${m}`))));
       });
-      mayChu = spawn("npx", ["next", "start", "-p", String(cong)], { stdio: "ignore", detached: true });
+      mayChu = spawn("npx", ["next", "start", "-p", String(cong)], {
+        stdio: "ignore", detached: true, env: bienMoiTruong,
+      });
     }
   }
   console.log(`Chế độ: ${gocNgoai ? "máy chủ có sẵn" : cheDoDev ? "phát triển" : "phát hành"}`);

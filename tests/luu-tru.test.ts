@@ -12,7 +12,7 @@ beforeAll(async () => {
   const seed = await import("@/lib/server/seed");
   repo = await import("@/lib/server/repo");
   requests = await import("@/lib/server/requests");
-  hoId = seed.moiDuLieu().householdId;
+  hoId = seed.moiDuLieu().householdId!;
 });
 
 describe("dữ liệu mồi (BR-14)", () => {

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "./db";
+import { choPhepDuLieuMau, pinHoMau } from "./moi-truong";
 
 /**
  * Dữ liệu mồi cho môi trường phát triển.
@@ -12,7 +13,7 @@ import { getDb } from "./db";
  * Lưu ý: mã PIN ở đây để nguyên dạng chữ chỉ vì đây là bản dựng trình diễn cục
  * bộ. Trước khi mở cho người dùng thật, phần này phải thay bằng băm có muối.
  */
-export function moiDuLieu(): { householdId: string } {
+export function moiDuLieu(): { householdId: string | null } {
   const d = getDb();
   const co = d.prepare("SELECT COUNT(*) AS n FROM households").get() as { n: number };
   if (co.n > 0) {
@@ -20,11 +21,28 @@ export function moiDuLieu(): { householdId: string } {
     return { householdId: r.id };
   }
 
+  /*
+   * Ở bản phát hành, KHÔNG tự dựng hộ mẫu trừ khi được khai báo rõ.
+   *
+   * Hộ mẫu có mã PIN biết trước, nên trên một địa chỉ công khai nó là một tài
+   * khoản không chủ mà ai cũng mở được. Bản trình diễn muốn có nó thì bật
+   * OLY_DU_LIEU_MAU và tự đặt OLY_PIN_MAU — hai việc có chủ ý, không phải mặc
+   * định lặng lẽ. Xem src/lib/server/moi-truong.ts.
+   */
+  if (!choPhepDuLieuMau()) return { householdId: null };
+  const pin = pinHoMau();
+  if (!pin) {
+    console.warn(
+      "[Ô Ly] Đã bật OLY_DU_LIEU_MAU nhưng chưa đặt OLY_PIN_MAU hợp lệ, nên không dựng hộ mẫu.",
+    );
+    return { householdId: null };
+  }
+
   const hoId = randomUUID();
   const now = new Date().toISOString();
   d.prepare(
     "INSERT INTO households (id, ten, dia_ban, goi, het_han_at, pin, created_at) VALUES (?,?,?,?,?,?,?)",
-  ).run(hoId, "Hộ nhà mình", "do-thi", "vo-nhap", null, "1234", now);
+  ).run(hoId, "Hộ nhà mình", "do-thi", "vo-nhap", null, pin, now);
 
   /*
    * Hai bạn cố ý nằm hai bên mốc 7 tuổi (CR-05).

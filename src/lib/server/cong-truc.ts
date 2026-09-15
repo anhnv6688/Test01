@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { maTruc } from "./moi-truong";
 
 /**
  * Cổng vào bảng trực.
@@ -17,7 +18,13 @@ import { cookies } from "next/headers";
  */
 export const TEN_COOKIE_TRUC = "oly_cong_truc";
 
-const MA_TRUC = process.env.OLY_MA_TRUC ?? "truc2026";
+/*
+ * Mã mở bảng trực lấy từ moi-truong.ts, không đọc thẳng biến môi trường.
+ *
+ * Đọc thẳng kèm giá trị mặc định là cách cũ, và nó có nghĩa là một bản phát
+ * hành quên khai báo sẽ mở bảng trực bằng một mã ai cũng đoán được — trong khi
+ * bảng đó xuất và xóa được dữ liệu của các hộ.
+ */
 
 export interface PhienTruc {
   nguoiTruc: string;
@@ -35,7 +42,17 @@ export async function moCongTruc(
 ): Promise<{ ok: boolean; loi?: string }> {
   const ten = nguoiTruc.trim();
   if (ten.length < 2) return { ok: false, loi: "Cần ghi tên người trực, để nhật ký biết ai đã xử lý." };
-  if (ma.trim() !== MA_TRUC) return { ok: false, loi: "Mã trực chưa đúng." };
+  const maDung = maTruc();
+  if (!maDung) {
+    // Bản phát hành quên khai báo OLY_MA_TRUC: khóa hẳn, không rơi về mã mặc
+    // định. Nói rõ lý do để người vận hành biết phải làm gì, thay vì ngồi đoán
+    // xem mình gõ sai mã hay hệ thống hỏng.
+    return {
+      ok: false,
+      loi: "Bảng trực chưa mở được vì máy chủ chưa khai báo OLY_MA_TRUC. Nhờ người quản trị đặt biến này rồi khởi động lại.",
+    };
+  }
+  if (ma.trim() !== maDung) return { ok: false, loi: "Mã trực chưa đúng." };
   const c = await cookies();
   c.set(TEN_COOKIE_TRUC, ten, {
     httpOnly: true,

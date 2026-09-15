@@ -18,7 +18,7 @@ Cu Tí lớp 1) và dữ liệu nằm trong `.data/oly.sqlite`. **Mã PIN của 
 bố mẹ là `1234`.**
 
 ```bash
-npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 342 bài kiểm thử
+npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 355 bài kiểm thử
 npm test             # chỉ chạy kiểm thử
 npm run build        # dựng bản phát hành
 ```
@@ -267,6 +267,33 @@ khách hàng hài lòng nhất**. Cách chia hai tầng đưa con số đó lên
 > `TRAN_HOA_VON_TRANG_HO_MIEN_PHI` và có một bài kiểm thử canh nó. Tỷ lệ dùng
 > hết trần thật chưa ai đo — đó là con số cần đo sớm nhất sau khi mở bán.
 
+## Đưa lên mạng
+
+```bash
+cp .env.example .env     # đặt OLY_MA_TRUC thành một chuỗi dài, khó đoán
+docker compose up -d --build
+```
+
+Hướng dẫn đầy đủ: [`docs/dua-len-mang.md`](docs/dua-len-mang.md). Ba điều phải
+biết trước khi gõ lệnh:
+
+**Ô Ly cần ổ đĩa giữ lâu dài.** Dữ liệu nằm trong một tệp SQLite, nên Vercel,
+Netlify Functions, Cloudflare Workers và mọi nền không máy chủ đều **không chạy
+được** — mỗi lần khởi động lại là mất sạch tài khoản, lịch sử học và bằng chứng
+đồng ý. Chỗ chạy được là nơi có ổ đĩa gắn kèm.
+
+**Tiện nghi của bản phát triển tự tắt khi chạy thật.** Bản dựng phát triển có
+sẵn hộ mẫu, PIN `1234`, mã trực đoán được — mở máy ra là chạy ngay. Trên một địa
+chỉ công khai thì đúng ba thứ đó là ba lỗ hổng: ai cũng vào được phần của bố mẹ,
+và ai cũng mở được bảng trực, nơi **xuất và xóa** dữ liệu các hộ. Nên chúng tự
+tắt khi `NODE_ENV=production` và chỉ bật lại được bằng khai báo có chủ ý. Mã
+trực thiếu thì khóa hẳn, **không** rơi về mã mặc định. Có bài kiểm thử canh.
+
+**Máy chủ đặt ở đâu là câu hỏi pháp lý.** Cơ sở dữ liệu chứa tên gọi, khối lớp,
+tháng năm sinh và lịch sử làm bài của trẻ. Kiến trúc khử nhận dạng ở
+`src/lib/privacy/` chỉ áp cho phần gửi ra bên xử lý ảnh — nó **không** áp cho
+chính cơ sở dữ liệu. Hỏi luật sư trước, đừng chọn theo giá thuê.
+
 ## Kiểm tra tự động
 
 ```bash
@@ -400,7 +427,7 @@ src/
   app/be/          bề mặt của trẻ
   app/phu-huynh/   bề mặt của phụ huynh
   app/api/         chấm bài, mở gợi ý, xử lý ảnh — nơi duy nhất biết đáp án
-tests/             342 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
+tests/             355 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
 docs/              ma trận truy vết yêu cầu nghiệp vụ
 ```
 

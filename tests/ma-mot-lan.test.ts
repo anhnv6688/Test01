@@ -209,7 +209,7 @@ beforeAll(async () => {
   repo = await import("@/lib/server/repo");
   otp = await import("@/lib/server/ma-mot-lan");
   sms = await import("@/lib/sms/chon-nha-cung-cap");
-  hoId = seed.moiDuLieu().householdId;
+  hoId = seed.moiDuLieu().householdId!;
 });
 
 beforeEach(async () => {

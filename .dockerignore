@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.github
+.data
+bo-anh-do
+.bo-anh-dien-tap
+*.bao-cao.json
+tests
+docs
+*.md
+.env*
+!.env.example
+tsconfig.tsbuildinfo

@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
+import { canhBaoCauHinh } from "./moi-truong";
 import { dirname } from "node:path";
 
 /**
@@ -21,6 +22,7 @@ let db: Database.Database | null = null;
 export function getDb(): Database.Database {
   if (db) return db;
   if (DUONG_DAN !== ":memory:") mkdirSync(dirname(DUONG_DAN), { recursive: true });
+  canhBaoCauHinh();
   db = new Database(DUONG_DAN);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");

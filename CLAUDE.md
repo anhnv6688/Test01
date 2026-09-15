@@ -57,6 +57,7 @@ hỏng lời hứa của sản phẩm.
 | Ảnh và dữ liệu của trẻ không vào kho mã | `scripts/khong-ro-ri.ts` | `khong-ro-ri.test.ts` |
 | Mã một lần và số điện thoại không lưu dạng rõ; mức xác minh phải giành được | `privacy/ma-mot-lan.ts` | `ma-mot-lan.test.ts` |
 | Hình minh họa phải hiện ra thật, không co về 0 | `components/Visual.tsx` | `npm run kiem-giao-dien` |
+| Bản phát hành không tự dựng hộ mẫu, mã trực thiếu thì khóa hẳn | `server/moi-truong.ts` | `cau-hinh-phat-hanh.test.ts` |
 
 Nếu một thay đổi làm những bài này trượt, **sửa thay đổi, đừng sửa bài kiểm
 thử** — trừ khi chủ đầu tư đã đổi chính yêu cầu nghiệp vụ, và khi đó phải sửa
@@ -96,6 +97,12 @@ chỗ duy nhất quyết định ghi mức nào, và nó nhận vào sự thật
 có được gửi ra ngoài không — chứ không nhận lời khai từ biểu mẫu. Đừng bao giờ
 thêm lại một ô cho người dùng tự chọn mức xác minh: ghi mức mạnh hơn thứ đã làm
 là tạo ra hồ sơ trông như đã tuân thủ trong khi không có gì được xác minh.
+
+**Tiện nghi của bản phát triển không được theo lên máy chủ.** Hộ mẫu, PIN 1234,
+mã trực đoán được — cả ba tự tắt khi `NODE_ENV=production`, và chỉ bật lại bằng
+khai báo có chủ ý ở `src/lib/server/moi-truong.ts`. Mã trực thiếu thì bảng trực
+**khóa hẳn**, tuyệt đối không rơi về mã mặc định: bảng đó xuất và xóa được dữ
+liệu của các hộ. Đừng thêm giá trị mặc định nào vào các hàm trong tệp đó.
 
 ## Dữ liệu thật của trẻ
 
