@@ -51,6 +51,33 @@ Riêng bản **trình diễn** chỉ có hộ mẫu do chính mình dựng thì 
 của ai cả, nên đặt đâu cũng được. Ranh giới nằm ở chỗ có người thật dùng hay
 chưa, chứ không ở chỗ phần mềm chạy thế nào.
 
+## Máy cần bao nhiêu — số đo thật, không phải ước lượng
+
+Đo trên bản phát hành gọn, chạy bằng `node server.js`:
+
+| Lúc nào | Bộ nhớ thật |
+|---|---|
+| Nghỉ, chưa ai vào | **97 MB** |
+| Sau khi mở hết các trang chính | 115 MB |
+| 30 phiên học mở cùng lúc, mỗi phiên sinh 8 bài | **133 MB** (hết 263 mili giây) |
+| **Lúc DỰNG bản phát hành** | **1.490 MB** |
+
+Hai điều rút ra, và điều thứ hai mới là điều hay bị mua thừa:
+
+**Chạy thì nhẹ.** Ô Ly là một tiến trình Node với một tệp SQLite. Phần nặng nhất
+— đọc ảnh trang vở — chạy ở máy của nhà cung cấp mô hình, không phải ở đây. Ba
+mươi phiên cùng lúc mới hết 133 MB, nên **512 MB là đủ chạy**.
+
+**Dựng thì nặng gấp mười lần chạy.** Đỉnh gần 1,5 GB. Đây mới là thứ quyết định
+mua máy bao nhiêu RAM, và có ba cách tránh mua thừa:
+
+1. Dựng ảnh Docker ở GitHub Actions rồi máy chủ chỉ việc tải về chạy. Kho này đã
+   có sẵn phần chạy tự động, nên đây là cách gọn nhất.
+2. Thêm 2 GB vùng tráo đổi (swap) trên máy 1 GB. Dựng chậm nhưng xong.
+3. Mua 2 GB cho đỡ nghĩ.
+
+Đừng mua 8 GB vì thấy hướng dẫn trên mạng bảo thế. Ô Ly không dùng tới.
+
 ## Chọn nơi đặt: Netlify hay Hostinger
 
 | Nơi đặt | Chạy được không | Vì sao |
@@ -59,6 +86,28 @@ chưa, chứ không ở chỗ phần mềm chạy thế nào.
 | **Hostinger gói Web/Shared** | **Không** | Không chạy được tiến trình Node đứng lâu |
 | **Hostinger gói VPS (KVM)** | **Có** | Máy ảo có toàn quyền, chạy được Docker và ổ đĩa giữ lâu dài |
 | Nhà cung cấp Việt Nam | **Có** | Như trên, và xem phần dưới về nơi đặt |
+
+### Nếu muốn trung tâm dữ liệu Singapore thật
+
+Hostinger không có trung tâm dữ liệu Singapore thật — khu vực này được phục vụ
+từ Malaysia và Indonesia. Những nơi có máy đặt thật tại Singapore, giá tra tháng
+9/2026:
+
+| Nơi | Máy | Giá mỗi tháng | Ghi chú |
+|---|---|---|---|
+| **Contabo** | 4 nhân, 8 GB | **~8,38 đô** (gồm 3,10 đô phụ phí Singapore) | Rẻ nhất, và rẻ hơn cả giá gia hạn của Hostinger |
+| Vultr | 1 nhân, 1 GB | ~5 đô | Đủ chạy, không đủ dựng |
+| DigitalOcean | 1 nhân, 1 GB | ~6 đô | Như trên |
+| Linode / Akamai | 1 nhân, 2 GB | ~12 đô | Dựng được ngay trên máy |
+| Hostinger KVM 2 | 2 nhân, 8 GB | 8,99 đô rồi **14,99 đô khi gia hạn** | Không có máy đặt tại Singapore |
+
+Giá rẻ của Hostinger là giá khuyến mại; gia hạn lên 14,99 đô. So giá gia hạn với
+giá gia hạn thì Contabo rẻ hơn gần một nửa, máy mạnh hơn, và đặt đúng Singapore.
+
+Đổi lại, Contabo nổi tiếng là bán quá công suất và hỗ trợ chậm. Với một sản phẩm
+mà bố mẹ mở vào lúc chín giờ tối để xem con làm bài, chậm vài trăm mili giây
+không sao; nhưng nếu máy nằm nguyên một buổi thì đó là chuyện khác. Ai cần chắc
+chắn hơn thì trả thêm cho Vultr hoặc Linode.
 
 Chọn Hostinger thì phải là **VPS**, không phải gói Web hosting. Gói KVM 2 nhân,
 8 GB là quá đủ: Ô Ly là một tiến trình Node với một tệp SQLite, phần nặng nhất
