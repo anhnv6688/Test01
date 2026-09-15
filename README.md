@@ -18,7 +18,7 @@ Cu Tí lớp 1) và dữ liệu nằm trong `.data/oly.sqlite`. **Mã PIN của 
 bố mẹ là `1234`.**
 
 ```bash
-npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 355 bài kiểm thử
+npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 363 bài kiểm thử
 npm test             # chỉ chạy kiểm thử
 npm run build        # dựng bản phát hành
 ```
@@ -297,6 +297,30 @@ dùng Việt Nam, mà họ tên, ngày sinh và số điện thoại đều nằ
 Bản trình diễn không có dữ liệu của ai thì đặt đâu cũng được; bản phục vụ người
 thật thì hỏi luật sư trước, đừng chọn theo giá thuê.
 
+## Hai môi trường
+
+Bản thử và bản thật chạy **cùng một ảnh Docker**, khác nhau chỉ ở biến môi
+trường. Đầy đủ ở [`docs/moi-truong.md`](docs/moi-truong.md); nguyên tắc quan
+trọng nhất:
+
+**Dữ liệu không bao giờ chảy ngược.** Cách làm quen thuộc ở nhiều nơi là chép cơ
+sở dữ liệu thật sang bản thử cho giống thật. Ở đây thì không — cơ sở dữ liệu này
+chứa tên gọi, khối lớp, tháng năm sinh và lịch sử làm bài của trẻ em. Chép nó
+sang một máy có mã yếu hơn, ít người canh hơn, nhiều người vào hơn thì đó không
+phải tiện lợi, đó là một sự cố lộ dữ liệu tự gây ra.
+
+Sau khi triển khai, chạy bộ kiểm soi bản **đã lên mạng**:
+
+```bash
+npm run kiem-moi-truong -- --goc https://oly.vn --cho that
+```
+
+Nó **tự tấn công máy chủ của chính mình** bằng đúng những mã mặc định mà kho mã
+từng dùng — PIN `1234`, mã trực `truc2026` — rồi đòi bị từ chối. Bài kiểm thử
+trong Node không làm được việc đó: nó không biết máy chủ ngoài kia khởi động với
+biến môi trường nào, nên một bản lỡ bật hộ mẫu trên bản thật sẽ qua sạch mọi bài
+kiểm thử rồi mở toang cửa trên mạng.
+
 ## Kiểm tra tự động
 
 ```bash
@@ -430,7 +454,7 @@ src/
   app/be/          bề mặt của trẻ
   app/phu-huynh/   bề mặt của phụ huynh
   app/api/         chấm bài, mở gợi ý, xử lý ảnh — nơi duy nhất biết đáp án
-tests/             355 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
+tests/             363 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
 docs/              ma trận truy vết yêu cầu nghiệp vụ
 ```
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  MA_TRUC_MAC_DINH, choPhepDuLieuMau, laBanPhatHanh, maTruc, pinHoMau,
-  thieuGiDeChayThat,
+  MA_TRUC_MAC_DINH, choPhepDuLieuMau, laBanPhatHanh, maTruc, moiTruong,
+  noiDungRobots, pinHoMau, thieuGiDeChayThat,
 } from "@/lib/server/moi-truong";
 
 process.env.OLY_DB = ":memory:";
@@ -17,7 +17,9 @@ process.env.OLY_DB = ":memory:";
 const GOC = { ...process.env };
 
 beforeEach(() => {
-  for (const k of ["NODE_ENV", "OLY_MA_TRUC", "OLY_DU_LIEU_MAU", "OLY_PIN_MAU", "OLY_DB"]) {
+  for (const k of [
+    "NODE_ENV", "OLY_MA_TRUC", "OLY_DU_LIEU_MAU", "OLY_PIN_MAU", "OLY_DB", "OLY_MOI_TRUONG",
+  ]) {
     delete (process.env as Record<string, string | undefined>)[k];
   }
 });
@@ -116,5 +118,59 @@ describe("bảng kiểm trước khi chạy thật", () => {
     process.env.OLY_DB = "/du-lieu/oly.sqlite";
     process.env.OLY_DU_LIEU_MAU = "true";
     expect(thieuGiDeChayThat().map((t) => t.bien)).toContain("OLY_PIN_MAU");
+  });
+});
+
+describe("phân biệt bản thử với bản thật", () => {
+  it("máy người viết mã là bản phát triển", () => {
+    expect(moiTruong()).toBe("phat-trien");
+  });
+
+  it("khai rõ thì theo khai", () => {
+    datPhatHanh();
+    process.env.OLY_MOI_TRUONG = "thu";
+    expect(moiTruong()).toBe("thu");
+    process.env.OLY_MOI_TRUONG = "that";
+    expect(moiTruong()).toBe("that");
+  });
+
+  /*
+   * Đoán nhầm theo hướng "thật" thì hậu quả là chặt hơn cần thiết: máy tìm kiếm
+   * không vào, cảnh báo kêu. Đoán nhầm theo hướng "thử" thì những nới lỏng dành
+   * cho bản thử sẽ áp lên dữ liệu của trẻ thật. Nên phải nghiêng về "thật".
+   */
+  it("bản phát hành quên khai thì coi là THẬT, không coi là thử", () => {
+    datPhatHanh();
+    expect(moiTruong()).toBe("that");
+  });
+
+  it("khai bậy thì cũng coi là thật", () => {
+    datPhatHanh();
+    process.env.OLY_MOI_TRUONG = "staging";
+    expect(moiTruong()).toBe("that");
+  });
+});
+
+describe("robots.txt theo môi trường", () => {
+  it("bản thử chặn toàn bộ — trang thử không được nằm trên máy tìm kiếm", () => {
+    expect(noiDungRobots("thu")).toMatch(/^Disallow: \/$/m);
+  });
+
+  it("bản phát triển cũng chặn toàn bộ", () => {
+    expect(noiDungRobots("phat-trien")).toMatch(/^Disallow: \/$/m);
+  });
+
+  it("bản thật chặn bề mặt trẻ, bề mặt phụ huynh, bảng trực và tuyến xử lý", () => {
+    const r = noiDungRobots("that");
+    for (const d of ["/be", "/phu-huynh", "/truc", "/api"]) {
+      expect(r, d).toContain(`Disallow: ${d}`);
+    }
+  });
+
+  it("bản thật vẫn mở trang giới thiệu và các trang minh bạch", () => {
+    const r = noiDungRobots("that");
+    expect(r).toContain("Allow: /$");
+    expect(r).toContain("Allow: /cach-cham-bai");
+    expect(r).toContain("Allow: /go-bo-noi-dung");
   });
 });

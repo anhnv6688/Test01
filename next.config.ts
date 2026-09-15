@@ -15,6 +15,15 @@ const nextConfig: NextConfig = {
    * gói phát hành được. Khai ở đây để Next để nguyên nó ở dạng gói ngoài.
    */
   serverExternalPackages: ["better-sqlite3"],
+
+  /*
+   * Không khoe tên phần mềm máy chủ ở tiêu đề X-Powered-By.
+   *
+   * Nó không phải lỗ hổng, nhưng nó nói cho người dò biết nên thử những lỗ hổng
+   * nào của phiên bản nào. Tắt đi thì mất một mẩu thông tin miễn phí mà người
+   * dò vốn được cho không.
+   */
+  poweredByHeader: false,
 };
 
 export default nextConfig;

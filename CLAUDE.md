@@ -13,6 +13,16 @@ npm run kiem-giao-dien     # dựng bản phát hành rồi mở bằng trình d
 npm run kiem-giao-dien-dev # kiểm luôn chế độ phát triển
 ```
 
+Sau khi đưa lên máy chủ, chạy thêm — bộ này soi bản ĐÃ TRIỂN KHAI qua mạng:
+
+```bash
+npm run kiem-moi-truong -- --goc https://oly.vn --cho that
+```
+
+Nó tự thử PIN `1234` và mã trực `truc2026` vào chính máy chủ đó rồi đòi bị từ
+chối. Bài kiểm thử trong Node không làm được việc này: nó không biết máy chủ
+ngoài kia được khởi động với biến môi trường nào. Xem `docs/moi-truong.md`.
+
 **Đụng vào giao diện thì phải chạy `kiem-giao-dien`.** Hơn ba trăm bài kiểm thử
 kia chạy trong Node và **không dựng lấy một điểm ảnh nào** — chúng từng để lọt
 một lỗi làm mọi hình minh họa co về bề rộng 0 trên màn hình của trẻ, biến bài
@@ -58,6 +68,7 @@ hỏng lời hứa của sản phẩm.
 | Mã một lần và số điện thoại không lưu dạng rõ; mức xác minh phải giành được | `privacy/ma-mot-lan.ts` | `ma-mot-lan.test.ts` |
 | Hình minh họa phải hiện ra thật, không co về 0 | `components/Visual.tsx` | `npm run kiem-giao-dien` |
 | Bản phát hành không tự dựng hộ mẫu, mã trực thiếu thì khóa hẳn | `server/moi-truong.ts` | `cau-hinh-phat-hanh.test.ts` |
+| Bản đã triển khai từ chối mọi mã mặc định | — | `npm run kiem-moi-truong` |
 
 Nếu một thay đổi làm những bài này trượt, **sửa thay đổi, đừng sửa bài kiểm
 thử** — trừ khi chủ đầu tư đã đổi chính yêu cầu nghiệp vụ, và khi đó phải sửa
@@ -103,6 +114,13 @@ mã trực đoán được — cả ba tự tắt khi `NODE_ENV=production`, và
 khai báo có chủ ý ở `src/lib/server/moi-truong.ts`. Mã trực thiếu thì bảng trực
 **khóa hẳn**, tuyệt đối không rơi về mã mặc định: bảng đó xuất và xóa được dữ
 liệu của các hộ. Đừng thêm giá trị mặc định nào vào các hàm trong tệp đó.
+
+**Dữ liệu không bao giờ chảy ngược từ bản thật sang bản thử.** Chép cơ sở dữ
+liệu thật sang một máy có mã yếu hơn và nhiều người vào hơn không phải là tiện
+lợi, đó là một sự cố lộ dữ liệu trẻ em tự gây ra. Cần dữ liệu để thử thì sinh
+ra. Lỗi chỉ tái hiện được trên dữ liệu thật thì lấy HÌNH DẠNG của nó — mã khuôn
+dạng, hạt giống, mã lỗi — rồi dựng lại một ca giả cùng hình dạng; gần như lúc
+nào cũng làm được, và nó còn để lại một bài kiểm thử. Xem `docs/moi-truong.md`.
 
 ## Dữ liệu thật của trẻ
 

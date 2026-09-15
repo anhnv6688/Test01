@@ -53,6 +53,56 @@ export function maTruc(): string | null {
   return laBanPhatHanh() ? null : MA_TRUC_MAC_DINH;
 }
 
+/**
+ * Bản này là bản gì: thử hay thật.
+ *
+ * Không đoán theo tên miền, vì tên miền đổi được mà cấu hình thì không theo.
+ * Khai rõ bằng OLY_MOI_TRUONG để người vận hành phải nói ra ý định của mình.
+ */
+export type TenMoiTruong = "phat-trien" | "thu" | "that";
+
+export function moiTruong(): TenMoiTruong {
+  const khai = process.env.OLY_MOI_TRUONG;
+  if (khai === "thu" || khai === "that") return khai;
+  if (!laBanPhatHanh()) return "phat-trien";
+  /*
+   * Bản phát hành mà quên khai thì coi là THẬT, không coi là thử.
+   *
+   * Đoán nhầm theo hướng này thì hậu quả là chặt hơn cần thiết — máy tìm kiếm
+   * không đánh chỉ mục, cảnh báo kêu. Đoán nhầm theo hướng kia thì một bản
+   * thật bị đối xử như bản thử, và những nới lỏng dành cho bản thử sẽ áp lên
+   * dữ liệu của trẻ thật.
+   */
+  return "that";
+}
+
+/**
+ * Nội dung robots.txt theo từng môi trường.
+ *
+ * Bản thử chặn hết: nó có dữ liệu giả trông như thật, và một trang thử nằm
+ * trên máy tìm kiếm thì phụ huynh có thể vào nhầm rồi tưởng đó là sản phẩm.
+ *
+ * Bản thật chỉ mở trang giới thiệu. Bề mặt của trẻ và bề mặt của phụ huynh đều
+ * bị chặn: chúng không có gì để tìm kiếm, và việc để máy quét đi vào đó chỉ tạo
+ * thêm một đường nữa tới dữ liệu của các hộ.
+ */
+export function noiDungRobots(mt: TenMoiTruong = moiTruong()): string {
+  if (mt !== "that") {
+    return "# Bản thử. Không đánh chỉ mục bất cứ thứ gì.\nUser-agent: *\nDisallow: /\n";
+  }
+  return [
+    "User-agent: *",
+    "Allow: /$",
+    "Allow: /cach-cham-bai",
+    "Allow: /go-bo-noi-dung",
+    "Disallow: /be",
+    "Disallow: /phu-huynh",
+    "Disallow: /truc",
+    "Disallow: /api",
+    "",
+  ].join("\n");
+}
+
 export interface ThieuCauHinh {
   bien: string;
   viSao: string;

@@ -1,0 +1,20 @@
+# Bản thử. Dùng kèm compose.yaml:
+#   docker compose -f compose.yaml -f compose.thu.yaml up -d
+#
+# Vùng đĩa TÁCH RIÊNG khỏi bản thật. Dùng chung một vùng đĩa là cách chắc chắn
+# nhất để một lần thử nghiệm làm hỏng dữ liệu của các hộ thật.
+services:
+  o-ly:
+    environment:
+      OLY_MOI_TRUONG: thu
+      # Bản thử có hộ mẫu để bấm thử. Dữ liệu ở đây luôn là dữ liệu giả —
+      # xem nguyên tắc số 1 ở docs/moi-truong.md.
+      OLY_DU_LIEU_MAU: "true"
+      OLY_PIN_MAU: ${OLY_PIN_MAU:?đặt OLY_PIN_MAU cho bản thử}
+    volumes:
+      - oly-du-lieu-thu:/du-lieu
+    ports:
+      - "3001:3000"
+
+volumes:
+  oly-du-lieu-thu:

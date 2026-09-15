@@ -1,0 +1,15 @@
+# Bản thật. Dùng kèm compose.yaml:
+#   docker compose -f compose.yaml -f compose.that.yaml up -d
+#
+# KHÔNG có hộ mẫu. Hộ mẫu có mã PIN biết trước, nên trên bản thật nó là một tài
+# khoản không chủ mà ai cũng mở được.
+services:
+  o-ly:
+    environment:
+      OLY_MOI_TRUONG: that
+      OLY_DU_LIEU_MAU: "false"
+    volumes:
+      - oly-du-lieu:/du-lieu
+
+volumes:
+  oly-du-lieu:
