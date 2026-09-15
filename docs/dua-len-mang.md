@@ -51,6 +51,41 @@ Riêng bản **trình diễn** chỉ có hộ mẫu do chính mình dựng thì 
 của ai cả, nên đặt đâu cũng được. Ranh giới nằm ở chỗ có người thật dùng hay
 chưa, chứ không ở chỗ phần mềm chạy thế nào.
 
+## Chọn nơi đặt: Netlify hay Hostinger
+
+| Nơi đặt | Chạy được không | Vì sao |
+|---|---|---|
+| **Netlify** | **Không** | Hàm không máy chủ, hệ tệp tạm cho mỗi lần gọi. Tệp SQLite bị xóa giữa các lần gọi, nên tài khoản và lịch sử học biến mất. Hỏng **âm thầm**: chạy được ở máy, lên mạng mới mất dữ liệu |
+| **Hostinger gói Web/Shared** | **Không** | Không chạy được tiến trình Node đứng lâu |
+| **Hostinger gói VPS (KVM)** | **Có** | Máy ảo có toàn quyền, chạy được Docker và ổ đĩa giữ lâu dài |
+| Nhà cung cấp Việt Nam | **Có** | Như trên, và xem phần dưới về nơi đặt |
+
+Chọn Hostinger thì phải là **VPS**, không phải gói Web hosting. Gói KVM 2 nhân,
+8 GB là quá đủ: Ô Ly là một tiến trình Node với một tệp SQLite, phần nặng nhất
+là gọi mô hình đọc ảnh mà việc đó chạy ở máy của nhà cung cấp mô hình.
+
+### Nhưng với người dùng thật, câu hỏi không phải Netlify hay Hostinger
+
+Nghị định 53/2022/NĐ-CP buộc lưu trữ **tại Việt Nam** dữ liệu của người dùng
+Việt Nam, với doanh nghiệp cung cấp dịch vụ trên mạng viễn thông và Internet.
+Loại dữ liệu nêu trong nghị định gồm họ tên, ngày sinh, số điện thoại — mà Ô Ly
+giữ cả ba: tên gọi của trẻ, tháng năm sinh (CR-05), và số điện thoại người đại
+diện dưới dạng băm.
+
+Hostinger phục vụ khu vực Đông Nam Á từ Malaysia và Indonesia; Netlify chạy trên
+hạ tầng Mỹ. Cả hai đều **ngoài Việt Nam**.
+
+Vì vậy:
+
+- **Bản trình diễn** chỉ có hộ mẫu do mình dựng, không có dữ liệu của ai — đặt
+  đâu cũng được. Hostinger VPS là lựa chọn gọn và rẻ.
+- **Bản phục vụ người thật** nhiều khả năng phải đặt trong nước. Viettel IDC,
+  VNPT Cloud, FPT Cloud, CMC Cloud đều bán VPS chạy Docker được.
+
+Ranh giới nằm ở chỗ **có người thật dùng hay chưa**, không nằm ở chỗ phần mềm
+chạy thế nào. Việc nghị định có áp cho Ô Ly hay không, và áp tới mức nào, là câu
+hỏi cho luật sư — phần mã nguồn không trả lời thay được.
+
 ## Chạy bằng Docker
 
 ```bash

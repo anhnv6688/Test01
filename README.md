@@ -292,7 +292,10 @@ trực thiếu thì khóa hẳn, **không** rơi về mã mặc định. Có bà
 **Máy chủ đặt ở đâu là câu hỏi pháp lý.** Cơ sở dữ liệu chứa tên gọi, khối lớp,
 tháng năm sinh và lịch sử làm bài của trẻ. Kiến trúc khử nhận dạng ở
 `src/lib/privacy/` chỉ áp cho phần gửi ra bên xử lý ảnh — nó **không** áp cho
-chính cơ sở dữ liệu. Hỏi luật sư trước, đừng chọn theo giá thuê.
+chính cơ sở dữ liệu. Nghị định 53/2022 buộc lưu trữ tại Việt Nam dữ liệu người
+dùng Việt Nam, mà họ tên, ngày sinh và số điện thoại đều nằm trong danh mục đó.
+Bản trình diễn không có dữ liệu của ai thì đặt đâu cũng được; bản phục vụ người
+thật thì hỏi luật sư trước, đừng chọn theo giá thuê.
 
 ## Kiểm tra tự động
 
