@@ -87,6 +87,45 @@ mua máy bao nhiêu RAM, và có ba cách tránh mua thừa:
 | **Hostinger gói VPS (KVM)** | **Có** | Máy ảo có toàn quyền, chạy được Docker và ổ đĩa giữ lâu dài |
 | Nhà cung cấp Việt Nam | **Có** | Như trên, và xem phần dưới về nơi đặt |
 
+### AWS — đắt hơn, phức tạp hơn, nhưng có một thứ không nơi nào khác có
+
+Tháng 6/2026 AWS mở **Local Zone tại Hà Nội**, có máy tính toán, ổ đĩa EBS và
+ảnh chụp S3 ngay trong nước, kèm **lưu trú dữ liệu tại Việt Nam**.
+
+Đó chính là câu trả lời cho Nghị định 53 ở phần trên, và là thứ Contabo, Vultr,
+Hostinger đều không có. Nghĩa là nếu chọn AWS thì đường đi từ bản trình diễn ở
+Singapore sang bản phục vụ người thật ở Hà Nội **không phải đổi nhà cung cấp** —
+chỉ đổi vùng.
+
+Hai điều phải biết trước khi chọn AWS vì lý do đó:
+
+**Lightsail không chạy ở Local Zone.** Lightsail là dịch vụ theo vùng; muốn Hà
+Nội thì phải dùng EC2 đầy đủ, kèm VPC, nhóm bảo mật, EBS, ảnh chụp sao lưu. Với
+một tiến trình Node và một tệp SQLite thì đó là khá nhiều bộ máy cho khá ít việc.
+
+**Hóa đơn AWS không phẳng.** Máy ảo có giá cố định, nhưng lưu lượng đi ra thì
+tính theo lượng dùng. Ô Ly có gửi ảnh trang vở ra bên xử lý ảnh, nên khoản đó
+tăng theo số hộ. Một máy ảo giá phẳng thì tháng nào cũng như tháng nào; AWS thì
+phải theo dõi.
+
+Giá Lightsail tại Singapore, tra tháng 9/2026:
+
+| Gói | Máy | Mỗi tháng |
+|---|---|---|
+| IPv6 | 512 MB, 1 nhân, 20 GB | 3,50 đô |
+| IPv4 | 512 MB, 2 nhân, 20 GB, 1 TB lưu lượng | 5 đô |
+| IPv4 | 2 GB | 10 đô |
+| IPv4 | 2 GB, 2 nhân, 60 GB, 3 TB lưu lượng | 12 đô |
+
+Gói 5 đô **chạy** Ô Ly thoải mái (cần 133 MB), nhưng **không dựng** được (cần
+1.490 MB) — phải dựng ảnh ở GitHub Actions rồi máy chủ chỉ tải về. Lưu ý thêm:
+mức lưu lượng kèm theo ở một số vùng châu Á bị giảm một nửa so với Mỹ, nên kiểm
+lại con số đúng của Singapore lúc đăng ký.
+
+So thẳng: Contabo 8,38 đô cho 4 nhân 8 GB, còn Lightsail 12 đô cho 2 nhân 2 GB.
+AWS đắt hơn rõ rệt cho cùng lượng máy. Trả thêm là trả cho đường sang Hà Nội và
+cho việc nó là AWS, không phải trả cho cấu hình.
+
 ### Nếu muốn trung tâm dữ liệu Singapore thật
 
 Hostinger không có trung tâm dữ liệu Singapore thật — khu vực này được phục vụ
