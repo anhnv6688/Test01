@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+#
+# Dựng một máy chủ ảo trống thành máy chạy được Ô Ly. Chạy MỘT LẦN, bằng root.
+#
+#   ssh root@<địa-chỉ-máy>
+#   curl -fsSL <đường-dẫn-tới-tệp-này> -o dung-may-chu.sh
+#   bash dung-may-chu.sh [tên-người-vận-hành]
+#
+# Chạy lại lần nữa không hỏng gì: mọi bước đều kiểm trước khi làm.
+#
+# Kịch bản này KHÔNG cài Ô Ly. Nó chỉ dựng phần nền: người dùng thường, khóa
+# SSH, tường lửa, Docker. Cài Ô Ly là việc của trien-khai.sh, chạy bằng người
+# dùng thường đó — hai việc tách nhau vì phần nền dựng một lần còn phần ứng
+# dụng thì triển khai lại nhiều lần.
+set -euo pipefail
+
+NGUOI="${1:-oly}"
+MUI_GIO="Asia/Ho_Chi_Minh"
+
+xanh() { printf '\033[32m  ok  \033[0m%s\n' "$1"; }
+vang() { printf '\033[33m  !!  \033[0m%s\n' "$1"; }
+do_()  { printf '\033[31m HỎNG \033[0m%s\n' "$1"; }
+buoc() { printf '\n\033[1m%s\033[0m\n' "$1"; }
+
+[ "$(id -u)" -eq 0 ] || { do_ "Phải chạy bằng root."; exit 1; }
+command -v apt-get >/dev/null || { do_ "Chỉ hỗ trợ Debian và Ubuntu."; exit 1; }
+
+export DEBIAN_FRONTEND=noninteractive
+
+buoc "1. Cập nhật hệ thống và cài gói nền"
+apt-get update -qq
+apt-get install -y -qq ca-certificates curl gnupg ufw fail2ban unattended-upgrades sqlite3 >/dev/null
+xanh "đã cài gói nền"
+
+timedatectl set-timezone "$MUI_GIO"
+xanh "múi giờ: $MUI_GIO (nhật ký xử lý yêu cầu tính hạn theo giờ Việt Nam)"
+
+buoc "2. Người vận hành thường, không dùng root cho việc hằng ngày"
+if id "$NGUOI" >/dev/null 2>&1; then
+  xanh "người dùng $NGUOI đã có"
+else
+  adduser --disabled-password --gecos "" "$NGUOI" >/dev/null
+  xanh "đã tạo người dùng $NGUOI"
+fi
+usermod -aG sudo "$NGUOI"
+
+NHA="/home/$NGUOI"
+install -d -m 700 -o "$NGUOI" -g "$NGUOI" "$NHA/.ssh"
+if [ -s /root/.ssh/authorized_keys ]; then
+  # Gộp chứ không đè: chạy lại kịch bản không được xóa mất khóa đã thêm sau đó.
+  touch "$NHA/.ssh/authorized_keys"
+  cat /root/.ssh/authorized_keys "$NHA/.ssh/authorized_keys" | sort -u > "$NHA/.ssh/.gop"
+  mv "$NHA/.ssh/.gop" "$NHA/.ssh/authorized_keys"
+  chown "$NGUOI:$NGUOI" "$NHA/.ssh/authorized_keys"
+  chmod 600 "$NHA/.ssh/authorized_keys"
+  xanh "đã chép khóa SSH của root sang $NGUOI"
+fi
+
+buoc "3. Khóa SSH lại"
+#
+# Chốt quan trọng nhất của cả tệp này.
+#
+# Tắt đăng nhập bằng mật khẩu trong khi người vận hành CHƯA có khóa công khai
+# nghĩa là khóa cửa rồi ném chìa vào trong. Máy Contabo giao ra mặc định là
+# root kèm mật khẩu, nên trường hợp này rất dễ xảy ra — nó là trường hợp BÌNH
+# THƯỜNG chứ không phải ngoại lệ hiếm.
+#
+# Vì vậy: không có khóa thì bỏ qua bước này và nói to, chứ không làm "cho đúng
+# quy trình". Một máy còn đăng nhập được bằng mật khẩu thì còn sửa được; một
+# máy không ai vào được thì phải dựng lại từ đầu.
+#
+if [ -s "$NHA/.ssh/authorized_keys" ]; then
+  cat > /etc/ssh/sshd_config.d/99-oly.conf <<'CAUHINH'
+# Ô Ly. Máy này giữ dữ liệu cá nhân của trẻ em, nên không nhận mật khẩu.
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+CAUHINH
+  # Kiểm cấu hình TRƯỚC khi nạp lại. Nạp một tệp sai cú pháp là mất luôn dịch
+  # vụ SSH, và lúc đó không còn đường nào vào để sửa.
+  if sshd -t; then
+    systemctl reload ssh 2>/dev/null || systemctl reload sshd
+    xanh "SSH: chỉ nhận khóa, không nhận mật khẩu, root không đăng nhập thẳng"
+  else
+    rm -f /etc/ssh/sshd_config.d/99-oly.conf
+    do_ "cấu hình SSH sai cú pháp — đã bỏ đi, giữ nguyên cấu hình cũ"
+  fi
+else
+  vang "CHƯA gia cố SSH: $NGUOI không có khóa công khai nào."
+  vang "Từ MÁY CỦA ANH chạy:  ssh-copy-id $NGUOI@\$(hostname -I | awk '{print \$1}')"
+  vang "Đăng nhập thử bằng khóa, rồi chạy lại kịch bản này."
+fi
+
+buoc "4. Tường lửa"
+ufw --force reset >/dev/null
+ufw default deny incoming >/dev/null
+ufw default allow outgoing >/dev/null
+ufw allow OpenSSH >/dev/null
+ufw allow 80/tcp  >/dev/null
+ufw allow 443/tcp >/dev/null
+ufw --force enable >/dev/null
+xanh "chỉ mở 22, 80, 443 — cổng 3000 của Ô Ly KHÔNG ra ngoài, chỉ Caddy gọi được"
+
+systemctl enable --now fail2ban >/dev/null 2>&1 || true
+xanh "fail2ban đang chạy"
+
+buoc "5. Tự vá lỗi bảo mật"
+cat > /etc/apt/apt.conf.d/20auto-upgrades <<'CAUHINH'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+CAUHINH
+systemctl enable --now unattended-upgrades >/dev/null 2>&1 || true
+xanh "bản vá bảo mật tự cài"
+
+buoc "6. Vùng tráo đổi"
+#
+# Dựng bản phát hành ngốn đỉnh 1.490 MB (số đo thật, xem docs/dua-len-mang.md),
+# trong khi chạy chỉ hết 133 MB. Máy từ 4 GB trở lên thì dựng thẳng được, không
+# cần swap — thêm swap trên máy thừa RAM chỉ làm chậm khi hệ điều hành quyết
+# định tráo nhầm thứ.
+RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
+if [ "$RAM_MB" -ge 3500 ]; then
+  xanh "RAM ${RAM_MB}MB — dựng thẳng được, không cần vùng tráo đổi"
+elif swapon --show | grep -q .; then
+  xanh "đã có vùng tráo đổi"
+else
+  fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap -q /swapfile && swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  xanh "RAM ${RAM_MB}MB — đã thêm 2 GB vùng tráo đổi để dựng được"
+fi
+
+buoc "7. Docker"
+if command -v docker >/dev/null; then
+  xanh "Docker đã có: $(docker --version)"
+else
+  install -m 0755 -d /etc/apt/keyrings
+  . /etc/os-release
+  curl -fsSL "https://download.docker.com/linux/$ID/gpg" -o /etc/apt/keyrings/docker.asc
+  chmod a+r /etc/apt/keyrings/docker.asc
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$ID $VERSION_CODENAME stable" \
+    > /etc/apt/sources.list.d/docker.list
+  apt-get update -qq
+  apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null
+  xanh "đã cài Docker: $(docker --version)"
+fi
+systemctl enable --now docker >/dev/null
+
+# Vào nhóm docker là quyền tương đương root: ai gọi được Docker thì gắn được ổ
+# đĩa của máy vào một thùng chứa rồi đọc mọi thứ. Chấp nhận, vì đây là máy một
+# việc và $NGUOI vốn đã có sudo; nhưng đừng thêm người vào nhóm này cho tiện.
+usermod -aG docker "$NGUOI"
+xanh "$NGUOI gọi được Docker (bằng quyền tương đương root — đừng thêm ai khác)"
+
+# Nhật ký thùng chứa không có trần thì đầy đĩa rồi làm chết máy, và nó chết vào
+# đúng lúc đang có người dùng chứ không phải lúc đang xem.
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json <<'CAUHINH'
+{
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "20m", "max-file": "5" }
+}
+CAUHINH
+systemctl restart docker
+xanh "nhật ký Docker có trần 100 MB mỗi thùng chứa"
+
+buoc "Xong phần nền"
+DIA_CHI=$(hostname -I | awk '{print $1}')
+cat <<HUONGDAN
+
+Máy đã sẵn sàng. Việc tiếp theo, làm bằng $NGUOI chứ không phải root:
+
+  ssh $NGUOI@$DIA_CHI
+  git clone <kho-mã> o-ly && cd o-ly
+  bash trien-khai/trien-khai.sh
+
+Trước khi chạy lệnh đó, đọc docs/vps-contabo.md — có một quyết định phải chọn
+(tên miền hay chưa có tên miền) và một điều về pháp lý phải biết.
+
+HUONGDAN

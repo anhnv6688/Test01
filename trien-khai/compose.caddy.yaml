@@ -1,0 +1,58 @@
+# Đặt Caddy trước Ô Ly. Dùng kèm compose.yaml và một trong hai tệp môi trường:
+#
+#   docker compose -f compose.yaml -f compose.thu.yaml \
+#                  -f trien-khai/compose.caddy.yaml up -d
+#
+# Việc này do trien-khai/trien-khai.sh lo, không cần gõ tay.
+services:
+  o-ly:
+    # ---------------------------------------------------------------------
+    # BỎ HẲN việc công bố cổng ra máy chủ. Đây không phải dọn dẹp cho gọn.
+    #
+    # Docker tự viết luật iptables của riêng nó, ở một bảng nằm TRƯỚC luật của
+    # ufw. Nghĩa là một dòng `ports: "3000:3000"` mở cổng 3000 ra thẳng
+    # Internet ngay cả khi `ufw status` nói cổng đó bị chặn — tường lửa báo
+    # xanh trong khi cửa vẫn mở. Đây là cái bẫy kinh điển của Docker trên máy
+    # chủ ảo, và nó im lặng.
+    #
+    # Ở đây Ô Ly chỉ cần Caddy gọi tới, mà Caddy nằm cùng mạng Docker, nên
+    # không công bố cổng nào là đủ và là an toàn nhất.
+    #
+    # Cần `!override` chứ không phải `ports: []`: danh sách trong tệp phủ được
+    # GỘP vào danh sách gốc chứ không thay thế, nên một danh sách rỗng bình
+    # thường sẽ không xóa được gì. Cần Docker Compose từ 2.24 trở lên.
+    # ---------------------------------------------------------------------
+    ports: !override []
+    expose:
+      - "3000"
+
+    # Đặt tên ảnh rõ ràng thay vì để Compose tự sinh từ tên thư mục.
+    #
+    # Tên tự sinh là "<tên-thư-mục>-o-ly", đã qua một bước hạ chữ hoa và thay
+    # ký tự lạ. Kịch bản triển khai cần gọi đúng tên đó để nhớ ảnh cũ và lùi
+    # lại khi bản mới không đứng dậy được — đoán sai tên nghĩa là mất đường
+    # lùi, mà lúc phát hiện ra thì đang là lúc sản phẩm đã chết.
+    image: o-ly:dang-chay
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./trien-khai/${OLY_CADDYFILE:-Caddyfile}:/etc/caddy/Caddyfile:ro
+      - caddy-du-lieu:/data
+      - caddy-cau-hinh:/config
+    environment:
+      OLY_TEN_MIEN: ${OLY_TEN_MIEN:-}
+    depends_on:
+      - o-ly
+
+volumes:
+  # Vùng đĩa này giữ chứng chỉ và khóa riêng. Xóa nó thì Caddy xin lại chứng
+  # chỉ mới, mà Let's Encrypt có hạn mức số lần xin mỗi tuần — xóa vài lần là
+  # bị khóa mất mấy ngày, đúng lúc đang cần lên lại.
+  caddy-du-lieu:
+  caddy-cau-hinh:

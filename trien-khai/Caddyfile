@@ -1,0 +1,47 @@
+# Bộ định tuyến ngược có HTTPS tự động, cho máy chủ CÓ tên miền.
+#
+# Caddy tự xin và tự gia hạn chứng chỉ Let's Encrypt. Đổi lại nó cần tên miền
+# đã trỏ A/AAAA về đúng máy này TRƯỚC khi chạy, và cần cổng 80 mở ra Internet
+# để Let's Encrypt gọi ngược vào xác minh.
+#
+# Vì sao bắt buộc phải có HTTPS chứ không phải nên có: đường này chở mã PIN của
+# bố mẹ, mã một lần gửi qua điện thoại, và ẢNH TRANG VỞ của trẻ. Chạy HTTP trần
+# nghĩa là mọi máy trên đường truyền đọc được cả ba.
+
+{$OLY_TEN_MIEN} {
+	encode zstd gzip
+	reverse_proxy o-ly:3000
+
+	# Ảnh trang vở đi qua đây dưới dạng base64, nên trần phải rộng hơn kích
+	# thước tệp gốc chừng một phần ba. 12 MB đủ cho ảnh điện thoại đã thu nhỏ ở
+	# máy khách; chặn ở đây để một tệp khổng lồ không tới được tiến trình Node.
+	request_body {
+		max_size 12MB
+	}
+
+	header {
+		# Sáu tháng, vì bật HSTS là một lời hứa khó rút lại: trình duyệt đã ghi
+		# nhớ thì sẽ từ chối mọi kết nối HTTP tới tên miền này cho tới khi hết
+		# hạn, kể cả khi chứng chỉ có chuyện. Chưa đặt preload vì preload thì
+		# gỡ ra mất hàng tháng.
+		Strict-Transport-Security "max-age=15552000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	# Nhật ký truy cập CÓ dữ liệu cá nhân: địa chỉ IP là dữ liệu cá nhân theo
+	# Nghị định 13/2023. Đường dẫn thì không lộ tên trẻ (các trang là /be,
+	# /phu-huynh, không nhét tên vào URL), nhưng IP thì có.
+	#
+	# Giữ lại vì vận hành cần biết ai đang dò cổng và trang nào đang lỗi. Trần
+	# 5 lần 20 MB chính là chính sách lưu giữ: đầy thì bản cũ nhất bị đè. Muốn
+	# tắt hẳn thì xóa cả khối này — Ô Ly không cần nó để chạy.
+	log {
+		output file /data/truy-cap.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+	}
+}

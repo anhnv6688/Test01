@@ -1,0 +1,34 @@
+# Cho máy CHƯA có tên miền — chỉ có địa chỉ IP.
+#
+# Let's Encrypt không cấp chứng chỉ cho địa chỉ IP, nên Caddy tự ký lấy một cái
+# (`tls internal`). Trình duyệt sẽ kêu "kết nối không riêng tư" và phải bấm qua.
+#
+# CHỈ DÙNG CHO BẢN THỬ, và đây không phải lời khuyên chung chung. Chứng chỉ tự
+# ký thì mã hóa được đường truyền nhưng KHÔNG chứng minh được máy bên kia là ai,
+# nên nó không chống được người đứng giữa. Quan trọng hơn: nó dạy người dùng
+# bấm qua cảnh báo bảo mật — và người đã quen bấm qua thì sẽ bấm qua cả lần
+# cảnh báo thật.
+#
+# Bản có phụ huynh thật vào phải có tên miền và chứng chỉ thật. Dùng
+# trien-khai/Caddyfile.
+
+:443 {
+	tls internal
+	encode zstd gzip
+	reverse_proxy o-ly:3000
+
+	request_body {
+		max_size 12MB
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+}
+
+:80 {
+	redir https://{host}{uri} permanent
+}

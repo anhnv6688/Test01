@@ -70,6 +70,8 @@ hỏng lời hứa của sản phẩm.
 | Bản phát hành không tự dựng hộ mẫu, mã trực thiếu thì khóa hẳn | `server/moi-truong.ts` | `cau-hinh-phat-hanh.test.ts` |
 | Bản đã triển khai từ chối mọi mã mặc định | — | `npm run kiem-moi-truong` |
 | Hết hạn thuê bao không khóa lịch sử học; hủy dễ như mua | `domain/thue-bao.ts` | `thue-bao.test.ts` |
+| Trang gắn nhãn khóa hẳn ở bản phát hành, không biến nào mở lại được | `server/kho-anh-do.ts` | `gan-nhan.test.ts` + `npm run kiem-giao-dien` |
+| Ô Ly không công bố cổng ra máy chủ — Docker đi vòng qua ufw | `trien-khai/compose.caddy.yaml` | `trien-khai.test.ts` |
 
 Nếu một thay đổi làm những bài này trượt, **sửa thay đổi, đừng sửa bài kiểm
 thử** — trừ khi chủ đầu tư đã đổi chính yêu cầu nghiệp vụ, và khi đó phải sửa
@@ -149,6 +151,7 @@ mã nằm ở tệp này (`CLAUDE.md`), không nằm ở đó.
 ## Bố cục
 
 ```
+trien-khai/        kịch bản dựng máy chủ, Caddy, triển khai có đường lùi, sao lưu
 src/lib/domain/    kho khuôn dạng, bẫy, thang gợi ý, chấm bài, lời giảng, chi phí
 src/lib/privacy/   ba lớp bảo vệ, đồng ý theo mục đích, người đại diện, mốc 7 tuổi
 src/lib/vision/    giao diện nhà cung cấp xử lý ảnh, bản thật và bản giả lập
@@ -157,8 +160,27 @@ src/lib/server/    cơ sở dữ liệu, kho dữ liệu, cổng, yêu cầu c�
 src/app/be/        bề mặt của trẻ — tuyệt đối không biết đáp án
 src/app/phu-huynh/ bề mặt của phụ huynh
 src/app/api/       chấm bài, mở gợi ý, xử lý ảnh — nơi duy nhất biết đáp án
-docs/              ma trận truy vết, hướng dẫn bộ đo ảnh
+docs/              ma trận truy vết, hướng dẫn bộ đo ảnh, vận hành máy chủ
 ```
+
+## Gắn nhãn bộ ảnh đo
+
+`npm run dev` rồi mở `/gan-nhan`. Trang đọc thẳng ảnh từ thư mục `bo-anh-do/`
+(đổi bằng `OLY_THU_MUC_ANH`), ghi `nhan.json` ngay cạnh ảnh. Ảnh không rời máy
+người gắn nhãn, và trang **khóa hẳn** ở bản phát hành — nó phục vụ ảnh chưa che
+đọc thẳng từ đĩa, nên không có trường hợp dùng đúng nào trên máy chủ công khai.
+Đừng thêm biến môi trường để bật lại.
+
+Nhãn ghi thứ **trẻ đã viết**, không phải đáp án đúng. Trang có hiện kết luận của
+bộ chấm, nhưng để đối chiếu với dấu mực đỏ của cô giáo trên chính trang vở đó —
+lệch nhau nghĩa là hoặc gõ nhầm, hoặc bộ chấm có lỗi. Sửa nhãn cho thành đúng là
+xóa mất tỷ lệ báo động giả, chỉ số nguy hiểm nhất của cả bộ đo.
+
+## Đưa lên máy chủ
+
+Xem `docs/vps-contabo.md`. Ba điều không được quên: máy ngoài Việt Nam chỉ chạy
+bản **thử**; đừng công bố cổng của Ô Ly ra máy chủ (Docker đi vòng qua ufw);
+đừng xóa vùng đĩa của Caddy (Let's Encrypt có hạn mức xin chứng chỉ).
 
 ## Thêm một dạng bài chấm được
 
