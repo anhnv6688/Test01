@@ -8,6 +8,12 @@
 #
 # Chạy bằng người vận hành thường, KHÔNG phải root.
 #
+# ĐÂY LÀ ĐƯỜNG GÕ TAY. Nó dựng ảnh ngay trên máy chủ, tiện cho lần đầu và cho
+# lúc dò lỗi, nhưng nó vi phạm nguyên tắc số 2 ở docs/moi-truong.md: dựng lại
+# cho bản thật là một lần biên dịch khác với lần vừa thử xong. Đường thường
+# dùng là .github/workflows/dua-len.yml — dựng một ảnh ở phần chạy tự động rồi
+# đưa đúng ảnh đó qua cả hai môi trường, xem trien-khai/chay-anh.sh.
+#
 # Kịch bản dừng và LÙI LẠI ảnh cũ nếu bản mới không đứng dậy được. Đây là lý do
 # nó tồn tại thay vì một dòng `docker compose up -d`: một bản dựng hỏng mà vẫn
 # thay chỗ bản đang chạy thì sản phẩm chết cho tới khi có người nhìn vào, và

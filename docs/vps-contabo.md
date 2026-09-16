@@ -88,6 +88,63 @@ vào chính máy chủ vừa dựng để xem `/` trả 200 và `/gan-nhan` tr�
 Bản mới không đứng dậy được thì nó **tự lùi về ảnh cũ** và báo. Đó là lý do có
 kịch bản này thay vì một dòng `docker compose up -d`.
 
+## Cách thường dùng: để GitHub Actions đưa lên
+
+Ba bước trên là đường gõ tay, dùng cho lần đầu và lúc dò lỗi. Đường thường dùng
+là `.github/workflows/dua-len.yml`, và nó khác ở một điểm quan trọng: **ảnh được
+dựng đúng MỘT lần** ở phần chạy tự động, đưa lên bản thử, rồi khi đạt thì sang
+bản thật là **đúng ảnh đó**.
+
+`trien-khai.sh` dựng ngay trên máy chủ. Máy 8 GB thừa sức, nên nghe thì không
+sao — nhưng dựng lại cho bản thật là một lần biên dịch khác, một cây phụ thuộc
+có thể khác. Thứ lên bản thật không còn là thứ vừa thử xong, và toàn bộ việc
+thử mất ý nghĩa. Đây là nguyên tắc số 2 ở `docs/moi-truong.md`.
+
+### Khai báo một lần
+
+Tạo khóa SSH riêng cho phần chạy tự động, **khác** khóa cá nhân của anh — rút
+được mà không ảnh hưởng tới đường vào của chính anh:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/oly-trien-khai -C "github-actions" -N ""
+ssh-copy-id -i ~/.ssh/oly-trien-khai.pub oly@109.123.233.46
+ssh-keyscan 109.123.233.46            # giữ kết quả cho OLY_MAY_CHU_KHOA
+```
+
+Trên máy chủ, hạn bớt quyền của khóa đó trong `~/.ssh/authorized_keys` — thêm
+`restrict,pty` vào đầu dòng chứa khóa vừa thêm. Nó cắt chuyển tiếp cổng và
+chuyển tiếp tác nhân, những thứ việc triển khai không cần tới.
+
+Trên GitHub, tạo hai Environment tên `thu` và `that`, mỗi cái khai:
+
+| Loại | Tên | Nội dung |
+|---|---|---|
+| Secret | `OLY_MAY_CHU` | `109.123.233.46` |
+| Secret | `OLY_NGUOI` | `oly` |
+| Secret | `OLY_SSH_KHOA` | nội dung `~/.ssh/oly-trien-khai` |
+| Secret | `OLY_MAY_CHU_KHOA` | kết quả `ssh-keyscan` ở trên |
+| Variable | `OLY_DIA_CHI` | `https://thu.oly.vn` |
+
+Và **đặt "Required reviewers" cho Environment `that`**. Đây là việc phải bấm tay
+trên GitHub, không khai trong tệp workflow được, và nó là cửa duy nhất ngăn một
+lần đưa lên bản thật xảy ra mà không ai biết. Bản thật chạm vào dữ liệu thật của
+các hộ.
+
+### Rồi sau đó
+
+Đẩy lên nhánh chính là tự đưa lên **bản thử**. Bản thật thì vào tab Actions,
+chọn "Đưa lên máy chủ", bấm chạy, chọn `that` — và phải có người duyệt.
+
+Sau mỗi lần đưa lên, phần chạy tự động tự gõ vào máy chủ vừa triển khai để thử
+PIN `1234` và mã trực `truc2026` rồi **đòi bị từ chối**. Đó là chỗ duy nhất phát
+hiện một máy chủ chạy đúng mã nguồn nhưng sai cấu hình.
+
+Máy chủ không cần bất kỳ thông tin đăng nhập GitHub nào: cấu hình được gửi lên
+qua SSH, còn thẻ đăng nhập sổ đăng ký là thẻ của chính lần chạy đó, hết hạn khi
+việc kết thúc và được đăng xuất ngay sau khi kéo ảnh xong.
+
+Máy chủ đang chạy bản nào thì xem dòng `OLY_ANH` trong `~/o-ly/.env`.
+
 ## Tên miền
 
 Chưa có tên miền thì Caddy tự ký chứng chỉ, trình duyệt sẽ kêu "kết nối không

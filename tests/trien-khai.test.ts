@@ -14,6 +14,20 @@ import { describe, expect, it } from "vitest";
 
 const doc = (t: string) => readFileSync(t, "utf8");
 
+/**
+ * Bỏ các dòng chú thích trước khi quét.
+ *
+ * Chú thích ở kho này giải thích cái bẫy bằng cách VIẾT RA chính đoạn nguy
+ * hiểm — "tuyệt đối không dùng StrictHostKeyChecking=no", `ports: "3000:3000"`.
+ * Bài kiểm thử đọc cả chú thích sẽ đỏ vì đúng những dòng dạy người ta tránh
+ * điều đó, và cách sửa dễ nhất là xóa chú thích đi. Hỏng theo hướng ngược lại
+ * với thứ nó bảo vệ.
+ *
+ * Dùng chung cho cả YAML lẫn shell vì cả hai đều lấy `#` làm dấu chú thích.
+ */
+const khongChuThich = (noiDung: string) =>
+  noiDung.split("\n").filter((d) => !/^\s*#/.test(d)).join("\n");
+
 describe("Ô Ly không được công bố cổng ra máy chủ", () => {
   /*
    * Docker tự viết luật iptables ở một bảng nằm TRƯỚC luật của ufw. Một dòng
@@ -39,10 +53,7 @@ describe("Ô Ly không được công bố cổng ra máy chủ", () => {
   });
 
   it("chỉ Caddy công bố cổng, và chỉ 80 với 443", () => {
-    // Bỏ chú thích trước khi quét. Chính khối chú thích giải thích cái bẫy ở
-    // trên có viết chuỗi "3000:3000" làm ví dụ, và bài kiểm thử mà đọc cả chú
-    // thích thì nó đang canh văn xuôi chứ không canh cấu hình.
-    const yaml = caddy.split("\n").filter((d) => !/^\s*#/.test(d)).join("\n");
+    const yaml = khongChuThich(caddy);
     const cong = [...yaml.matchAll(/"(\d+):(\d+)(\/udp)?"/g)].map((m) => m[1]);
     expect(cong.sort()).toEqual(["443", "443", "80"]);
   });
@@ -99,5 +110,71 @@ describe("bản thật không chạy được nếu chưa có chứng chỉ th�
 
   it("có đường lùi khi bản mới không đứng dậy được", () => {
     expect(tk).toMatch(/docker tag "\$ANH_CU"/);
+  });
+});
+
+/**
+ * Canh phần chạy tự động đưa lên máy chủ.
+ *
+ * Quét chữ, không dựng YAML thành đối tượng: bộ phân tích YAML duy nhất có sẵn
+ * ở kho này đến gián tiếp qua một gói khác, nên một lần nâng phụ thuộc là nó
+ * biến mất và bài kiểm thử tắt ngóm mà không ai để ý. Thêm một gói chỉ để đọc
+ * bốn dòng thì không đáng. Quét chữ yếu hơn, và ở đây chấp nhận được vì cả bốn
+ * điều dưới đây đều là "có mặt hay không có mặt", không phải chuyện cấu trúc.
+ */
+describe("đưa lên máy chủ tự động", () => {
+  const wf = khongChuThich(doc(".github/workflows/dua-len.yml"));
+
+  it("không bao giờ tắt kiểm khóa máy chủ", () => {
+    /*
+     * StrictHostKeyChecking=no chấp nhận BẤT CỨ máy nào trả lời ở địa chỉ đó.
+     * Một lần chiếm quyền DNS là đủ để nhận trọn khóa triển khai, thẻ đăng nhập
+     * sổ đăng ký, và toàn bộ nội dung gửi lên. Dòng này hay được thêm vào lúc
+     * ba giờ sáng khi triển khai không chạy, và không bao giờ được gỡ ra.
+     */
+    for (const tep of [".github/workflows/dua-len.yml", "trien-khai/chay-anh.sh", "trien-khai/trien-khai.sh"]) {
+      const ma = khongChuThich(doc(tep));
+      expect(ma, `${tep} tắt kiểm khóa máy chủ`).not.toMatch(/StrictHostKeyChecking[= ]*no/);
+      expect(ma, `${tep} bỏ qua known_hosts`).not.toMatch(/UserKnownHostsFile[= ]*\/dev\/null/);
+    }
+    expect(wf).toMatch(/known_hosts/);
+  });
+
+  it("không đưa lên một bản chưa qua kiểm tra", () => {
+    expect(wf).toMatch(/needs:\s*kiem/);
+    expect(wf).toMatch(/npm run kiem-tra/);
+    expect(wf).toMatch(/npm run khong-ro-ri/);
+  });
+
+  it("bản thật chỉ đưa lên được từ nhánh chính", () => {
+    // Nhánh bất kỳ đẩy được lên bản thật nghĩa là mã chưa qua xét duyệt cũng
+    // chạm được vào dữ liệu thật của các hộ.
+    expect(wf).toMatch(/MOI_TRUONG == 'that'[\s\S]{0,200}default_branch/);
+  });
+
+  it("ảnh gắn nhãn bằng mã băm lần gửi mã, không phải latest", () => {
+    // "latest" thì không nói được máy chủ đang chạy lần gửi mã nào, và lùi lại
+    // cũng không lùi được về đâu cụ thể.
+    expect(wf).toMatch(/\$\{\{ github\.sha \}\}/);
+    expect(wf).not.toMatch(/:latest/);
+  });
+
+  it("máy chủ chạy ảnh đã dựng sẵn, không dựng lại từ mã nguồn", () => {
+    /*
+     * Nguyên tắc số 2 ở docs/moi-truong.md: MỘT ảnh đi qua cả hai môi trường.
+     * Thiếu `!reset null` thì Compose vẫn thấy khối build của compose.yaml, dựng
+     * lại trên máy chủ, và bỏ qua ảnh vừa kéo về — thứ lên bản thật không còn
+     * là thứ vừa thử xong, mà mọi thứ vẫn xanh.
+     */
+    const ghcr = khongChuThich(doc("trien-khai/compose.anh-ghcr.yaml"));
+    expect(ghcr).toMatch(/build:\s*!reset\s+null/);
+    expect(ghcr).toMatch(/image:\s*\$\{OLY_ANH:\?/);
+    expect(khongChuThich(doc("trien-khai/chay-anh.sh"))).not.toMatch(/\bbuild\b/);
+  });
+
+  it("thẻ đăng nhập sổ đăng ký không ở lại trên máy chủ", () => {
+    // Thẻ của lần chạy hết hạn khi việc kết thúc, nhưng tệp ~/.docker/config.json
+    // thì ở lại. Đăng xuất kể cả khi triển khai hỏng.
+    expect(wf).toMatch(/docker logout ghcr\.io/);
   });
 });

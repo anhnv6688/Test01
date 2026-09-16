@@ -1,0 +1,21 @@
+# Chạy một ảnh ĐÃ DỰNG SẴN thay vì dựng trên máy chủ.
+#
+#   OLY_ANH=ghcr.io/<chủ>/<kho>:<mã-băm> docker compose \
+#     -f compose.yaml -f compose.thu.yaml \
+#     -f trien-khai/compose.caddy.yaml -f trien-khai/compose.anh-ghcr.yaml up -d
+#
+# Việc này do trien-khai/chay-anh.sh lo, và kịch bản đó do phần chạy tự động
+# gọi qua SSH. Đừng gõ tay.
+#
+# Vì sao không dựng trên máy chủ nữa, dù máy thừa sức (8 GB, dựng hết 1.490 MB):
+# nguyên tắc số 2 ở docs/moi-truong.md nói MỘT ảnh đi qua cả hai môi trường.
+# Dựng lại cho bản thật là một lần biên dịch khác, một cây phụ thuộc có thể
+# khác — nghĩa là thứ đưa lên bản thật không phải thứ vừa thử xong, và toàn bộ
+# việc thử mất ý nghĩa. Không phải chuyện tiết kiệm bộ nhớ.
+services:
+  o-ly:
+    # `!reset null` xóa hẳn khối build của compose.yaml. Không xóa thì Compose
+    # vẫn dựng lại từ mã nguồn trên máy chủ và bỏ qua ảnh vừa kéo về — đúng cái
+    # sai mà tệp này sinh ra để tránh, lại xảy ra âm thầm. Cần Compose từ 2.24.
+    build: !reset null
+    image: ${OLY_ANH:?chưa khai OLY_ANH — xem trien-khai/chay-anh.sh}

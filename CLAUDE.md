@@ -72,6 +72,8 @@ hỏng lời hứa của sản phẩm.
 | Hết hạn thuê bao không khóa lịch sử học; hủy dễ như mua | `domain/thue-bao.ts` | `thue-bao.test.ts` |
 | Trang gắn nhãn khóa hẳn ở bản phát hành, không biến nào mở lại được | `server/kho-anh-do.ts` | `gan-nhan.test.ts` + `npm run kiem-giao-dien` |
 | Ô Ly không công bố cổng ra máy chủ — Docker đi vòng qua ufw | `trien-khai/compose.caddy.yaml` | `trien-khai.test.ts` |
+| Một ảnh đi qua cả hai môi trường; máy chủ không dựng lại | `trien-khai/compose.anh-ghcr.yaml` | `trien-khai.test.ts` |
+| Triển khai không bao giờ tắt kiểm khóa máy chủ | `.github/workflows/dua-len.yml` | `trien-khai.test.ts` |
 
 Nếu một thay đổi làm những bài này trượt, **sửa thay đổi, đừng sửa bài kiểm
 thử** — trừ khi chủ đầu tư đã đổi chính yêu cầu nghiệp vụ, và khi đó phải sửa
@@ -178,9 +180,15 @@ xóa mất tỷ lệ báo động giả, chỉ số nguy hiểm nhất của c�
 
 ## Đưa lên máy chủ
 
-Xem `docs/vps-contabo.md`. Ba điều không được quên: máy ngoài Việt Nam chỉ chạy
+Đường thường dùng là `.github/workflows/dua-len.yml`: dựng **một** ảnh, đưa lên
+bản thử, đạt thì đưa **đúng ảnh đó** sang bản thật. `trien-khai/trien-khai.sh`
+là đường gõ tay cho lần đầu và lúc dò lỗi — nó dựng ngay trên máy chủ, nên đừng
+dùng cho bản thật.
+
+Xem `docs/vps-contabo.md`. Bốn điều không được quên: máy ngoài Việt Nam chỉ chạy
 bản **thử**; đừng công bố cổng của Ô Ly ra máy chủ (Docker đi vòng qua ufw);
-đừng xóa vùng đĩa của Caddy (Let's Encrypt có hạn mức xin chứng chỉ).
+đừng xóa vùng đĩa của Caddy (Let's Encrypt có hạn mức xin chứng chỉ); và đừng
+bao giờ thêm `StrictHostKeyChecking=no` vào lệnh SSH của phần triển khai.
 
 ## Thêm một dạng bài chấm được
 

@@ -1,0 +1,214 @@
+name: Đưa lên máy chủ
+
+# Dựng MỘT ảnh, đưa ảnh đó lên bản thử, và khi đạt thì đưa ĐÚNG ảnh đó sang bản
+# thật. Đây là nguyên tắc số 2 ở docs/moi-truong.md, và nó là lý do phần này tồn
+# tại: dựng lại trên máy chủ cho bản thật là một lần biên dịch khác, một cây phụ
+# thuộc có thể khác — thứ đưa lên bản thật không còn là thứ vừa thử xong, và
+# toàn bộ việc thử mất ý nghĩa.
+#
+# Cần khai báo trước, theo từng Environment của GitHub (`thu` và `that`):
+#
+#   Secret  OLY_MAY_CHU       địa chỉ máy chủ
+#   Secret  OLY_NGUOI         người vận hành (không phải root)
+#   Secret  OLY_SSH_KHOA      khóa riêng SSH của phần chạy tự động
+#   Secret  OLY_MAY_CHU_KHOA  dòng known_hosts, lấy bằng: ssh-keyscan <máy>
+#   Variable OLY_DIA_CHI      địa chỉ công khai, ví dụ https://thu.oly.vn
+#
+# Và một việc PHẢI làm bằng tay trên GitHub, không khai trong tệp này được:
+# đặt "Required reviewers" cho Environment `that`. Bản thật chạm vào dữ liệu
+# thật của các hộ, nên mỗi lần đưa lên phải có người đồng ý.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      moi_truong:
+        description: "Đưa lên môi trường nào"
+        type: choice
+        options: [thu, that]
+        default: thu
+
+# Hai lần triển khai chồng nhau sẽ tranh nhau ghi .env trên máy chủ và để lại
+# một máy chủ chạy ảnh này mà .env ghi ảnh kia. Xếp hàng, đừng hủy lần đang
+# chạy: hủy giữa chừng còn tệ hơn, vì nó dừng sau khi đã `up -d`.
+concurrency:
+  group: dua-len-${{ github.event.inputs.moi_truong || 'thu' }}
+  cancel-in-progress: false
+
+jobs:
+  kiem:
+    name: Không đưa lên một bản đang đỏ
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      # Chạy lại toàn bộ ở đây chứ không tin vào lần chạy của workflow kiểm tra.
+      # Hai workflow chạy song song, nên "lần kia chắc xanh rồi" là một giả định
+      # về thời gian, và giả định về thời gian thì sai vào đúng hôm quan trọng.
+      - run: npm run kiem-tra
+      - run: npm run khong-ro-ri
+
+  dung-anh:
+    name: Dựng ảnh một lần
+    needs: kiem
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      anh: ${{ steps.ten.outputs.anh }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Tên ảnh
+        id: ten
+        # Sổ đăng ký của GitHub chỉ nhận chữ thường, mà tên kho thì có chữ hoa.
+        # Gắn nhãn bằng mã băm lần gửi mã, không dùng "latest": phải nói được
+        # máy chủ đang chạy đúng lần gửi mã nào.
+        run: |
+          KHO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "anh=ghcr.io/$KHO:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.ten.outputs.anh }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  dua-len:
+    name: Đưa lên ${{ github.event.inputs.moi_truong || 'thu' }}
+    needs: dung-anh
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    environment: ${{ github.event.inputs.moi_truong || 'thu' }}
+    # Chuyển địa chỉ công khai sang việc soi dưới dạng kết quả đầu ra.
+    #
+    # Việc soi có thể tự đọc `vars.OLY_DIA_CHI`, nhưng muốn đọc được thì nó
+    # phải khai `environment:` — và khai thì nó lại chạm vào luật "phải có
+    # người duyệt" của bản thật, tức là mỗi lần đưa lên bản thật phải bấm duyệt
+    # hai lần. Lần thứ hai nằm SAU khi đã triển khai, nên không duyệt thì bản
+    # thật vẫn chạy mà không ai soi. Một cửa duyệt đặt sai chỗ thì tệ hơn là
+    # không có: nó tạo cảm giác đã kiểm soát.
+    outputs:
+      dia_chi: ${{ vars.OLY_DIA_CHI }}
+    env:
+      MOI_TRUONG: ${{ github.event.inputs.moi_truong || 'thu' }}
+      ANH: ${{ needs.dung-anh.outputs.anh }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Bản thật chỉ đưa lên từ nhánh chính
+        # Một nhánh bất kỳ đẩy được lên bản thật nghĩa là mã chưa qua xét duyệt
+        # cũng chạm được vào dữ liệu thật của các hộ.
+        if: env.MOI_TRUONG == 'that' && github.ref != format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          echo "::error::Bản thật chỉ đưa lên được từ nhánh ${{ github.event.repository.default_branch }}."
+          exit 1
+
+      - name: Chuẩn bị SSH
+        env:
+          KHOA: ${{ secrets.OLY_SSH_KHOA }}
+          KHOA_MAY: ${{ secrets.OLY_MAY_CHU_KHOA }}
+        run: |
+          if [ -z "$KHOA" ] || [ -z "$KHOA_MAY" ] || [ -z "${{ secrets.OLY_MAY_CHU }}" ]; then
+            echo "::error::Thiếu khai báo. Xem phần chú thích đầu tệp workflow này."
+            exit 1
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KHOA" > ~/.ssh/id_trien_khai
+          chmod 600 ~/.ssh/id_trien_khai
+          # Ghim khóa máy chủ. TUYỆT ĐỐI không dùng StrictHostKeyChecking=no:
+          # nó chấp nhận bất cứ máy nào trả lời ở địa chỉ đó, nghĩa là một lần
+          # chiếm quyền DNS là đủ để nhận trọn khóa triển khai và toàn bộ nội
+          # dung gửi lên. Lấy dòng này một lần bằng ssh-keyscan rồi đối chiếu
+          # với dấu vân tay in ra ở bảng điều khiển của nhà cung cấp.
+          printf '%s\n' "$KHOA_MAY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Gửi tệp cấu hình lên máy chủ
+        # Gửi cấu hình thay vì để máy chủ tự `git pull`. Nhờ vậy máy chủ không
+        # cần bất kỳ thông tin đăng nhập GitHub nào, và thứ đang chạy trên đó
+        # luôn khớp đúng lần gửi mã vừa dựng ra ảnh.
+        env:
+          MAY: ${{ secrets.OLY_MAY_CHU }}
+          NGUOI: ${{ secrets.OLY_NGUOI }}
+        run: |
+          tar czf - compose.yaml compose.thu.yaml compose.that.yaml trien-khai \
+            | ssh -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
+                'mkdir -p ~/o-ly && tar xzf - -C ~/o-ly'
+
+      - name: Chạy ảnh mới
+        env:
+          MAY: ${{ secrets.OLY_MAY_CHU }}
+          NGUOI: ${{ secrets.OLY_NGUOI }}
+          THE: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Đăng nhập sổ đăng ký bằng thẻ của chính lần chạy này. Thẻ đó hết
+          # hạn khi việc kết thúc, nên máy chủ không giữ lại một thông tin đăng
+          # nhập sống mãi. Đăng xuất ngay sau đó, kể cả khi triển khai hỏng.
+          printf '%s' "$THE" | ssh -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
+            "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+          MA=0
+          ssh -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
+            "cd ~/o-ly && bash trien-khai/chay-anh.sh '$ANH' '$MOI_TRUONG'" || MA=$?
+          ssh -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" "docker logout ghcr.io" || true
+          exit $MA
+
+      - name: Xóa khóa khỏi máy chạy việc
+        if: always()
+        run: rm -f ~/.ssh/id_trien_khai
+
+  soi:
+    name: Soi bản đã triển khai
+    needs: [dung-anh, dua-len]
+    runs-on: ubuntu-latest
+    # Cần địa chỉ công khai có chứng chỉ thật. Máy chỉ có địa chỉ IP thì chứng
+    # chỉ là bản tự ký, trình duyệt và curl đều từ chối — đó là một lý do nữa
+    # để lấy tên miền, chứ không phải lý do để tắt kiểm chứng chỉ.
+    if: needs.dua-len.outputs.dia_chi != ''
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # Bộ này tự thử PIN 1234 và mã trực truc2026 vào chính máy chủ vừa triển
+      # khai rồi ĐÒI BỊ TỪ CHỐI. Hơn bốn trăm bài kiểm thử trong Node không làm
+      # được việc đó: chúng không biết máy ngoài kia khởi động với biến môi
+      # trường nào. Đây là chỗ duy nhất phát hiện một máy chủ chạy đúng mã nguồn
+      # nhưng sai cấu hình.
+      - name: Máy chủ từ chối mọi mã mặc định
+        run: npm run kiem-moi-truong -- --goc "${{ needs.dua-len.outputs.dia_chi }}" --cho "${{ github.event.inputs.moi_truong || 'thu' }}"
+
+      # Chỉ soi giao diện ở bản thử, và không phải vì bản thật ít quan trọng
+      # hơn. Bộ kiểm giao diện bấm vào một bạn rồi đo bề rộng hình minh họa, mà
+      # bản thật CỐ TÌNH không có hộ mẫu — hộ mẫu là một tài khoản không chủ.
+      # Chạy ở đó thì nó đỏ vì không có gì để bấm, và một bộ kiểm đỏ oan sẽ bị
+      # người ta tắt đi, rồi mất luôn cả những lần đỏ thật.
+      #
+      # Cùng một ảnh đã qua bộ kiểm này ở bản thử trước khi sang bản thật, nên
+      # phần giao diện đã được soi — chỉ là soi ở chỗ có dữ liệu để soi.
+      - name: Giao diện nhìn thấy được trên bản đã triển khai
+        if: (github.event.inputs.moi_truong || 'thu') == 'thu'
+        run: npm run kiem-giao-dien -- --goc "${{ needs.dua-len.outputs.dia_chi }}"
+        env:
+          OLY_CHROME: ""
