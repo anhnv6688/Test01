@@ -21,7 +21,11 @@
  * bao giờ đỏ oan dù mỗi lần chạy gặp một bài khác.
  */
 import { spawn, type ChildProcess } from "node:child_process";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
+import { ghiBoAnhDienTap } from "../src/lib/do-anh/bo-dien-tap";
 
 /*
  * Đường dẫn trình duyệt.
@@ -219,6 +223,72 @@ async function kiemManHinhChinh(b: Browser, goc: string): Promise<void> {
   await ctx.close();
 }
 
+/**
+ * Bản phát hành phải KHÔNG CÓ trang gắn nhãn.
+ *
+ * Bài kiểm thử trong Node chứng minh được hàm chốt trả về false khi
+ * NODE_ENV=production. Nó không chứng minh được rằng một bản ĐÃ DỰNG, chạy
+ * bằng `next start`, thật sự trả 404 — giữa hai thứ đó còn có việc định tuyến,
+ * việc dựng sẵn trang, và một dòng cấu hình ai đó thêm vào sau này. Trang này
+ * phục vụ ảnh trang vở chưa che, đọc thẳng từ đĩa, nên chỗ duy nhất đáng tin là
+ * gõ vào chính máy chủ đã dựng rồi xem nó trả gì.
+ */
+async function kiemCongCuGanNhanDaKhoa(goc: string): Promise<void> {
+  console.log("\nCông cụ gắn nhãn (phải khóa ở bản phát hành)");
+  for (const duong of ["/gan-nhan", "/api/gan-nhan", "/api/gan-nhan/anh?tep=a.jpg"]) {
+    const r = await fetch(goc + duong, { redirect: "manual" });
+    doi(`${duong} trả 404 (thật ra trả ${r.status})`, r.status === 404);
+  }
+}
+
+/**
+ * Bản phát triển thì trang gắn nhãn phải chạy được thật.
+ *
+ * Kiểm đúng thứ không bài kiểm thử nào trong Node thấy được: ảnh có HIỆN RA hay
+ * không. `naturalWidth` bằng 0 nghĩa là trình duyệt nhận được thẻ ảnh nhưng
+ * không tải nổi tệp — địa chỉ sai, tên tệp bị chặn, kiểu nội dung sai. Lúc đó
+ * người gắn nhãn ngồi trước một khung trắng và không có gì để gõ, mà mọi bài
+ * kiểm thử vẫn xanh.
+ */
+async function kiemTrangGanNhan(b: Browser, goc: string): Promise<void> {
+  console.log("\nTrang gắn nhãn");
+  const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+  const p = await ctx.newPage();
+  const loiTrang: string[] = [];
+  p.on("pageerror", (e) => loiTrang.push(String(e)));
+
+  const r = await p.goto(`${goc}/gan-nhan`, { waitUntil: "networkidle" });
+  doi("mở được /gan-nhan ở bản phát triển", Boolean(r?.ok()));
+
+  const anh = p.locator('img[alt^="Trang vở"]').first();
+  try {
+    await anh.waitFor({ timeout: 15_000 });
+  } catch {
+    doi("hiện được tấm ảnh đầu tiên trong thư mục", false);
+    await ctx.close();
+    return;
+  }
+  const rong = await anh.evaluate((el) => (el as HTMLImageElement).naturalWidth);
+  doi(`ảnh tải được thật, không phải khung trắng (naturalWidth = ${rong})`, rong > 0);
+
+  // Gõ một nhãn rồi lưu, và hỏi lại máy chủ xem nó có thật sự vào tệp không.
+  await p.getByRole("button", { name: "Đặt tính cột dọc" }).click();
+  await p.getByPlaceholder("ví dụ 75").fill("75");
+  await p.getByRole("button", { name: "Lưu nhãn tấm này" }).click();
+  await p.waitForTimeout(600);
+
+  const sau = await (await fetch(`${goc}/api/gan-nhan`)).json();
+  doi(
+    `nhãn đã ghi vào nhan.json (đã gắn ${sau.tienDo?.daGanNhan} ảnh, ` +
+      `${sau.tienDo?.theoDang?.["cot-doc"]} bài cột dọc)`,
+    sau.tienDo?.daGanNhan === 1 && sau.tienDo?.theoDang?.["cot-doc"] === 1,
+  );
+
+  doi("không có lỗi JavaScript trên trang gắn nhãn", loiTrang.length === 0);
+  if (loiTrang.length) console.log(loiTrang.join("\n"));
+  await ctx.close();
+}
+
 async function main(): Promise<void> {
   const gocNgoai = doiSo("goc");
   const cheDoDev = process.argv.includes("--dev");
@@ -235,11 +305,22 @@ async function main(): Promise<void> {
    * một bạn để bấm vào, nên nó phải nói rõ là mình muốn hộ mẫu, đúng như người
    * dựng bản trình diễn phải làm.
    */
+  /*
+   * Thư mục ảnh riêng, dựng bằng bộ ảnh diễn tập.
+   *
+   * Tuyệt đối không trỏ vào bo-anh-do/: đó là ảnh trang vở của trẻ thật, và một
+   * bộ kiểm tự động thì phải chạy được ở máy tích hợp liên tục, nơi không có —
+   * và không được có — một tấm nào trong đó.
+   */
+  const thuMucAnh = await mkdtemp(path.join(tmpdir(), "oly-kiem-gan-nhan-"));
+  await ghiBoAnhDienTap(thuMucAnh);
+
   const bienMoiTruong = {
     ...process.env,
     OLY_DU_LIEU_MAU: "true",
     OLY_PIN_MAU: "884417",
     OLY_MA_TRUC: "ma-truc-cua-bo-kiem",
+    OLY_THU_MUC_ANH: thuMucAnh,
   };
 
   if (!gocNgoai) {
@@ -266,6 +347,8 @@ async function main(): Promise<void> {
     await doiMayChu(goc);
     await kiemManHinhChinh(b, goc);
     await kiemBeMatTre(b, goc);
+    if (cheDoDev) await kiemTrangGanNhan(b, goc);
+    else await kiemCongCuGanNhanDaKhoa(goc);
   } catch (e) {
     // Một ngoại lệ ở giữa chừng cũng là một điều KHÔNG ĐẠT, và phải nói ra nó
     // là điều gì. Bản đầu để ngoại lệ bay thẳng lên, rồi lệnh dừng máy chủ ở
@@ -281,6 +364,7 @@ async function main(): Promise<void> {
         // Máy chủ đã tự tắt. Không phải lỗi, và không được che mất lỗi thật.
       }
     }
+    await rm(thuMucAnh, { recursive: true, force: true });
   }
 
   console.log("");

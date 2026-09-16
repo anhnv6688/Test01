@@ -20,7 +20,41 @@ export type DieuKienChup =
   | "thieu-sang"
   | "nhoe"
   | "nghieng"
-  | "mat-goc";
+  | "mat-goc"
+  | "xoay-90"
+  | "co-ngon-tay";
+
+/**
+ * Mô tả từng điều kiện, để trang gắn nhãn không phải đoán và để báo cáo đọc được.
+ *
+ * Hai nhãn cuối thêm vào sau khi xem lô ảnh thật đầu tiên. Bộ ảnh diễn tập do
+ * chính đội phát triển dựng ra nên nó chỉ chứa những hoàn cảnh mà đội nghĩ ra
+ * được; ảnh thật thì lô đầu tiên đã có ngay hai thứ không ai liệt kê trước:
+ *
+ *   xoay-90      Điện thoại cầm ngang để lấy hết bề rộng trang vở. Ảnh lưu
+ *                đúng chiều cảm biến, chữ nằm nghiêng 90 độ. Đây KHÔNG phải
+ *                "nghieng" — nghiêng là vài độ do cầm lệch, còn cái này là cả
+ *                trang quay hẳn một phần tư vòng. Gộp hai thứ vào một nhãn thì
+ *                báo cáo không trả lời được câu hỏi đáng tiền nhất: có cần tự
+ *                xoay ảnh trước khi gửi đi không.
+ *   co-ngon-tay  Ngón tay giữ mép vở, che mất một phần bài. Rất hay gặp vì
+ *                trang vở cong, không giữ thì không phẳng.
+ *
+ * Danh sách này sẽ còn dài ra. Đó là chuyện bình thường và là lý do bộ đo tách
+ * kết quả theo điều kiện chứ không chỉ in một tỷ lệ tổng.
+ */
+export const MO_TA_DIEU_KIEN: Record<DieuKienChup, string> = {
+  tot: "Sáng, phẳng, chụp thẳng",
+  "den-ban-buoi-toi": "Đèn bàn buổi tối, ánh vàng, có bóng",
+  "thieu-sang": "Tối, khó đọc",
+  nhoe: "Rung tay, chữ nhòe",
+  nghieng: "Cầm lệch vài độ, trang hơi xiên",
+  "mat-goc": "Mất một góc trang",
+  "xoay-90": "Cả trang quay ngang 90 độ",
+  "co-ngon-tay": "Ngón tay che một phần bài",
+};
+
+export const MOI_DIEU_KIEN = Object.keys(MO_TA_DIEU_KIEN) as DieuKienChup[];
 
 export interface NhanMotAnh {
   tep: string;

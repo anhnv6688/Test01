@@ -48,3 +48,8 @@ next-env.d.ts
 bo-anh-do/
 .bo-anh-dien-tap/
 *.bao-cao.json
+
+# Tệp nhãn do trang /gan-nhan ghi ra. Nó chép lại nguyên văn bài làm của trẻ,
+# nên không vào kho mã dù thư mục ảnh có được đặt ở đâu. Mẫu: docs/nhan-mau.json
+nhan.json
+nhan.json.*

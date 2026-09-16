@@ -40,6 +40,15 @@ describe("chặn tệp không được nằm trong kho mã", () => {
     expect(chan("ket-qua.bao-cao.json")).toBe(true);
   });
 
+  it("chặn tệp nhãn ở bất kỳ đâu, không chỉ trong thư mục ảnh", () => {
+    // Trang gắn nhãn ghi ra thư mục do OLY_THU_MUC_ANH chỉ định. Trỏ nhầm vào
+    // ngay gốc kho mã là chuyện xảy ra được, và luật theo thư mục không bắt.
+    expect(chan("nhan.json")).toBe(true);
+    expect(chan("lo-thang-9/nhan.json")).toBe(true);
+    expect(chan("nhan.json.truoc")).toBe(true);
+    expect(chan("bo-anh-do/nhan.json.dang-ghi")).toBe(true);
+  });
+
   it("không đụng tới mã nguồn bình thường", () => {
     for (const p of [
       "src/lib/domain/templates.ts",

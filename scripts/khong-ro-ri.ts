@@ -52,6 +52,14 @@ export const LUAT: Luat[] = [
     viSao: "Thư mục ảnh đo là ảnh thật của trẻ, kể cả tệp nhãn đi kèm.",
   },
   {
+    ten: "Tệp nhãn của bộ ảnh đo",
+    khop: (p) => /(^|\/)nhan\.json($|\.)/.test(p),
+    viSao:
+      "Nhãn chép lại nguyên văn bài làm và đề bài trên trang vở của trẻ. Thư mục ảnh " +
+      "đã bị chặn, nhưng trang gắn nhãn ghi ra thư mục do OLY_THU_MUC_ANH chỉ định — " +
+      "trỏ nhầm vào kho mã là tệp nhãn nằm ngay trong này. Mẫu để đọc là docs/nhan-mau.json.",
+  },
+  {
     ten: "Báo cáo đo có thể kèm nội dung bài của trẻ",
     khop: (p) => p.endsWith(".bao-cao.json"),
     viSao: "Bản báo cáo thô chứa nguyên văn đề bài và bài làm đọc được từ ảnh.",
