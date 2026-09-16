@@ -18,7 +18,7 @@ Cu Tí lớp 1) và dữ liệu nằm trong `.data/oly.sqlite`. **Mã PIN của 
 bố mẹ là `1234`.**
 
 ```bash
-npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 363 bài kiểm thử
+npm run kiem-tra     # kiểm kiểu, lint và toàn bộ 385 bài kiểm thử
 npm test             # chỉ chạy kiểm thử
 npm run build        # dựng bản phát hành
 ```
@@ -297,6 +297,34 @@ dùng Việt Nam, mà họ tên, ngày sinh và số điện thoại đều nằ
 Bản trình diễn không có dữ liệu của ai thì đặt đâu cũng được; bản phục vụ người
 thật thì hỏi luật sư trước, đừng chọn theo giá thuê.
 
+## Thuê bao: phần khó không phải nhận tiền
+
+Phần dễ nhất của thanh toán là nhận tiền. Phần khó, và phần quyết định sản phẩm
+này tử tế hay không, là những gì xảy ra **sau** đó. Bốn ràng buộc, mỗi cái có
+một bài kiểm thử canh:
+
+**Hủy dễ như mua.** Nút hủy nằm cùng trang, ngang hàng nút mua — không giấu sau
+một lớp "liên hệ hỗ trợ". Và hủy **không cắt dịch vụ ngay**: hộ đã trả tiền tới
+hết chu kỳ thì dùng hết chu kỳ. Cắt ngay là lấy tiền rồi không giao hàng, và nó
+tạo một áp lực ngầm khiến người ta ngại bấm hủy.
+
+**Gia hạn tự động phải báo trước bảy ngày.** Gửi thư "ngày mai trừ tiền" rồi trừ
+thật thì về mặt chữ nghĩa là đã báo trước, nhưng không cho cơ hội thật để hủy —
+mà cơ hội thật mới là điều luật nhắm tới. Nên **báo muộn bị từ chối y như không
+báo**.
+
+**Hết hạn không khóa lịch sử học của con.** Chỉ đúng một thứ dừng lại: xử lý
+trang ảnh, vì nó tốn tiền thật mỗi lần dùng. Luyện tập, lịch sử học, bản tin tối
+và xuất dữ liệu đều giữ nguyên mãi. Đây là điều dễ bị bẻ nhất khi có áp lực
+doanh thu, vì khóa dữ liệu là cách ép gia hạn hiệu quả nhất — nên nó có hằng số
+riêng `KHOA_LICH_SU_KHI_HET_HAN` và một bài kiểm thử chỉ đích danh hằng số đó.
+
+**Không tự trừ tiền sau dùng thử.** Ô bật trừ tiền định kỳ tách riêng khỏi nút
+mua và không đánh dấu sẵn.
+
+Chạy thật cả vòng đời cho thấy gia hạn **nối tiếp** thêm 30 ngày chứ không cắt
+mất ngày đã trả, hủy vẫn dùng hết chu kỳ, và hết hạn chỉ dừng chụp ảnh.
+
 ## Hai môi trường
 
 Bản thử và bản thật chạy **cùng một ảnh Docker**, khác nhau chỉ ở biến môi
@@ -454,7 +482,7 @@ src/
   app/be/          bề mặt của trẻ
   app/phu-huynh/   bề mặt của phụ huynh
   app/api/         chấm bài, mở gợi ý, xử lý ảnh — nơi duy nhất biết đáp án
-tests/             363 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
+tests/             385 bài kiểm thử, phần lớn canh các yêu cầu bắt buộc
 docs/              ma trận truy vết yêu cầu nghiệp vụ
 ```
 
@@ -473,7 +501,10 @@ Nói rõ để không ai nhầm bản dựng này với sản phẩm sẵn sàng
   mối đe dọa mà NT-10 cần chặn. Luồng mã một lần qua số điện thoại đã dựng xong
   (CR-05), nhưng **chưa có cổng tin nhắn thật** — cần hợp đồng với nhà mạng hoặc
   một cổng tin nhắn. Đang chạy bằng bản giả lập, và hồ sơ ghi đúng như vậy.
-- **Chưa có thanh toán** (CR-12, CR-13). Gói cước hiện là dữ liệu tĩnh.
+- **Chưa có cổng thanh toán thật** (CR-12, CR-13). Vòng đời thuê bao đã dựng
+  xong — mua, gia hạn nối tiếp, hủy, hết hạn — nhưng chạy bằng bản giả lập, và
+  mọi biên lai mang cờ `la_gia_lap`. VNPay, MoMo, ZaloPay đều cần hợp đồng và
+  tài khoản người bán, và trước đó cần pháp nhân đã đăng ký (CR-01).
 - **Kho nội dung mới có 32 khuôn dạng**, chưa phải khoảng 350 khuôn dạng mà
   GD-03 ước tính cần để phủ lớp 1–2.
 - **BR-18 mới có chỗ cắm**, chưa có cơ chế thật để đánh dấu đề đầu vào nghi ngờ.

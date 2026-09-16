@@ -241,6 +241,24 @@ function taoBang(d: Database.Database): void {
       tao_luc TEXT NOT NULL
     );
 
+    /*
+     * Chứng từ thu tiền.
+     *
+     * Cột la_gia_lap KHÔNG phải chi tiết kỹ thuật: một lần thu bằng bản giả lập
+     * không có đồng tiền nào đổi chủ, nên ghi nó như một giao dịch thật là dựng
+     * một chứng từ sai. Trang gói cước đọc cột này để nói thẳng.
+     */
+    CREATE TABLE IF NOT EXISTS bien_lai (
+      id TEXT PRIMARY KEY,
+      household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      goi TEXT NOT NULL,
+      so_tien INTEGER NOT NULL,
+      ma_giao_dich TEXT NOT NULL,
+      la_gia_lap INTEGER NOT NULL,
+      at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_bien_lai_ho ON bien_lai(household_id, at);
     CREATE INDEX IF NOT EXISTS idx_ma_mot_lan_ho ON ma_mot_lan(household_id, tao_luc);
     CREATE INDEX IF NOT EXISTS idx_ma_mot_lan_so ON ma_mot_lan(so_may_bam, tao_luc);
     CREATE INDEX IF NOT EXISTS idx_guardians_ho ON guardians(household_id, xac_minh_luc);
@@ -266,6 +284,12 @@ function diTru(d: Database.Database): void {
   themCotNeuThieu(d, "consents", "nguoi_dong_y", "TEXT NOT NULL DEFAULT 'nguoi-giam-ho'");
   themCotNeuThieu(d, "consents", "child_id", "TEXT");
   themCotNeuThieu(d, "guardians", "hai_so_cuoi", "TEXT");
+  // Vòng đời thuê bao (CR-12, CR-13). Mặc định TẮT trừ tiền định kỳ: nó phải
+  // do người trả bật, không phải thứ có sẵn. Xem domain/thue-bao.ts điều 4.
+  themCotNeuThieu(d, "households", "tu_dong_gia_han", "INTEGER NOT NULL DEFAULT 0");
+  themCotNeuThieu(d, "households", "da_bam_huy", "INTEGER NOT NULL DEFAULT 0");
+  themCotNeuThieu(d, "households", "dang_dung_thu", "INTEGER NOT NULL DEFAULT 0");
+  themCotNeuThieu(d, "households", "bao_truoc_gia_han_luc", "TEXT");
 }
 
 function themCotNeuThieu(

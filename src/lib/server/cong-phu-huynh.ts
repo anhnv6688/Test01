@@ -31,6 +31,15 @@ export async function moCong(pin: string): Promise<{ ok: boolean; loi?: string }
   c.set(TEN_COOKIE, ho.id, {
     httpOnly: true,
     sameSite: "lax",
+    /*
+     * Chỉ gửi cookie qua HTTPS khi chạy thật.
+     *
+     * Cookie này là chìa vào phần chứa lời giải đầy đủ và các thao tác trên dữ
+     * liệu hộ. Không có cờ này thì nó đi qua cả đường HTTP, tức là đọc trộm
+     * được trên một mạng wifi công cộng. Để tắt ở bản phát triển vì máy tại chỗ
+     * không có chứng chỉ, và bật lên thì không đăng nhập được.
+     */
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 8,
   });

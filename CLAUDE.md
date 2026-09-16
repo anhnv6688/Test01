@@ -69,6 +69,7 @@ hỏng lời hứa của sản phẩm.
 | Hình minh họa phải hiện ra thật, không co về 0 | `components/Visual.tsx` | `npm run kiem-giao-dien` |
 | Bản phát hành không tự dựng hộ mẫu, mã trực thiếu thì khóa hẳn | `server/moi-truong.ts` | `cau-hinh-phat-hanh.test.ts` |
 | Bản đã triển khai từ chối mọi mã mặc định | — | `npm run kiem-moi-truong` |
+| Hết hạn thuê bao không khóa lịch sử học; hủy dễ như mua | `domain/thue-bao.ts` | `thue-bao.test.ts` |
 
 Nếu một thay đổi làm những bài này trượt, **sửa thay đổi, đừng sửa bài kiểm
 thử** — trừ khi chủ đầu tư đã đổi chính yêu cầu nghiệp vụ, và khi đó phải sửa
@@ -121,6 +122,12 @@ lợi, đó là một sự cố lộ dữ liệu trẻ em tự gây ra. Cần d�
 ra. Lỗi chỉ tái hiện được trên dữ liệu thật thì lấy HÌNH DẠNG của nó — mã khuôn
 dạng, hạt giống, mã lỗi — rồi dựng lại một ca giả cùng hình dạng; gần như lúc
 nào cũng làm được, và nó còn để lại một bài kiểm thử. Xem `docs/moi-truong.md`.
+
+**Hết hạn thuê bao chỉ dừng đúng một thứ: xử lý trang ảnh.** Lịch sử học của
+con, phần luyện tập, bản tin tối và xuất dữ liệu giữ nguyên mãi — dữ liệu học là
+của gia đình, không phải con tin để đòi gia hạn. Hằng số
+`KHOA_LICH_SU_KHI_HET_HAN` phải luôn là `false`, và có bài kiểm thử chỉ đích
+danh nó. Cũng đừng gộp ô bật trừ tiền định kỳ vào nút mua (CR-13).
 
 ## Dữ liệu thật của trẻ
 

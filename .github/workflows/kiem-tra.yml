@@ -46,6 +46,7 @@ jobs:
           tests/nha-cung-cap-that.test.ts
           tests/ma-mot-lan.test.ts
           tests/cau-hinh-phat-hanh.test.ts
+          tests/thue-bao.test.ts
 
       - name: Toàn bộ kiểm thử
         run: npx vitest run

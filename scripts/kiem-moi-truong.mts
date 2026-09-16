@@ -13,9 +13,22 @@
  * Nguyên tắc: bộ kiểm này TỰ TẤN CÔNG máy chủ của chính mình bằng đúng những
  * mã mặc định mà kho mã từng dùng. Nói "chúng tôi đã tắt PIN 1234" thì nhẹ hơn
  * hẳn so với "chúng tôi đã thử đăng nhập bằng 1234 vào máy thật và bị từ chối".
+ *
+ * Cách đọc kết quả cũng đáng nói. Bộ kiểm KHÔNG nhìn xem giao diện có đổi hay
+ * không, mà nhìn xem MÁY CHỦ CÓ PHÁT COOKIE PHIÊN hay không. Hai lý do:
+ *
+ *   Cookie phiên ở bản phát hành có cờ secure, nên khi soi qua HTTP thường thì
+ *   trình duyệt vứt nó đi — giao diện không đổi, và bộ kiểm sẽ tưởng mã bị từ
+ *   chối trong khi máy chủ vừa chấp nhận nó. Xanh, vì một lý do sai.
+ *
+ *   Máy chủ chỉ phát cookie phiên khi mã ĐÚNG. Nên sự có mặt của nó là bằng
+ *   chứng trực tiếp rằng mã mặc định vẫn mở được, không phụ thuộc vào việc
+ *   trình duyệt có giữ cookie hay giao diện kịp vẽ lại hay chưa.
  */
 import { chromium, type Browser, type Page } from "playwright";
 import { MA_TRUC_MAC_DINH } from "../src/lib/server/moi-truong";
+import { TEN_COOKIE as COOKIE_PHU_HUYNH } from "../src/lib/server/cong-phu-huynh";
+import { TEN_COOKIE_TRUC } from "../src/lib/server/cong-truc";
 
 const CHROME = process.env.OLY_CHROME ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 /** Mã PIN mà bản phát triển dùng. Trên bản thật, mã này PHẢI bị từ chối. */
@@ -108,6 +121,19 @@ async function kiemRobots(goc: string, cho: string): Promise<void> {
  * thật ra nó chưa thử gì cả. Đó là kiểu sai nguy hiểm nhất với một bộ kiểm an
  * ninh: nó luôn xanh.
  */
+/** Rình xem máy chủ có phát cookie phiên nào mang tên này không. */
+function rinhCookie(p: Page, ten: string): { daPhat: () => boolean } {
+  let thay = false;
+  p.on("response", (r) => {
+    for (const [k, v] of Object.entries(r.headers())) {
+      if (k.toLowerCase() === "set-cookie" && v.includes(`${ten}=`) && !v.includes(`${ten}=;`)) {
+        thay = true;
+      }
+    }
+  });
+  return { daPhat: () => thay };
+}
+
 async function thuMaMacDinh(b: Browser, goc: string, cho: string): Promise<void> {
   console.log("\nThử mã mặc định của bản phát triển vào chính máy chủ này");
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
@@ -116,12 +142,25 @@ async function thuMaMacDinh(b: Browser, goc: string, cho: string): Promise<void>
   // --- Cổng phụ huynh
   await p.goto(`${goc}/phu-huynh`, { waitUntil: "networkidle" });
   const oPin = p.locator('input[name="pin"]');
+  const rinhPh = rinhCookie(p, COOKIE_PHU_HUYNH);
   if (await oPin.count()) {
     await oPin.fill(PIN_PHAT_TRIEN);
     await p.locator('button[type="submit"]').first().click();
-    await p.waitForLoadState("networkidle");
-    await p.waitForTimeout(400);
-    const vaoDuoc = (await p.locator('input[name="pin"]').count()) === 0;
+    /*
+     * Chờ ĐỦ LÂU rồi mới kết luận là không vào được.
+     *
+     * Bản đầu chỉ chờ networkidle rồi xem ô nhập mã còn không. Với một máy chủ
+     * chậm hoặc ở xa, ô nhập vẫn còn đó đơn giản vì trang chưa kịp đổi — và bộ
+     * kiểm sẽ kết luận "mã mặc định bị từ chối" trong khi thật ra nó chưa chờ
+     * xong. Đó đúng là kiểu hỏng nguy hiểm nhất của một bộ kiểm an ninh: nó
+     * xanh, và nó xanh vì lý do sai.
+     *
+     * Nên chờ hẳn cho tới khi ô nhập BIẾN MẤT, và chỉ khi hết thời gian chờ mới
+     * kết luận là vào không được.
+     */
+    await p.locator('input[name="pin"]').waitFor({ state: "detached", timeout: 10_000 })
+      .catch(() => { /* hết giờ: coi như không vào được, kiểm lại ngay dưới */ });
+    const vaoDuoc = rinhPh.daPhat() || (await p.locator('input[name="pin"]').count()) === 0;
     if (cho === "that") {
       doi(`PIN ${PIN_PHAT_TRIEN} KHÔNG mở được phần của bố mẹ`, !vaoDuoc);
     } else {
@@ -135,14 +174,16 @@ async function thuMaMacDinh(b: Browser, goc: string, cho: string): Promise<void>
   const p2 = await ctx.newPage();
   await p2.goto(`${goc}/truc`, { waitUntil: "networkidle" });
   const oMa = p2.locator('input[name="ma"]');
+  const rinhTruc = rinhCookie(p2, TEN_COOKIE_TRUC);
   if (await oMa.count()) {
     const oTen = p2.locator('input[name="nguoiTruc"]');
     if (await oTen.count()) await oTen.fill("bộ kiểm môi trường");
     await oMa.fill(MA_TRUC_MAC_DINH);
     await p2.locator('button[type="submit"]').first().click();
-    await p2.waitForLoadState("networkidle");
-    await p2.waitForTimeout(400);
-    const vaoDuoc = (await p2.locator('input[name="ma"]').count()) === 0;
+    // Chờ đủ lâu, cùng lý do như ở cổng phụ huynh phía trên.
+    await p2.locator('input[name="ma"]').waitFor({ state: "detached", timeout: 10_000 })
+      .catch(() => { /* hết giờ: coi như không vào được */ });
+    const vaoDuoc = rinhTruc.daPhat() || (await p2.locator('input[name="ma"]').count()) === 0;
     doi(
       `mã trực "${MA_TRUC_MAC_DINH}" KHÔNG mở được bảng trực — nơi xuất và xóa dữ liệu các hộ`,
       !vaoDuoc,

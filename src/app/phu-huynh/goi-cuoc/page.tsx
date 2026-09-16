@@ -1,6 +1,8 @@
 import { CHI_PHI_MOI_TRANG_GIA_DINH, chiPhiTrungBinhMoiHo, tinhTran } from "@/lib/domain/metering";
 import { GOI, TRAN_MIEN_PHI_TRANG_NGAY, dinhDangTien } from "@/lib/domain/pricing";
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
+import { tinhHinhThueBao } from "@/lib/server/thue-bao";
+import { ThueBao } from "./ThueBao";
 import { luotDungCuaHo, mucDaDung } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
 
@@ -20,12 +22,23 @@ export default async function TrangGoiCuoc() {
   if (!ho) return <CongPin />;
 
   const tran = tinhTran(ho.goi, mucDaDung(ho.id));
+  const th = tinhHinhThueBao(ho.id);
   const luot = luotDungCuaHo(ho.id);
   const chiPhiHo = chiPhiTrungBinhMoiHo(luot, 1);
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8">
       <h1 className="mt-0 text-2xl font-bold">Chi phí và gói cước</h1>
+
+      {th && (
+        <ThueBao
+          trangThai={th.trangThai}
+          goiHienTai={th.thueBao.goi}
+          soNgayConLai={th.soNgayConLai}
+          tuDongGiaHan={th.thueBao.tuDongGiaHan}
+          coBienLaiGiaLap={th.coBienLaiGiaLap}
+        />
+      )}
 
       <section className="the mt-6 p-6">
         <h2 className="mt-0 text-lg font-bold">Ô Ly tính tiền theo cái gì</h2>

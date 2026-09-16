@@ -109,6 +109,7 @@ hiệu lực nếu có thứ gì đó kiểm tra nó ở mỗi lần chạy ki�
 | CR-06 | Đủ | Đầu mối công khai, hạn xử lý, và nhật ký xử lý đầy đủ ở bảng trực. Nhật ký không có khóa ngoại nên sống sót cả khi hộ đã bị xóa theo yêu cầu |
 | CR-07 | Đủ | Nhãn hiển thị và dấu máy đọc được trong `domain/generator.ts` |
 | CR-08 | Đủ | Bản ghi người duyệt là điều kiện chặn ở cổng phát hành |
+| CR-12, CR-13 | Đủ phần thuộc phần mềm | Vòng đời thuê bao ở `domain/thue-bao.ts` với bốn ràng buộc có kiểm thử canh: hủy dễ như mua, gia hạn tự động phải báo trước đủ sớm, hết hạn không khóa lịch sử học, không tự trừ tiền sau dùng thử. Cổng thanh toán thật là việc ngoài mã nguồn |
 | CR-09 đến CR-15 | Ngoài phần mềm | Hồ sơ đánh giá tác động, nhân sự phụ trách, thủ tục thuế và thương mại điện tử, hợp đồng biên soạn, chính sách nguồn nội dung |
 | CR-16 | Đủ phần thuộc phần mềm | Như CR-03 |
 | CR-17 | Đủ | Bốn nghĩa vụ: thông báo xử lý tự động, trang giải thích (`/cach-cham-bai`), cơ chế không tham gia theo từng mục đích, và rà soát định kỳ — ba phần đầu đã có trong sản phẩm |
@@ -301,3 +302,33 @@ giới hạn theo hộ, nhưng số máy nạn nhân thì vẫn chỉ có một.
 
 Điều khoản cụ thể và cách diễn giải phải do luật sư rà lại. Mã nguồn thực hiện
 quy tắc nội dung; nó không thay cho ý kiến pháp lý.
+
+## CR-12 và CR-13 — vòng đời thuê bao
+
+Phần dễ nhất của thanh toán là nhận tiền. Phần khó, và phần quyết định sản phẩm
+này tử tế hay không, là những gì xảy ra SAU đó. Bốn ràng buộc, mỗi cái một bài
+kiểm thử:
+
+| Ràng buộc | Thực hiện thế nào | Kiểm thử canh |
+|---|---|---|
+| **Hủy dễ như mua** | Nút hủy nằm cùng trang, ngang hàng nút mua. Hủy không cắt dịch vụ ngay — dùng hết chu kỳ đã trả tiền | `huy()` giữ nguyên quyền tới hết hạn |
+| **Gia hạn tự động phải báo trước** | `duocTruTienGiaHan()` từ chối nếu chưa gửi thông báo trước 7 ngày | Báo muộn bị từ chối y như chưa báo |
+| **Hết hạn không khóa lịch sử học** | `conDungDuocGi()` — chỉ đúng một thứ dừng lại | Hằng số `KHOA_LICH_SU_KHI_HET_HAN` phải luôn là `false` |
+| **Không tự trừ tiền sau dùng thử** | Ô bật trừ tiền định kỳ tách riêng, không đánh dấu sẵn | Mặc định `tuDongGiaHan: false` |
+
+Điều thứ ba là điều dễ bị bẻ nhất khi có áp lực doanh thu, vì khóa dữ liệu là
+cách ép gia hạn hiệu quả nhất mà người ta nghĩ ra được. Nên nó có hằng số riêng
+và có bài kiểm thử chỉ đích danh hằng số đó — để việc bẻ nó phải là một hành
+động có chủ ý, đọc được trong bản khác biệt mã nguồn.
+
+Điều thứ hai đáng nói thêm. Gửi thư "ngày mai trừ tiền" rồi trừ thật thì về mặt
+chữ nghĩa là đã báo trước, nhưng nó không cho cơ hội thật để hủy — mà cơ hội
+thật mới là điều luật bảo vệ người tiêu dùng nhắm tới. Nên báo muộn bị từ chối
+y như không báo.
+
+**Chưa có cổng thanh toán thật.** VNPay, MoMo, ZaloPay đều cần hợp đồng và tài
+khoản người bán, và trước đó cần pháp nhân đã đăng ký (CR-01) — đều là việc
+ngoài mã nguồn. Đang chạy bản giả lập, và mọi biên lai sinh ra từ đó mang cờ
+`la_gia_lap`; trang gói cước nói thẳng rằng không có đồng tiền nào được chuyển.
+Một hóa đơn trông như thật cho một khoản tiền chưa từng chuyển là chứng từ sai,
+không phải chi tiết kỹ thuật.

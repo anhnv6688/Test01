@@ -11,6 +11,8 @@ import { taoYeuCauDuLieu, type LoaiYeuCau } from "@/lib/server/requests";
 import type { MucDich } from "@/lib/privacy/consent";
 import { mucDatDuocQuaMaMotLan, type QuanHe } from "@/lib/privacy/nguoi-giam-ho";
 import { guiMa, kiemMaCuaHo } from "@/lib/server/ma-mot-lan";
+import { huyGoi, muaGoi } from "@/lib/server/thue-bao";
+import type { MaGoi } from "@/lib/domain/pricing";
 import { kiemThangNamSinh } from "@/lib/privacy/tuoi";
 
 export async function hanhDongMoCong(_truoc: { loi?: string } | null, form: FormData) {
@@ -167,4 +169,28 @@ export async function hanhDongXacMinhMa(_truoc: unknown, form: FormData) {
     haiSoCuoi: kq.haiSoCuoi,
   });
   return { xong: true };
+}
+
+export async function hanhDongMuaGoi(_truoc: unknown, form: FormData) {
+  const ho = await daMoCong();
+  if (!ho) redirect("/phu-huynh");
+  const kq = await muaGoi(
+    ho.id,
+    String(form.get("goi")) as MaGoi,
+    // Trừ tiền định kỳ là một ô RIÊNG, không đánh dấu sẵn (CR-13). Gộp nó vào
+    // nút mua là cách biến một lần mua thành một chuỗi trừ tiền không ai để ý.
+    form.get("tuDongGiaHan") === "1",
+  );
+  revalidatePath("/phu-huynh/goi-cuoc");
+  return kq;
+}
+
+export async function hanhDongHuyGoi(truoc: unknown) {
+  // useActionState truyền trạng thái trước vào; ở đây không cần tới nó.
+  void truoc;
+  const ho = await daMoCong();
+  if (!ho) redirect("/phu-huynh");
+  const kq = await huyGoi(ho.id);
+  revalidatePath("/phu-huynh/goi-cuoc");
+  return kq;
 }

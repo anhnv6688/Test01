@@ -131,6 +131,7 @@ export function conSotLaiCuaHo(householdId: string): number {
     ["children", "household_id"],
     ["consents", "household_id"],
     ["guardians", "household_id"],
+    ["bien_lai", "household_id"],
     ["meter_events", "household_id"],
     ["photo_jobs", "household_id"],
     ["data_requests", "household_id"],
