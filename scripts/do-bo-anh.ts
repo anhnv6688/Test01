@@ -40,7 +40,8 @@ async function main() {
     console.log(`Nhà cung cấp: ${ncc.ten}`);
     console.log(
       "Nhắc: ảnh trang vở của trẻ phải được che phần ghi tên, lớp, trường TRƯỚC KHI\n" +
-        "đưa vào thư mục này. Bộ đo không che giúp — lớp che nằm ở máy khách (BR-32).",
+        "đưa vào thư mục này. Bộ đo không che giúp — tới đây thì ảnh sắp đi ra mạng.\n" +
+        "Che bằng máy, đừng che tay:  npm run che-anh-do -- --tu <thư-mục-ảnh-gốc>",
     );
   } else {
     thuMuc = path.join(process.cwd(), ".bo-anh-dien-tap");

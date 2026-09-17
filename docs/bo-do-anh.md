@@ -43,13 +43,53 @@ cũng là chỗ Ô Ly có thể nói sai về con họ.
 
 ## Trước khi đưa ảnh vào thư mục: che phần ghi tên
 
-**Che kín phần đầu trang ghi tên con, lớp và trường.** Che luôn lời phê của cô
-giáo và ghi chú của người nhà nếu có (RR-13). Bộ đo **không** che giúp — lớp che
-nằm ở máy khách trong sản phẩm thật (BR-32), còn ở đây thì trách nhiệm là của
-người đưa ảnh vào.
+**Che kín phần đầu trang ghi tên con, lớp và trường** (BR-32). Che bằng máy:
 
-Thư mục `bo-anh-do/` đã nằm trong `.gitignore`. Đừng đưa ảnh vở của trẻ vào kho
-mã: một lần lỡ tay đẩy lên là không gỡ được khỏi lịch sử git.
+```bash
+npm run che-anh-do -- --tu ~/Downloads/anh-vo
+```
+
+Để ảnh gốc ở một thư mục **ngoài kho mã**. Lệnh này không sửa gì trong đó; nó
+đọc từng ảnh, tô đè dải đầu trang, rồi ghi bản đã che sang `bo-anh-do/`. Bản đã
+che là thứ duy nhất đi tiếp. Vẽ qua canvas nên siêu dữ liệu EXIF — trong đó có
+tọa độ nơi chụp — cũng rụng luôn.
+
+Dải che lấy thẳng hằng số của luồng phụ huynh, không đặt một con số riêng, và có
+bài kiểm thử buộc hai bên bằng nhau. Đó không phải chuyện gọn gàng: bộ đo phải
+đo thứ mô hình **thật sự** nhìn thấy khi chạy thật. Che rộng hơn thì báo cáo bi
+quan hơn thực tế; che hẹp hơn thì báo cáo lạc quan hơn thực tế, và còn để lọt
+tên trẻ.
+
+**Ảnh nằm ngang thì lệnh từ chối, không đoán.** Trang vở khổ dọc; ảnh nằm ngang
+nghĩa là điện thoại cầm ngang (`xoay-90`) và dải họ tên nằm ở cạnh bên, hoặc
+chụp cả hai trang mở ra. Tô đè dải trên cùng trong hai trường hợp ấy là xóa một
+dải giấy trắng rồi báo "đã che" trong khi tên trẻ còn nguyên — tệ hơn hẳn không
+che, vì nó tạo ra niềm tin sai. Chạy lại riêng những ảnh đó:
+
+```bash
+npm run che-anh-do -- --tu ~/Downloads/xoay-ngang --canh trai
+npm run che-anh-do -- --tu ~/Downloads/le-thap   --day 0.24
+```
+
+**Rồi nhìn một lượt.** Lệnh viết ra `bo-anh-do/xem-lai-che.html`, mở lên là thấy
+hết ảnh đã che trên một trang. Đừng bỏ bước này: dải che nằm ở chỗ tên **thường**
+nằm, mà "thường" không phải "luôn" — có trang ghi tên chen vào giữa, có ảnh chụp
+lệch làm dải tên tụt xuống dưới vạch. Không phép đo tự động nào ở đây đọc được
+chữ để mà chắc, và nếu có thì chính nó đã đọc tên trẻ rồi. Một đôi mắt, một lần,
+một trang — vẫn ít hơn hẳn việc che tay từng ảnh.
+
+Lời phê của cô giáo: che phần **chữ viết** của cô nếu có (RR-13), nhưng giữ lại
+dấu mực đỏ chấm đúng/sai — trang gắn nhãn dùng chính những dấu ấy để đối chiếu,
+và đó là chỗ phát hiện ra bộ chấm sai.
+
+Thư mục `bo-anh-do/` đã nằm trong `.gitignore`, và `npm run khong-ro-ri` canh
+thêm một lượt. Đừng đưa ảnh vở của trẻ vào kho mã: một lần lỡ tay đẩy lên là
+không gỡ được khỏi lịch sử git.
+
+Phụ huynh dùng sản phẩm thì **không phải làm gì cả** — lớp che chạy sẵn trên máy
+họ và dải mặc định đã bật từ đầu (`src/app/phu-huynh/chup/che-anh.ts`). Việc che
+tay chỉ đặt ra ở đây, vì bộ ảnh đo đi đường khác: chép thẳng từ thẻ nhớ vào một
+thư mục, không có trình duyệt nào ở giữa để chạy lớp che ấy.
 
 ## Nên chụp trong những điều kiện nào
 

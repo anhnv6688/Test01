@@ -142,7 +142,22 @@ ba cờ xác nhận đã ký thỏa thuận xử lý dữ liệu: `OLY_DPA_DA_KY
 quay về bản giả lập và ghi cảnh báo — đừng gỡ chốt đó.
 
 Ảnh trang vở để trong `bo-anh-do/` (đã nằm trong `.gitignore`), và phải được che
-phần ghi tên, lớp, trường **trước khi** đưa vào thư mục.
+phần ghi tên, lớp, trường **trước khi** đưa vào thư mục. Đừng che tay — tay thì
+chậm, và thứ gì chậm cũng có ngày bị bỏ qua:
+
+```bash
+npm run che-anh-do -- --tu ~/Downloads/anh-vo     # ảnh gốc để NGOÀI kho mã
+```
+
+Lệnh này chạy tại chỗ, tô đè đúng dải mà luồng phụ huynh tô đè (cùng hằng số,
+có bài kiểm thử buộc hai bên bằng nhau — lệch nhau là bộ đo đo một thứ khác với
+thứ đang chạy thật). Ảnh nằm ngang thì nó **từ chối** chứ không đoán: trang vở
+khổ dọc, nên ảnh ngang nghĩa là điện thoại cầm ngang và dải họ tên nằm ở cạnh
+bên. Che xong nó viết `bo-anh-do/xem-lai-che.html` — nhìn một lượt trước khi đi
+tiếp, vì không phép đo tự động nào ở đây đọc được chữ để mà chắc.
+
+Phụ huynh thì **không phải làm gì**: lớp che chạy sẵn trên máy họ
+(`src/app/phu-huynh/chup/che-anh.ts`), dải mặc định đã bật từ đầu.
 
 ## Hai tệp không phải do người viết
 
