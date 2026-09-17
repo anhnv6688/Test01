@@ -117,16 +117,6 @@ jobs:
       contents: read
       packages: read
     environment: ${{ github.event.inputs.moi_truong || 'thu' }}
-    # Chuyển địa chỉ công khai sang việc soi dưới dạng kết quả đầu ra.
-    #
-    # Việc soi có thể tự đọc `vars.VPS_URL`, nhưng muốn đọc được thì nó
-    # phải khai `environment:` — và khai thì nó lại chạm vào luật "phải có
-    # người duyệt" của bản thật, tức là mỗi lần đưa lên bản thật phải bấm duyệt
-    # hai lần. Lần thứ hai nằm SAU khi đã triển khai, nên không duyệt thì bản
-    # thật vẫn chạy mà không ai soi. Một cửa duyệt đặt sai chỗ thì tệ hơn là
-    # không có: nó tạo cảm giác đã kiểm soát.
-    outputs:
-      dia_chi: ${{ steps.dia-chi.outputs.url }}
     env:
       MOI_TRUONG: ${{ github.event.inputs.moi_truong || 'thu' }}
       ANH: ${{ needs.dung-anh.outputs.anh }}
@@ -137,22 +127,6 @@ jobs:
       CONG: ${{ secrets.VPS_PORT || '22' }}
     steps:
       - uses: actions/checkout@v5
-
-      - name: Ghi lại địa chỉ công khai để chuyển sang việc soi
-        id: dia-chi
-        #
-        # Lấy vars.VPS_URL qua ĐẦU RA CỦA MỘT BƯỚC, không khai thẳng ở khối
-        # `outputs` của việc.
-        #
-        # Bản đầu viết `outputs: dia_chi: ${{ vars.VPS_URL }}`. Nhìn thì hợp lệ,
-        # và không có lỗi nào — nhưng giá trị ra RỖNG, nên việc soi bị bỏ qua
-        # trong lặng lẽ dù biến đã khai đúng. Bằng chứng nằm ở chỗ bước nhắc
-        # "chưa khai địa chỉ" KHÔNG chạy: cùng một biến, đọc được ở `if` của
-        # bước mà không đọc được ở `outputs` của việc.
-        #
-        # Đầu ra của bước thì luôn chuyển được sang việc sau. Dài hơn ba dòng,
-        # đổi lại không phải nhớ chỗ nào đọc được context nào.
-        run: printf 'url=%s\n' "${{ vars.VPS_URL }}" >> "$GITHUB_OUTPUT"
 
       - name: Bản thật chỉ đưa lên từ nhánh chính
         # Một nhánh bất kỳ đẩy được lên bản thật nghĩa là mã chưa qua xét duyệt
@@ -463,10 +437,26 @@ jobs:
     name: Soi bản đã triển khai
     needs: [dung-anh, dua-len]
     runs-on: ubuntu-latest
-    # Cần địa chỉ công khai có chứng chỉ thật. Máy chỉ có địa chỉ IP thì chứng
-    # chỉ là bản tự ký, trình duyệt và curl đều từ chối — đó là một lý do nữa
-    # để lấy tên miền, chứ không phải lý do để tắt kiểm chứng chỉ.
-    if: needs.dua-len.outputs.dia_chi != ''
+    #
+    # Đọc THẲNG vars.VPS_URL, không nhận qua đầu ra của việc trước.
+    #
+    # Hai bản trước đều truyền qua việc trước, và cả hai đều ra rỗng trong lặng
+    # lẽ: lần đầu khai ở khối `outputs` (context không có ở đó), lần sau qua đầu
+    # ra của một bước (GitHub loại bỏ đầu ra của việc nếu giá trị trùng một
+    # secret — mà VPS_URL từng được khai cả ở tab Secrets).
+    #
+    # Cả hai lần, triệu chứng giống hệt nhau: mọi thứ xanh, việc soi bị bỏ qua,
+    # không ai được báo. Vòng vèo đó không cần thiết ngay từ đầu — VPS_URL là
+    # biến cấp KHO, mà biến cấp kho thì mọi việc đọc được, không cần khai
+    # `environment:` và vì thế không chạm vào luật "phải có người duyệt".
+    #
+    # Nếu về sau tách biến này theo từng environment thì chỗ này phải xem lại,
+    # và xem lại kèm cả câu hỏi cửa duyệt đặt ở đâu.
+    #
+    # Máy chỉ có địa chỉ IP thì chứng chỉ là bản tự ký; workflow tự thêm cờ
+    # --chung-chi-tu-ky cho hai bộ soi, và chúng sẽ kêu to rằng phần xác thực
+    # danh tính máy chủ đã bị bỏ.
+    if: vars.VPS_URL != ''
     steps:
       - uses: actions/checkout@v5
 
@@ -482,7 +472,7 @@ jobs:
         #
         # In thẳng giá trị ra được: đây là địa chỉ công khai, không phải secret.
         env:
-          DIA_CHI: ${{ needs.dua-len.outputs.dia_chi }}
+          DIA_CHI: ${{ vars.VPS_URL }}
         run: |
           case "$DIA_CHI" in
             https://*|http://*) ;;
@@ -516,7 +506,7 @@ jobs:
       # nhưng sai cấu hình.
       - name: Máy chủ từ chối mọi mã mặc định
         env:
-          DIA_CHI: ${{ needs.dua-len.outputs.dia_chi }}
+          DIA_CHI: ${{ vars.VPS_URL }}
           CHO: ${{ github.event.inputs.moi_truong || 'thu' }}
         run: |
           # Địa chỉ là IP thì chứng chỉ chỉ có thể là tự ký, nên phải khai cờ —
@@ -541,7 +531,7 @@ jobs:
         if: (github.event.inputs.moi_truong || 'thu') == 'thu'
         env:
           OLY_CHROME: ""
-          DIA_CHI: ${{ needs.dua-len.outputs.dia_chi }}
+          DIA_CHI: ${{ vars.VPS_URL }}
         run: |
           CO=""
           case "${DIA_CHI#https://}" in
