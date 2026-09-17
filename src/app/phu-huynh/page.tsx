@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { lapBanTinToi } from "@/lib/domain/digest";
+import { mocDatTrongNgay } from "@/lib/domain/moc-vung";
 import { tinhPhanThuong } from "@/lib/domain/rewards";
 import { GOI, dinhDangTien } from "@/lib/domain/pricing";
 import { tinhTran } from "@/lib/domain/metering";
@@ -36,7 +37,11 @@ export default async function TrangPhuHuynh() {
           const hn = lanTraLoiTrongNgay(c.id, homNay);
           const banTin = lapBanTinToi(c.id, hn);
           const thuong = tinhPhanThuong(hn);
-          const tongLichSu = lichSuCuaCon(c.id, 500).length;
+          const toanBo = lichSuCuaCon(c.id, 500);
+          const tongLichSu = toanBo.length;
+          // Mốc VỪA đạt hôm nay. Tính trên toàn bộ lịch sử chứ không chỉ hôm
+          // nay: một mốc cần mười bài, thường trải qua nhiều buổi.
+          const mocMoi = mocDatTrongNgay(toanBo, homNay);
           return (
             <section key={c.id} className="the p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -76,6 +81,25 @@ export default async function TrangPhuHuynh() {
                     </p>
                     <p className="m-0 mt-2 text-lg font-semibold">“{banTin.cauHoiChoBo}”</p>
                   </div>
+
+                  {/*
+                    Tin mừng của tối nay, và chỉ hiện khi CÓ tin mừng.
+                    Một ô cố định kiểu "hôm nay chưa đạt mốc nào" biến bản tin
+                    thành một bảng chấm công và làm những tối bình thường —
+                    phần lớn các tối — thành những tối thiếu hụt.
+                  */}
+                  {mocMoi.length > 0 && (
+                    <p
+                      className="the mt-5 mb-0 p-4"
+                      style={{ background: "var(--xanh-la-nen)", borderColor: "var(--xanh-la)" }}
+                    >
+                      <span aria-hidden className="mr-2">🌱</span>
+                      Hôm nay {c.tenGoi} đi qua một mốc:{" "}
+                      <strong>{mocMoi.map((m) => m.phatBieu.split(";")[0]).join("; ")}</strong>.
+                      Mười bài gần nhất con làm đúng ngay từ lần đầu ít nhất tám bài. Anh chị nói với
+                      con một câu về chuyện này nhé — con không nhìn thấy mốc, chỉ bố mẹ thấy.
+                    </p>
+                  )}
 
                   <p className="mt-5 mb-0 text-sm" style={{ color: "var(--muc-nhat)" }}>
                     {banTin.noLuc} Con được {thuong.hatGiong} hạt giống, tính theo công chịu khó làm và

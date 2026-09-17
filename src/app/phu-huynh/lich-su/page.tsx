@@ -4,6 +4,7 @@ import { TRAP_BY_ID } from "@/lib/domain/traps";
 import { tyLeTuSuaSauGoiY } from "@/lib/domain/rewards";
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
 import { danhSachCon, lichSuCuaCon } from "@/lib/server/repo";
+import { demVung, moTaMoc, tinhMocVung } from "@/lib/domain/moc-vung";
 import { CongPin } from "../CongPin";
 import { goiYPinHoMau } from "@/lib/server/moi-truong";
 
@@ -39,6 +40,8 @@ export default async function TrangLichSu({
   }
   const cacNgay = [...theoNgay.keys()].sort().reverse();
   const tyLe = tyLeTuSuaSauGoiY(lichSu);
+  const moc = tinhMocVung(lichSu);
+  const dem = demVung(moc);
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8">
@@ -75,6 +78,51 @@ export default async function TrangLichSu({
               đúng sau khi xem gợi ý — đây là chỉ số Ô Ly quan tâm nhất, hơn cả tỷ lệ đúng.</>
             )}
           </p>
+
+          {/*
+            Bảng đi tới đâu trong học kỳ.
+            Đặt TRƯỚC phần nhật ký từng ngày vì đây là câu hỏi phụ huynh mở trang
+            này để hỏi: con đang tới đâu rồi. Danh sách từng lượt bài trả lời câu
+            "hôm qua con làm gì", một câu khác và ít khẩn hơn.
+
+            Liệt kê CẢ phần chưa gặp. Chỉ hiện phần đã vững thì bảng thành danh
+            sách thành tích và giấu mất phần còn lại của học kỳ.
+          */}
+          <section className="the mt-6 p-5">
+            <h2 className="mt-0 text-lg font-bold">
+              Đi tới đâu trong học kỳ: {dem.vung}/{dem.tong} phần đã vững
+            </h2>
+            <p className="text-sm" style={{ color: "var(--muc-nhat)" }}>
+              Một phần được tính là <strong>đã vững</strong> khi mười bài gần nhất con làm đúng ngay
+              từ lần đầu ít nhất tám bài. Làm sai rồi sửa lại đúng thì không tính — chỗ này đo việc
+              con tự làm được ngay. Đây không phải điểm số và Ô Ly không so con với bất kỳ bạn nào;
+              mốc so sánh duy nhất là chính con ở những buổi trước.
+            </p>
+            <ul className="m-0 mt-4 list-none space-y-3 p-0">
+              {moc.map((m) => (
+                <li key={m.yccd} className="border-t pt-3" style={{ borderColor: "var(--vien)" }}>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <span className={m.trangThai === "vung" ? "font-semibold" : ""}>
+                      {m.trangThai === "vung" && (
+                        <span aria-hidden className="mr-2" style={{ color: "var(--xanh-la)" }}>✓</span>
+                      )}
+                      {m.phatBieu.split(";")[0]}
+                    </span>
+                    <span
+                      className="text-sm whitespace-nowrap"
+                      style={{
+                        color:
+                          m.trangThai === "vung" ? "var(--xanh-la)" : "var(--muc-nhat)",
+                      }}
+                    >
+                      {m.trangThai === "vung" ? "đã vững" : m.trangThai === "dang-luyen" ? "đang luyện" : "chưa đủ bài"}
+                    </span>
+                  </div>
+                  <p className="m-0 mt-1 text-sm" style={{ color: "var(--muc-nhat)" }}>{moTaMoc(m)}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
 
           <div className="mt-6 space-y-6">
             {cacNgay.map((ngay) => {
