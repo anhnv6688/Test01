@@ -125,6 +125,18 @@ Trên GitHub, tạo hai Environment tên `thu` và `that`, mỗi cái khai:
 | Secret | `OLY_MAY_CHU_KHOA` | kết quả `ssh-keyscan` ở trên |
 | Variable | `OLY_DIA_CHI` | `https://thu.oly.vn` |
 
+Phải là **Environment secrets**, không phải Repository secrets. Repository
+secrets thì mọi việc trong workflow đều đọc được, kể cả việc đưa lên bản thật —
+nên với một máy duy nhất, một lần bấm nhầm `that` sẽ trỏ bản thật vào đúng cái
+máy đang chạy bản thử. Hai bên dùng chung tên dự án Compose nên bản thật **thay
+chỗ** bản thử chứ không chạy song song, và vùng đĩa thì tách riêng nên bản thử
+vẫn còn nguyên trên đĩa mà không ai nhận ra nó đã bị thay.
+
+Chừng nào chưa có máy trong nước thì **đừng tạo Environment `that`**. Thiếu khai
+báo thì workflow từ chối ngay ở bước đầu. `trien-khai/chay-anh.sh` còn chặn một
+lần nữa trên chính máy chủ: máy ghi lại mình đang phục vụ môi trường nào, và từ
+chối nhận môi trường khác.
+
 Và **đặt "Required reviewers" cho Environment `that`**. Đây là việc phải bấm tay
 trên GitHub, không khai trong tệp workflow được, và nó là cửa duy nhất ngăn một
 lần đưa lên bản thật xảy ra mà không ai biết. Bản thật chạm vào dữ liệu thật của
@@ -143,7 +155,8 @@ Máy chủ không cần bất kỳ thông tin đăng nhập GitHub nào: cấu h
 qua SSH, còn thẻ đăng nhập sổ đăng ký là thẻ của chính lần chạy đó, hết hạn khi
 việc kết thúc và được đăng xuất ngay sau khi kéo ảnh xong.
 
-Máy chủ đang chạy bản nào thì xem dòng `OLY_ANH` trong `~/o-ly/.env`.
+Máy chủ đang chạy bản nào thì xem `OLY_ANH` và `OLY_MOI_TRUONG_DANG_CHAY` trong
+`~/o-ly/.env`.
 
 ## Tên miền
 

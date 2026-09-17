@@ -172,6 +172,22 @@ describe("đưa lên máy chủ tự động", () => {
     expect(khongChuThich(doc("trien-khai/chay-anh.sh"))).not.toMatch(/\bbuild\b/);
   });
 
+  it("một máy chỉ phục vụ một môi trường, và nó tự nhớ mình là gì", () => {
+    /*
+     * Khai báo để ở Repository secrets thì MỌI việc trong workflow đọc được,
+     * kể cả việc đưa lên bản thật — nên một lần bấm nhầm sẽ trỏ bản thật vào
+     * đúng cái máy đang chạy bản thử. Với máy đặt ngoài Việt Nam thì đó là dữ
+     * liệu trẻ em lưu sai nơi (Nghị định 53).
+     *
+     * Chốt nằm trên máy chủ chứ không nằm trong workflow, vì chỉ máy chủ biết
+     * nó ĐANG chạy gì; workflow chỉ biết nó được khai gì.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    expect(ca).toMatch(/OLY_MOI_TRUONG_DANG_CHAY/);
+    // Phải chặn TRƯỚC khi chạm vào docker, không phải sau khi đã `up -d`.
+    expect(ca.indexOf("DANG_CHAY")).toBeLessThan(ca.indexOf("COMPOSE=("));
+  });
+
   it("thẻ đăng nhập sổ đăng ký không ở lại trên máy chủ", () => {
     // Thẻ của lần chạy hết hạn khi việc kết thúc, nhưng tệp ~/.docker/config.json
     // thì ở lại. Đăng xuất kể cả khi triển khai hỏng.
