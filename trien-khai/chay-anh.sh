@@ -193,27 +193,6 @@ if [ -n "${OLY_MAT_KHAU_THU:-}" ] && [ "$MOI_TRUONG" = "that" ]; then
   exit 1
 fi
 
-if [ -n "${OLY_MAT_KHAU_THU:-}" ]; then
-  BAM=$(printf '%s' "$OLY_MAT_KHAU_THU" \
-    | docker run --rm -i caddy:2-alpine caddy hash-password 2>/dev/null | tr -d '\r\n')
-  if [ -z "$BAM" ]; then
-    do_ "Không băm được mật khẩu hàng rào (caddy hash-password không trả về gì)."
-    exit 1
-  fi
-  umask 077
-  {
-    printf '# Sinh bởi trien-khai/chay-anh.sh. Đừng sửa tay, mỗi lần triển khai ghi đè.\n'
-    printf 'basic_auth {\n\tnoi-bo %s\n}\n' "$BAM"
-  } > "$BAO_VE"
-  xanh "hàng rào mật khẩu: BẬT (tên đăng nhập noi-bo)"
-else
-  printf '# Không có hàng rào: OLY_MAT_KHAU_THU chưa khai.\n' > "$BAO_VE"
-  if [ "$MOI_TRUONG" != "that" ]; then
-    vang "hàng rào mật khẩu: TẮT — ai dò trúng địa chỉ cũng vào được bản thử này."
-    vang "Bật bằng cách khai secret VPS_MAT_KHAU_THU trong kho mã."
-  fi
-fi
-
 COMPOSE=(docker compose
   -f compose.yaml -f "compose.${MOI_TRUONG}.yaml"
   -f trien-khai/compose.caddy.yaml -f trien-khai/compose.anh-ghcr.yaml)
@@ -268,6 +247,56 @@ dat_anh "$ANH_MOI"
 # hình cũ. Giữ cấu hình cũ mà báo xanh là kiểu hỏng tệ nhất, nên ở đây sai là
 # đỏ ngay.
 #
+#
+# Dựng hàng rào SAU khi `up -d`, để băm bằng chính thùng chứa Caddy đang chạy.
+#
+# Bản đầu băm bằng `docker run --rm caddy:2-alpine` — một tiến trình riêng, một
+# lần kéo ảnh riêng, và một chỗ nữa có thể hỏng mà không liên quan gì tới thứ
+# đang phục vụ. Nó hỏng thật, và làm đỏ cả lần triển khai. Thùng chứa Caddy thì
+# đã chạy sẵn ngay đây, đúng bản sẽ đọc tệp này.
+#
+# Caddy khởi động với bao-ve.caddy CŨ, rồi ta ghi bản mới và nạp lại ở ngay
+# dưới — nên thứ tự này an toàn cả ở lần triển khai đầu tiên.
+#
+if [ -n "${OLY_MAT_KHAU_THU:-}" ]; then
+  #
+  # `|| true` và GIỮ LẠI stderr. Cả hai đều là bản sửa, không phải cho gọn.
+  #
+  # Bản đầu viết `BAM=$(... 2>/dev/null)` rồi mới kiểm `[ -z "$BAM" ]`. Dòng
+  # kiểm ấy KHÔNG BAO GIỜ chạy được: với `set -e`, một phép gán mà lệnh bên phải
+  # thoát khác 0 sẽ giết cả kịch bản ngay tại chỗ. Và `2>/dev/null` nuốt nốt lý
+  # do. Kết quả trên máy chủ là đúng một dòng:
+  #
+  #     ##[error]Process completed with exit code 1.
+  #
+  # Không câu nào nói vì sao. Một dòng chẩn đoán đặt sau chỗ chết là một dòng
+  # chẩn đoán không tồn tại.
+  #
+  LOI_BAM=$(mktemp)
+  BAM=$(printf '%s' "$OLY_MAT_KHAU_THU" \
+    | "${COMPOSE[@]}" exec -T caddy caddy hash-password 2>"$LOI_BAM" | tr -d '\r\n' || true)
+  if [ -z "$BAM" ]; then
+    do_ "Không băm được mật khẩu hàng rào. Caddy nói:"
+    sed 's/^/       /' "$LOI_BAM" || true
+    rm -f "$LOI_BAM"
+    exit 1
+  fi
+  rm -f "$LOI_BAM"
+  umask 077
+  {
+    printf '# Sinh bởi trien-khai/chay-anh.sh. Đừng sửa tay, mỗi lần triển khai ghi đè.\n'
+    printf 'basic_auth {\n\tnoi-bo %s\n}\n' "$BAM"
+  } > "$BAO_VE"
+  xanh "hàng rào mật khẩu: BẬT (tên đăng nhập noi-bo)"
+else
+  printf '# Không có hàng rào: OLY_MAT_KHAU_THU chưa khai.\n' > "$BAO_VE"
+  if [ "$MOI_TRUONG" != "that" ]; then
+    vang "hàng rào mật khẩu: TẮT — ai dò trúng địa chỉ cũng vào được bản thử này."
+    vang "Bật bằng cách khai secret VPS_MAT_KHAU_THU trong kho mã."
+  fi
+fi
+
+
 #
 # Trước hết: Caddy có ĐANG NHÌN THẤY bản vừa gửi lên không.
 #

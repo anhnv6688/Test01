@@ -295,6 +295,10 @@ function diTru(d: Database.Database): void {
   // lần đưa bản mới lên — và người dò mã chỉ cần đợi đúng lúc đó.
   themCotNeuThieu(d, "households", "pin_sai_lien_tiep", "INTEGER NOT NULL DEFAULT 0");
   themCotNeuThieu(d, "households", "pin_sai_luc", "TEXT");
+  // Đánh dấu hộ MẪU — hộ do máy dựng ra để bấm thử, không phải hộ của người
+  // thật. Cần cờ này để đồng bộ mã PIN theo khai báo mà không bao giờ chạm vào
+  // một hộ thật; xem seed.ts.
+  themCotNeuThieu(d, "households", "la_ho_mau", "INTEGER NOT NULL DEFAULT 0");
 }
 
 function themCotNeuThieu(
