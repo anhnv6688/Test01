@@ -290,6 +290,11 @@ function diTru(d: Database.Database): void {
   themCotNeuThieu(d, "households", "da_bam_huy", "INTEGER NOT NULL DEFAULT 0");
   themCotNeuThieu(d, "households", "dang_dung_thu", "INTEGER NOT NULL DEFAULT 0");
   themCotNeuThieu(d, "households", "bao_truoc_gia_han_luc", "TEXT");
+  // Bộ đếm lần thử PIN sai. Ở đây chứ không trong bộ nhớ tiến trình: mỗi lần
+  // triển khai là một tiến trình mới, nên bộ đếm trong bộ nhớ tự xóa mình mỗi
+  // lần đưa bản mới lên — và người dò mã chỉ cần đợi đúng lúc đó.
+  themCotNeuThieu(d, "households", "pin_sai_lien_tiep", "INTEGER NOT NULL DEFAULT 0");
+  themCotNeuThieu(d, "households", "pin_sai_luc", "TEXT");
 }
 
 function themCotNeuThieu(

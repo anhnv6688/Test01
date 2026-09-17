@@ -1,5 +1,8 @@
 import { cookies } from "next/headers";
 import { hoDauTien, layHo, type Ho } from "./repo";
+import {
+  docLanThu, ghiSai, hetHanKhoa, loiChoDoi, quyetDinhThuPin, xoaDem,
+} from "./gioi-han-pin";
 
 /**
  * Cổng vào bề mặt phụ huynh.
@@ -26,7 +29,29 @@ export async function daMoCong(): Promise<Ho | null> {
 export async function moCong(pin: string): Promise<{ ok: boolean; loi?: string }> {
   const ho = hoDauTien();
   if (!ho) return { ok: false, loi: "Chưa có hộ nào trong máy này." };
-  if (pin.trim() !== ho.pin) return { ok: false, loi: "Mã PIN chưa đúng. Anh chị thử lại nhé." };
+
+  /*
+   * Chặn TRƯỚC khi so mã, không phải sau.
+   *
+   * So trước rồi mới chặn thì mỗi lần thử vẫn là một lần so, và kẻ dò mã vẫn
+   * biết mình đã trúng hay chưa qua thời gian trả lời hoặc qua chính thông
+   * điệp. Chặn trước thì trong lúc đang chờ, mã đúng cũng không mở được — đó
+   * mới là thứ làm 10.000 khả năng trở nên vô vọng.
+   *
+   * Cái giá: chủ hộ nhớ ra mã đúng giữa lúc đang chờ vẫn phải chờ nốt. Vài
+   * giây, và chỉ sau khi đã sai ba lần.
+   */
+  const bayGio = Date.now();
+  const lan = docLanThu(ho.id);
+  const qd = quyetDinhThuPin(lan, bayGio);
+  if (!qd.choPhep) return { ok: false, loi: loiChoDoi(qd) };
+
+  if (pin.trim() !== ho.pin) {
+    ghiSai(ho.id, bayGio, hetHanKhoa(lan, bayGio));
+    return { ok: false, loi: "Mã PIN chưa đúng. Anh chị thử lại nhé." };
+  }
+  xoaDem(ho.id);
+
   const c = await cookies();
   c.set(TEN_COOKIE, ho.id, {
     httpOnly: true,
