@@ -490,6 +490,31 @@ describe("đưa lên máy chủ tự động", () => {
     expect(ca).not.toMatch(/hash-password[^\n]*--plaintext/);
   });
 
+  it("dòng báo cổng 443 nói đúng theo mã trả về, không nói cứng một câu", () => {
+    /**
+     * Bản đầu in "người ngoài vào được" cho MỌI mã ba chữ số. Đến lần hàng rào
+     * bật lên thật, nó in ra:
+     *
+     *     ok   cổng 443 trả lời 401 — người ngoài vào được
+     *
+     * 401 nghĩa là người ngoài KHÔNG vào được — đó là cả mục đích của hàng rào.
+     * Dòng ấy khẳng định đúng cái ngược lại với thứ vừa xảy ra, ở đúng chỗ
+     * người ta liếc qua để yên tâm rồi đóng cửa sổ.
+     *
+     * Phép kiểm ("có bắt tay được với cổng 443 không") vẫn đúng; chỉ câu chữ
+     * sai. Nhưng câu chữ sai ở chỗ này nguy ngang phép kiểm sai, vì không ai
+     * đọc lại phép kiểm.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    const i = ca.indexOf('cổng 443 trả lời');
+    expect(i).toBeGreaterThan(-1);
+    // 401 phải được gọi tên là hàng rào đang chắn...
+    expect(ca).toMatch(/401\)[\s\S]{0,200}?hàng rào đang chắn/);
+    // ...và KHÔNG được rơi vào cùng một câu với 2xx/3xx.
+    expect(ca).not.toMatch(/cổng 443 trả lời \$MA_HTTP cho \$DICH — người ngoài vào được/);
+    expect(ca).toMatch(/2\*\|3\*\)[\s\S]{0,200}?người ngoài vào thẳng được/);
+  });
+
   it("chỉ nhận kết quả CÓ HÌNH DẠNG băm bcrypt, không nhận mọi chuỗi khác rỗng", () => {
     /**
      * `[ -n "$BAM" ]` đơn thuần cho một chuỗi rác lọt qua, và lúc ấy tệp

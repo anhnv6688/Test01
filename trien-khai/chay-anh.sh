@@ -480,7 +480,33 @@ if ! printf '%s' "$MA_HTTP" | grep -qE '^[1-5][0-9][0-9]$'; then
   do_ "curl trả về: '''$MA_HTTP'''"
   exit 1
 fi
-xanh "cổng 443 trả lời $MA_HTTP cho $DICH — người ngoài vào được"
+#
+# Nói đúng thứ MÃ TRẢ VỀ có nghĩa, đừng nói chung một câu cho mọi mã.
+#
+# Bản đầu in cứng "người ngoài vào được" cho mọi mã ba chữ số. Đến lần hàng rào
+# bật lên thật, nó in ra:
+#
+#     ok   cổng 443 trả lời 401 — người ngoài vào được
+#
+# 401 nghĩa là người ngoài KHÔNG vào được, đó là cả mục đích của hàng rào. Dòng
+# ấy khẳng định đúng cái ngược lại với thứ vừa xảy ra, và nó nằm ở cuối phần
+# triển khai — chỗ người ta liếc qua để yên tâm rồi đóng cửa sổ.
+#
+# Phép kiểm ở trên vẫn đúng và không đổi: nó hỏi "có bắt tay được với cổng 443
+# không", và 401 trả lời "có". Chỉ có câu chữ là sai. Nhưng một câu chữ sai ở
+# chỗ này thì cũng nguy như một phép kiểm sai, vì không ai đọc lại phép kiểm.
+#
+case "$MA_HTTP" in
+  401)
+    xanh "cổng 443 trả lời 401 cho $DICH — hàng rào đang chắn, phải có mật khẩu mới vào"
+    ;;
+  2*|3*)
+    xanh "cổng 443 trả lời $MA_HTTP cho $DICH — người ngoài vào thẳng được, KHÔNG có hàng rào"
+    ;;
+  *)
+    vang "cổng 443 trả lời $MA_HTTP cho $DICH — bắt tay được, nhưng trang trả về mã lạ"
+    ;;
+esac
 
 THIEU=$("${COMPOSE[@]}" logs o-ly 2>/dev/null | grep -A20 'còn thiếu khai báo' || true)
 [ -n "$THIEU" ] && { vang "máy chủ báo thiếu khai báo:"; echo "$THIEU"; }
