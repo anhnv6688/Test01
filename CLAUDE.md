@@ -74,7 +74,6 @@ hỏng lời hứa của sản phẩm.
 | Ô Ly không công bố cổng ra máy chủ — Docker đi vòng qua ufw | `trien-khai/compose.caddy.yaml` | `trien-khai.test.ts` |
 | Một ảnh đi qua cả hai môi trường; máy chủ không dựng lại | `trien-khai/compose.anh-ghcr.yaml` | `trien-khai.test.ts` |
 | Triển khai không bao giờ tắt kiểm khóa máy chủ | `.github/workflows/dua-len.yml` | `trien-khai.test.ts` |
-| Bản thử tự nói ra nó là bản thử, và nói ảnh đi đâu | `components/DaiBaoBanThu.tsx` | `npm run kiem-moi-truong` |
 
 Nếu một thay đổi làm những bài này trượt, **sửa thay đổi, đừng sửa bài kiểm
 thử** — trừ khi chủ đầu tư đã đổi chính yêu cầu nghiệp vụ, và khi đó phải sửa

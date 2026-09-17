@@ -284,11 +284,24 @@ Nhưng máy này đặt ở Singapore. Ảnh trang vở của một đứa trẻ
 lớp ở đầu trang, nằm trên một máy ngoài Việt Nam là đúng thứ Nghị định 53 nói
 tới. Và nếu khóa API đã cắm thì nó còn đi tiếp ra nhà cung cấp xử lý ảnh.
 
-Vì vậy sản phẩm **tự nói ra** điều đó: bản thử hiện một dải báo trên mọi trang,
-dặn đừng nhập tên thật và đừng chụp bài thật, kèm một câu nói rõ ảnh chụp ở đây
-**có bị gửi ra ngoài hay không**. Câu sau quan trọng ngang câu trước, vì bản giả
-lập trả về dữ liệu dựng sẵn — không nói thì người test sẽ báo "Ô Ly đọc sai hết"
-trong khi nó chưa đọc gì cả.
+Trước đây sản phẩm tự nói ra điều đó bằng một dải báo trên mọi trang. **Dải báo
+ấy đã gỡ theo quyết định của chủ đầu tư ngày 17/9/2026** (VM-09 ở
+`docs/truy-vet-yeu-cau.md`), nên từ nay nó là việc của **người**, không còn lớp
+chặn kỹ thuật nào.
+
+Trước mỗi đợt, nói thẳng ba câu này với người test — nhắn vào nhóm, đừng nói
+miệng rồi thôi:
+
+> 1. Đây là bản thử đặt ở Singapore. **Đừng nhập tên thật của con, đừng chụp bài
+>    thật của con.** Cần bài để thử thì tự viết tay một trang.
+> 2. Dữ liệu ở đây có thể bị xóa bất cứ lúc nào.
+> 3. Ảnh chụp ở đây **không đi đâu cả** — đang dùng bản giả lập, nên kết quả chấm
+>    là dữ liệu dựng sẵn, không phải máy đọc ảnh của anh chị.
+
+Câu thứ ba quan trọng ngang hai câu đầu: bản giả lập trả về dữ liệu dựng sẵn, nên
+không nói thì người test sẽ báo "Ô Ly đọc sai hết" trong khi nó chưa đọc gì cả.
+Nếu đã cắm khóa API thật thì câu ấy phải đổi lại cho đúng — và lúc đó ảnh ĐI RA
+NGOÀI thật.
 
 Cần bài để thử thì lấy từ `src/lib/do-anh/bo-dien-tap.ts` hoặc tự viết tay một
 trang rồi chụp. Trang vở tự viết thì không có tên đứa trẻ nào trên đó.

@@ -18,11 +18,15 @@ let nhaCungCap: NhaCungCapXuLyAnh | null = null;
 /**
  * Ảnh chụp trên máy này có thật sự rời khỏi máy chủ không.
  *
- * Tách ra thành hàm riêng vì có hai chỗ cần biết, và chúng phải không bao giờ
- * trả lời khác nhau: chỗ chọn nhà cung cấp ở dưới, và dải báo của bản thử nói
- * cho người đang test biết ảnh của họ đi đâu. Viết lại điều kiện ở chỗ thứ hai
- * là mở đường cho một ngày nó lệch với chỗ thứ nhất — và lúc đó dải báo sẽ nói
- * "ảnh không đi đâu cả" trong khi ảnh đang được gửi đi.
+ * Tách ra thành hàm riêng từ hồi còn dải báo bản thử: hai chỗ cần biết câu trả
+ * lời này và chúng không được phép khác nhau. Dải báo đã gỡ (VM-09), nên hiện
+ * chỉ còn chỗ chọn nhà cung cấp ở dưới dùng nó.
+ *
+ * Vẫn giữ là hàm riêng, đừng nhập thẳng điều kiện vào chỗ gọi. Câu hỏi "ảnh có
+ * rời khỏi máy này không" là câu người vận hành và người soát tuân thủ sẽ hỏi
+ * lại, và nó phải có đúng MỘT chỗ trả lời. Chép điều kiện ra chỗ thứ hai là mở
+ * đường cho một ngày hai chỗ lệch nhau — và bên nói "không gửi đi" sẽ là bên
+ * người ta tin.
  */
 export function anhCoGuiRaNgoaiKhong(): boolean {
   const coKhoa = Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);

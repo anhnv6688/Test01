@@ -264,35 +264,6 @@ async function thuMaMacDinh(b: Browser, goc: string, cho: string): Promise<void>
   await ctx.close();
 }
 
-/**
- * Bản thử phải TỰ NÓI RA rằng nó là bản thử.
- *
- * Kiểm ở đây chứ không kiểm bằng vitest, vì thứ đáng hỏng nằm ngoài tầm của
- * vitest: cùng MỘT ảnh Docker chạy cả hai môi trường, nên dải báo phải đọc
- * biến môi trường LÚC CHẠY. Thiếu `connection()` ở
- * src/components/DaiBaoBanThu.tsx thì Next dựng sẵn trang lúc build — lúc đó
- * OLY_MOI_TRUONG chưa có, `moiTruong()` trả "that", và dải báo bị nướng cứng
- * thành "không hiện". Bản thử khi ấy im lặng đúng như bản thật, không lỗi nào,
- * và người test nội bộ không biết mình đang ở đâu.
- *
- * Chiều ngược lại cũng phải canh: bản thật mà hiện dải "BẢN THỬ" thì phụ huynh
- * thật đọc được dòng "dữ liệu có thể bị xóa bất cứ lúc nào".
- */
-async function kiemDaiBaoBanThu(goc: string, cho: string): Promise<void> {
-  console.log("\nDải báo bản thử");
-  const chu = await (await fetch(goc)).text();
-  const co = chu.includes("BẢN THỬ");
-  if (cho === "thu") {
-    doi("bản thử tự nói ra rằng nó là bản thử, ngay trên trang", co);
-    doi(
-      "dải báo nói rõ ảnh chụp có bị gửi ra ngoài hay không",
-      chu.includes("ĐƯỢC GỬI RA") || chu.includes("không đi đâu cả"),
-    );
-    doi("dải báo dặn đừng chụp bài thật của con", chu.includes("đừng chụp bài thật"));
-  } else {
-    doi("bản thật KHÔNG hiện dải báo bản thử", !co);
-  }
-}
 
 async function kiemLoRi(goc: string): Promise<void> {
   console.log("\nRò rỉ thông tin ra ngoài");
@@ -326,7 +297,6 @@ async function main(): Promise<void> {
     await kiemDuongTruyen(goc);
     await kiemRobots(goc, cho);
     await thuMaMacDinh(b, goc, cho);
-    await kiemDaiBaoBanThu(goc, cho);
     await kiemLoRi(goc);
   } catch (e) {
     /*

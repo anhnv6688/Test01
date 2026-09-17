@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import {
   CHO_KHEN_TOI_DA_MS, CHO_KHEN_TOI_THIEU_MS, choKhenMs,
 } from "@/app/be/hoc/cho-khen";
@@ -76,24 +76,32 @@ describe("màn hình và giọng đọc phải đổi bài cùng lúc", () => {
   });
 });
 
-describe("dải báo bản thử không nằm trên màn hình của trẻ", () => {
+describe("dải báo bản thử đã gỡ hẳn", () => {
   /**
-   * Dải báo nói với NGƯỜI LỚN: đừng nhập tên thật, đừng chụp bài thật của con,
-   * dữ liệu có thể bị xóa. Không câu nào trong đó dành cho một đứa bảy tuổi
-   * đang làm bài — mà trên điện thoại nó chiếm gần một phần ba màn hình và đẩy
-   * cả bài học xuống dưới.
+   * Chủ đầu tư chốt bỏ hẳn ngày 17/9/2026 — xem VM-09 ở
+   * docs/truy-vet-yeu-cau.md, nơi ghi cả hệ quả.
    *
-   * Nên nó ở trang đầu và trong bề mặt phụ huynh, là chỗ người lớn thật sự đọc,
-   * và KHÔNG ở bố cục gốc.
+   * Bài kiểm này canh việc gỡ cho SẠCH, không canh việc gỡ cho đúng: một thành
+   * phần còn sót lại trong kho mã mà không trang nào gắn là mã chết, và mã chết
+   * thì lần sau có người tưởng nó đang chạy.
+   *
+   * Nó KHÔNG thay được thứ vừa mất. Lời dặn "đừng chụp bài thật của con" nay chỉ
+   * còn là một bước dặn người, chép ở docs/vps-contabo.md — không bài kiểm thử
+   * nào canh được một câu nhắn trong nhóm chat.
    */
-  it("bố cục gốc không gắn dải báo", () => {
-    expect(doc("src/app/layout.tsx")).not.toMatch(/DaiBaoBanThu/);
+  it("không còn thành phần dải báo trong kho mã", () => {
+    expect(existsSync("src/components/DaiBaoBanThu.tsx")).toBe(false);
   });
 
-  it("trang đầu và bề mặt phụ huynh vẫn có", () => {
-    // Trang đầu là chỗ npm run kiem-moi-truong soi, và là chỗ người test mở ra
-    // đầu tiên. Bỏ nốt hai chỗ này là bản thử im lặng đúng như bản thật.
-    expect(doc("src/app/page.tsx")).toMatch(/DaiBaoBanThu/);
-    expect(doc("src/app/phu-huynh/layout.tsx")).toMatch(/DaiBaoBanThu/);
+  it("không trang nào còn gắn nó", () => {
+    for (const t of ["src/app/layout.tsx", "src/app/page.tsx", "src/app/phu-huynh/layout.tsx"]) {
+      expect(doc(t), t).not.toMatch(/DaiBaoBanThu/);
+    }
+  });
+
+  it("bộ soi môi trường không còn đòi dải báo", () => {
+    // Bỏ thành phần mà quên bỏ phần canh thì mọi lần triển khai bản thử đỏ ở một
+    // điều không còn tồn tại.
+    expect(doc("scripts/kiem-moi-truong.mts")).not.toMatch(/kiemDaiBaoBanThu|BẢN THỬ/);
   });
 });

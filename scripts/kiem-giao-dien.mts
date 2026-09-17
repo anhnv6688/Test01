@@ -387,16 +387,17 @@ async function main(): Promise<void> {
   const bienMoiTruong = {
     ...process.env,
     OLY_DU_LIEU_MAU: "true",
-    OLY_PIN_MAU: "884417",
+    // ĐÚNG bốn chữ số. Ô nhập mã PIN có maxLength={4}, nên một mã dài hơn thì
+    // cấu hình từ chối và máy chủ của bộ kiểm không có hộ mẫu nào — im lặng.
+    OLY_PIN_MAU: "8844",
     OLY_MA_TRUC: "ma-truc-cua-bo-kiem",
     OLY_THU_MUC_ANH: thuMucAnh,
     /*
-     * Chạy máy chủ của bộ kiểm như một bản THỬ.
+     * Chạy máy chủ của bộ kiểm như một bản THỬ — đúng với sự thật, đây là máy
+     * chủ dựng lên để bấm thử rồi tắt.
      *
-     * Đúng với sự thật — đây là máy chủ dựng lên để bấm thử rồi tắt. Và nhờ
-     * vậy dải báo bản thử cũng nằm trong khung hình lúc đo bề rộng hình minh
-     * họa: một dải chiếm chỗ ở đầu trang là thứ có thể đẩy bố cục vỡ, mà không
-     * bài kiểm thử nào trong Node thấy được.
+     * Trước đây còn một lý do nữa: dải báo bản thử nằm trong khung hình lúc đo
+     * bề rộng hình minh họa. Dải ấy đã gỡ (VM-09), nên lý do đó không còn.
      */
     OLY_MOI_TRUONG: "thu",
   };

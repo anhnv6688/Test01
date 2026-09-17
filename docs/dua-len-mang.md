@@ -26,7 +26,7 @@ gánh nổi thì đổi sang Postgres, và chỗ phải sửa nằm gọn trong
 | `OLY_MA_TRUC` | **Có** | Bảng trực khóa hẳn. Không ai xử lý được yêu cầu gỡ bỏ hay yêu cầu dữ liệu đúng hạn (CR-06) |
 | `OLY_DB` | Nên đặt | Cơ sở dữ liệu rơi vào thư mục làm việc, mất sau mỗi lần khởi động lại |
 | `OLY_DU_LIEU_MAU` | Không | Bật thì có hộ mẫu để mở thử. Bản phục vụ người thật **đừng bật** |
-| `OLY_PIN_MAU` | Nếu bật hộ mẫu | 4 tới 8 chữ số. Không đặt thì hộ mẫu không được dựng |
+| `OLY_PIN_MAU` | Nếu bật hộ mẫu | **Đúng bốn chữ số** — ô nhập mã PIN có `maxLength={4}`, dài hơn là không ai gõ vào được. Không đặt thì hộ mẫu không được dựng |
 
 Bản dựng phát triển cố tình dễ tính: có sẵn hộ mẫu, PIN `1234`, mã trực đoán
 được. Nhờ vậy mở máy ra là chạy ngay. Trên một địa chỉ công khai thì đúng ba thứ
@@ -181,7 +181,7 @@ cp .env.example .env
 # Mở .env, đặt OLY_MA_TRUC thành một chuỗi dài khó đoán.
 # Muốn có hộ mẫu để mở thử thì đặt thêm:
 #   OLY_DU_LIEU_MAU=true
-#   OLY_PIN_MAU=884417
+#   OLY_PIN_MAU=8844
 
 docker compose up -d --build
 ```
