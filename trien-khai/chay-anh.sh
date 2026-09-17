@@ -273,30 +273,51 @@ if [ -n "${OLY_MAT_KHAU_THU:-}" ]; then
   # chẩn đoán không tồn tại.
   #
   #
-  # `docker exec -i`, KHÔNG phải `docker compose exec -T`.
+  # DẤU XUỐNG DÒNG Ở CUỐI MẬT KHẨU LÀ BẮT BUỘC.
   #
-  # Bản trước dùng compose và Caddy trả về đúng hai chữ:
+  # Bốn lần đưa lên liên tiếp chết ở dòng này, Caddy chỉ nói đúng hai chữ:
   #
   #     Error: EOF
   #
-  # Nghĩa là `caddy hash-password` đọc stdin và không nhận được gì: `-T` tắt
-  # pseudo-TTY nhưng compose không chuyển tiếp stdin qua. `docker exec -i` thì
-  # chuyển, đó chính là việc của cờ -i.
+  # Lần đầu tôi đọc "EOF" thành "stdin không tới nơi" và đổi
+  # `docker compose exec -T` sang `docker exec -i`. Lần chạy sau vẫn y nguyên
+  # hai chữ ấy — tức là đoán sai: `-T` vốn vẫn chuyển stdin, nó chỉ tắt
+  # pseudo-TTY. Nguyên nhân thật nằm trong mã nguồn Caddy
+  # (modules/caddyhttp/caddyauth/command.go):
   #
-  # Vẫn đi qua stdin chứ không qua `--plaintext`: tham số dòng lệnh hiện trong
-  # `ps` của mọi người dùng trên máy chủ. Thà hỏng còn hơn rò.
+  #     rd := bufio.NewReader(os.Stdin)
+  #     plaintext, err = rd.ReadBytes('\n')
+  #     if err != nil { return caddy.ExitCodeFailedStartup, err }
+  #
+  # `ReadBytes('\n')` gặp hết luồng trước khi thấy xuống dòng thì trả về
+  # io.EOF, và Caddy coi MỌI err là hỏng. `printf '%s'` không có `\n` ở cuối,
+  # nên nó hỏng — đọc được đủ chữ rồi vẫn hỏng. `printf '%s\n'` thì xong; Caddy
+  # tự cắt ký tự cuối đi, mật khẩu không dính thêm gì.
+  #
+  # Bài học đắt hơn bản vá: "EOF" mô tả cái mà chương trình THẤY, không mô tả
+  # nguyên nhân. Tôi đã sửa theo cách đọc đầu tiên nghe hợp lý mà không mở mã
+  # nguồn Caddy ra xem, và mất thêm một lần triển khai.
+  #
+  # `docker exec -i` giữ lại: nó không sai, và gọi thẳng vào đúng thùng chứa
+  # thì ít tầng hơn. Vẫn đi qua stdin chứ không qua `--plaintext`: tham số dòng
+  # lệnh hiện trong `ps` của mọi người dùng trên máy chủ. Thà hỏng còn hơn rò.
   #
   LOI_BAM=$(mktemp)
   ID_CADDY=$("${COMPOSE[@]}" ps -q caddy 2>/dev/null || true)
   BAM=""
   if [ -n "$ID_CADDY" ]; then
-    BAM=$(printf '%s' "$OLY_MAT_KHAU_THU" \
+    BAM=$(printf '%s\n' "$OLY_MAT_KHAU_THU" \
       | docker exec -i "$ID_CADDY" caddy hash-password 2>"$LOI_BAM" | tr -d '\r\n' || true)
   else
     printf 'không tìm thấy thùng chứa caddy đang chạy\n' > "$LOI_BAM"
   fi
 
-  if [ -n "$BAM" ]; then
+  #
+  # Kiểm HÌNH DẠNG chứ không chỉ kiểm "có chữ". Một chuỗi rác không rỗng vẫn
+  # lọt qua `[ -n ... ]`, và lúc ấy tệp bao-ve.caddy hỏng sẽ làm `caddy reload`
+  # đỏ ở dưới — xa chỗ gây ra hai chục dòng. Băm bcrypt luôn mở đầu bằng `$2`.
+  #
+  if printf '%s' "$BAM" | grep -qE '^\$2[aby]?\$[0-9]{2}\$.{50,}$'; then
     umask 077
     {
       printf '# Sinh bởi trien-khai/chay-anh.sh. Đừng sửa tay, mỗi lần triển khai ghi đè.\n'
@@ -318,6 +339,7 @@ if [ -n "${OLY_MAT_KHAU_THU:-}" ]; then
     # npm run kiem-moi-truong soi từ ngoài vào sẽ thấy điều đó.
     #
     vang "KHÔNG băm được mật khẩu hàng rào — bản thử đang MỞ, ai dò trúng địa chỉ cũng vào được."
+    [ -n "$BAM" ] && vang "(có kết quả trả về nhưng không phải băm bcrypt)"
     vang "Caddy nói:"
     sed 's/^/       /' "$LOI_BAM" || true
     vang "Vẫn đưa bản mới lên: chặn ở đây không làm hàng rào chắc hơn, chỉ giữ"

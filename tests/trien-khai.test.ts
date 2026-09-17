@@ -464,18 +464,40 @@ describe("đưa lên máy chủ tự động", () => {
     expect(wf).not.toMatch(/OLY_PIN_MAU_KHAI='\$/);
   });
 
-  it("băm mật khẩu hàng rào qua stdin của docker exec -i, không qua tham số", () => {
+  it("mật khẩu đưa vào hash-password phải có dấu xuống dòng ở cuối", () => {
     /**
-     * `docker compose exec -T` KHÔNG chuyển tiếp stdin, và Caddy trả về đúng
-     * hai chữ "Error: EOF". Ba lần đưa lên liên tiếp chết ở đây. `docker exec -i`
-     * thì chuyển — đó chính là việc của cờ -i.
+     * Bốn lần đưa lên liên tiếp chết ở đúng dòng này với đúng hai chữ
+     * "Error: EOF". Lần đầu tôi đọc "EOF" thành "stdin không tới nơi" và đổi
+     * `docker compose exec -T` sang `docker exec -i` — lần chạy sau vẫn y
+     * nguyên hai chữ ấy, tức là đoán sai.
      *
-     * Và tuyệt đối không dùng `--plaintext`: tham số dòng lệnh hiện trong `ps`
-     * của mọi người dùng trên máy chủ. Thà hỏng còn hơn rò.
+     * Nguyên nhân thật ở modules/caddyhttp/caddyauth/command.go của Caddy:
+     *
+     *     plaintext, err = rd.ReadBytes('\n')
+     *     if err != nil { return caddy.ExitCodeFailedStartup, err }
+     *
+     * `ReadBytes` gặp hết luồng trước khi thấy xuống dòng thì trả io.EOF, và
+     * Caddy coi MỌI err là hỏng — đọc đủ chữ rồi vẫn hỏng. `printf '%s'` không
+     * có `\n`; `printf '%s\n'` thì xong, Caddy tự cắt ký tự cuối.
+     *
+     * Bài kiểm này canh đúng cái ký tự ấy, vì nó là thứ vô hình khi đọc mã và
+     * là thứ duy nhất phân biệt bản chạy được với bản chết bốn lần.
      */
     const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
-    expect(ca).toMatch(/docker exec -i "\$ID_CADDY" caddy hash-password/);
+    expect(ca).toMatch(/printf '%s\\n' "\$OLY_MAT_KHAU_THU"[\s\S]{0,120}?caddy hash-password/);
+    // Và không dùng --plaintext: tham số dòng lệnh hiện trong `ps` của mọi
+    // người dùng trên máy chủ. Thà hỏng còn hơn rò.
     expect(ca).not.toMatch(/hash-password[^\n]*--plaintext/);
+  });
+
+  it("chỉ nhận kết quả CÓ HÌNH DẠNG băm bcrypt, không nhận mọi chuỗi khác rỗng", () => {
+    /**
+     * `[ -n "$BAM" ]` đơn thuần cho một chuỗi rác lọt qua, và lúc ấy tệp
+     * bao-ve.caddy hỏng chỉ lộ ra ở `caddy reload` hai chục dòng bên dưới — xa
+     * chỗ gây ra, đúng kiểu lỗi tốn cả buổi để lần ngược.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    expect(ca).toMatch(/grep -qE '\^\\\$2/);
   });
 
   it("hàng rào hỏng thì kêu to nhưng KHÔNG giữ lại bản Ô Ly cũ", () => {
