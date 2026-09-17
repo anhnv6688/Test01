@@ -115,29 +115,48 @@ Trên máy chủ, hạn bớt quyền của khóa đó trong `~/.ssh/authorized_
 `restrict,pty` vào đầu dòng chứa khóa vừa thêm. Nó cắt chuyển tiếp cổng và
 chuyển tiếp tác nhân, những thứ việc triển khai không cần tới.
 
-Trên GitHub, tạo hai Environment tên `thu` và `that`, mỗi cái khai:
+Trên GitHub, vào **Settings → Secrets and variables → Actions**:
 
 | Loại | Tên | Nội dung |
 |---|---|---|
-| Secret | `OLY_MAY_CHU` | `109.123.233.46` |
-| Secret | `OLY_NGUOI` | `oly` |
-| Secret | `OLY_SSH_KHOA` | nội dung `~/.ssh/oly-trien-khai` |
-| Secret | `OLY_MAY_CHU_KHOA` | kết quả `ssh-keyscan` ở trên |
-| Variable | `OLY_DIA_CHI` | `https://thu.oly.vn` |
+| Secret | `VPS_HOST` | `109.123.233.46` |
+| Secret | `VPS_USERNAME` | `oly` |
+| Secret | `VPS_SSH_KEY` | nội dung `~/.ssh/oly-trien-khai` |
+| Secret | `VPS_HOST_KEY` | kết quả `ssh-keyscan` ở trên |
+| Secret | `VPS_PORT` | cổng SSH; để trống thì dùng 22 |
+| Variable | `VPS_URL` | `https://thu.oly.vn` |
 
-Phải là **Environment secrets**, không phải Repository secrets. Repository
-secrets thì mọi việc trong workflow đều đọc được, kể cả việc đưa lên bản thật —
-nên với một máy duy nhất, một lần bấm nhầm `that` sẽ trỏ bản thật vào đúng cái
-máy đang chạy bản thử. Hai bên dùng chung tên dự án Compose nên bản thật **thay
-chỗ** bản thử chứ không chạy song song, và vùng đĩa thì tách riêng nên bản thử
-vẫn còn nguyên trên đĩa mà không ai nhận ra nó đã bị thay.
+`VPS_HOST_KEY` là cái duy nhất không bỏ được. Không có nó thì chỉ còn cách thêm
+`StrictHostKeyChecking=no`, mà dòng đó chấp nhận **bất cứ máy nào** trả lời ở
+địa chỉ đó — một lần chiếm quyền DNS là đủ để nhận trọn khóa triển khai và toàn
+bộ nội dung gửi lên. Kho mã có bài kiểm thử cấm dòng đó.
 
-Chừng nào chưa có máy trong nước thì **đừng tạo Environment `that`**. Thiếu khai
-báo thì workflow từ chối ngay ở bước đầu. `trien-khai/chay-anh.sh` còn chặn một
-lần nữa trên chính máy chủ: máy ghi lại mình đang phục vụ môi trường nào, và từ
-chối nhận môi trường khác.
+Đổi cổng SSH khỏi 22 là việc nên làm, nhưng biết rõ nó là gì: cổng 22 công khai
+hứng hàng nghìn lượt dò mật khẩu mỗi ngày, đổi cổng làm nhật ký sạch hơn và
+fail2ban đỡ việc. Nó **không** phải là bảo mật — ai quét cổng cũng tìm ra. Đổi
+cổng thì `ssh-keyscan` phải chạy kèm `-p <cổng>`, và workflow kiểm lại điều đó
+ngay từ đầu chứ không để `ssh` báo "Host key verification failed", vì lỗi ấy đọc
+lên tưởng bị tấn công chứ không nghĩ là dán thiếu cổng.
 
-Và **đặt "Required reviewers" cho Environment `that`**. Đây là việc phải bấm tay
+### Repository secrets là đủ cho lúc này
+
+Khai ở Repository secrets thì **mọi** việc trong workflow đọc được, kể cả việc
+đưa lên bản thật. Về nguyên tắc đó là một lỗ: một lần bấm nhầm `that` sẽ trỏ bản
+thật vào đúng cái máy đang chạy bản thử, mà hai bên dùng chung tên dự án Compose
+nên bản thật **thay chỗ** bản thử chứ không chạy song song.
+
+Nhưng lúc này lỗ đó đã bị bịt hai lớp, nên chưa cần tách:
+
+1. Nút bấm tay chỉ hiện khi tệp workflow nằm trên nhánh mặc định, mà nó chưa
+   nằm ở đó — nên **chưa có đường nào** chạy `that`.
+2. `trien-khai/chay-anh.sh` ghi `OLY_MOI_TRUONG_DANG_CHAY` vào `.env` trên máy
+   chủ và từ chối nhận môi trường khác. Chốt này nằm trên máy chủ vì đó là chỗ
+   duy nhất biết máy đang chạy gì.
+
+Khi nào có máy trong nước cho bản thật thì tạo Environment `that` và khai lại
+bốn secret đó **trong environment**. GitHub cho environment ghi đè secret cùng
+tên của repository, nên đến lúc ấy không phải sửa một dòng mã nào — chỉ thêm
+khai báo, và **đặt "Required reviewers" cho `that`**. Đây là việc phải bấm tay
 trên GitHub, không khai trong tệp workflow được, và nó là cửa duy nhất ngăn một
 lần đưa lên bản thật xảy ra mà không ai biết. Bản thật chạm vào dữ liệu thật của
 các hộ.

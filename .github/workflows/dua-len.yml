@@ -8,11 +8,22 @@ name: Đưa lên máy chủ
 #
 # Cần khai báo trước, theo từng Environment của GitHub (`thu` và `that`):
 #
-#   Secret  OLY_MAY_CHU       địa chỉ máy chủ
-#   Secret  OLY_NGUOI         người vận hành (không phải root)
-#   Secret  OLY_SSH_KHOA      khóa riêng SSH của phần chạy tự động
-#   Secret  OLY_MAY_CHU_KHOA  dòng known_hosts, lấy bằng: ssh-keyscan <máy>
-#   Variable OLY_DIA_CHI      địa chỉ công khai, ví dụ https://thu.oly.vn
+#   Secret   VPS_HOST       địa chỉ máy chủ
+#   Secret   VPS_USERNAME   người vận hành (không phải root)
+#   Secret   VPS_SSH_KEY    khóa riêng SSH của phần chạy tự động
+#   Secret   VPS_HOST_KEY   dòng known_hosts, lấy bằng: ssh-keyscan <máy>
+#   Secret   VPS_PORT       cổng SSH — để trống thì dùng 22
+#   Variable VPS_URL        địa chỉ công khai, ví dụ https://thu.oly.vn
+#
+# Tên biến ở đây tiếng Anh, khác quy ước tiếng Việt của kho mã. Đó là có chủ ý:
+# bốn cái đầu là tên người vận hành đã tạo sẵn trên GitHub, và đổi tên trong mã
+# thì bắt họ tạo lại — vô ích, và vô ích theo hướng dễ gõ sai. `VPS_*` cũng là
+# quy ước gần như phổ biến ở các kho khác, nên người mới nhận việc đọc là hiểu.
+#
+# Khai ở REPOSITORY secrets là đủ cho lúc chỉ có một máy. Nếu về sau có máy
+# trong nước cho bản thật thì tạo Environment `that` và khai lại bốn cái đó
+# trong environment đó — GitHub cho environment ghi đè secret cùng tên của
+# repository, nên đến lúc ấy không phải sửa một dòng mã nào.
 #
 # Và một việc PHẢI làm bằng tay trên GitHub, không khai trong tệp này được:
 # đặt "Required reviewers" cho Environment `that`. Bản thật chạm vào dữ liệu
@@ -108,17 +119,22 @@ jobs:
     environment: ${{ github.event.inputs.moi_truong || 'thu' }}
     # Chuyển địa chỉ công khai sang việc soi dưới dạng kết quả đầu ra.
     #
-    # Việc soi có thể tự đọc `vars.OLY_DIA_CHI`, nhưng muốn đọc được thì nó
+    # Việc soi có thể tự đọc `vars.VPS_URL`, nhưng muốn đọc được thì nó
     # phải khai `environment:` — và khai thì nó lại chạm vào luật "phải có
     # người duyệt" của bản thật, tức là mỗi lần đưa lên bản thật phải bấm duyệt
     # hai lần. Lần thứ hai nằm SAU khi đã triển khai, nên không duyệt thì bản
     # thật vẫn chạy mà không ai soi. Một cửa duyệt đặt sai chỗ thì tệ hơn là
     # không có: nó tạo cảm giác đã kiểm soát.
     outputs:
-      dia_chi: ${{ vars.OLY_DIA_CHI }}
+      dia_chi: ${{ vars.VPS_URL }}
     env:
       MOI_TRUONG: ${{ github.event.inputs.moi_truong || 'thu' }}
       ANH: ${{ needs.dung-anh.outputs.anh }}
+      # Cổng SSH. Để trống thì 22 — nhưng đổi cổng là một việc nên làm: cổng 22
+      # công khai hứng hàng nghìn lượt dò mật khẩu mỗi ngày. Nó KHÔNG phải là
+      # bảo mật (ai quét cũng tìm ra), chỉ là bớt rác trong nhật ký và bớt việc
+      # cho fail2ban.
+      CONG: ${{ secrets.VPS_PORT || '22' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -132,8 +148,8 @@ jobs:
 
       - name: Chuẩn bị SSH
         env:
-          KHOA: ${{ secrets.OLY_SSH_KHOA }}
-          KHOA_MAY: ${{ secrets.OLY_MAY_CHU_KHOA }}
+          KHOA: ${{ secrets.VPS_SSH_KEY }}
+          KHOA_MAY: ${{ secrets.VPS_HOST_KEY }}
         run: |
           # Gọi tên từng khai báo còn thiếu, không báo gộp "thiếu khai báo".
           #
@@ -143,14 +159,14 @@ jobs:
           # đối không in giá trị: nhật ký Actions ai có quyền đọc kho cũng xem
           # được, và một khóa riêng SSH lọt vào đó là phải tạo lại khóa.
           THIEU=""
-          [ -n "${{ secrets.OLY_MAY_CHU }}" ] || THIEU="$THIEU OLY_MAY_CHU"
-          [ -n "${{ secrets.OLY_NGUOI }}" ]   || THIEU="$THIEU OLY_NGUOI"
-          [ -n "$KHOA" ]                      || THIEU="$THIEU OLY_SSH_KHOA"
-          [ -n "$KHOA_MAY" ]                  || THIEU="$THIEU OLY_MAY_CHU_KHOA"
+          [ -n "${{ secrets.VPS_HOST }}" ]     || THIEU="$THIEU VPS_HOST"
+          [ -n "${{ secrets.VPS_USERNAME }}" ] || THIEU="$THIEU VPS_USERNAME"
+          [ -n "$KHOA" ]                       || THIEU="$THIEU VPS_SSH_KEY"
+          [ -n "$KHOA_MAY" ]                   || THIEU="$THIEU VPS_HOST_KEY"
           if [ -n "$THIEU" ]; then
-            echo "::error::Environment '$MOI_TRUONG' còn thiếu secret:$THIEU"
-            echo "::error::Khai ở Settings > Environments > $MOI_TRUONG (KHÔNG phải Repository secrets)."
-            echo "::error::Lấy OLY_MAY_CHU_KHOA bằng: ssh-keyscan <địa-chỉ-máy>"
+            echo "::error::Còn thiếu secret:$THIEU"
+            echo "::error::Khai ở Settings > Secrets and variables > Actions."
+            echo "::error::Lấy VPS_HOST_KEY bằng: ssh-keyscan -p <cổng> <địa-chỉ-máy>"
             echo "::error::Chi tiết: docs/vps-contabo.md"
             exit 1
           fi
@@ -165,12 +181,22 @@ jobs:
           printf '%s\n' "$KHOA_MAY" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+          # Cổng khác 22 thì known_hosts phải ghi dạng [máy]:cổng, và
+          # `ssh-keyscan -p <cổng>` đã in ra đúng dạng đó. Kiểm ngay ở đây chứ
+          # không để ssh tự báo: lỗi của ssh lúc đó là "Host key verification
+          # failed", đọc lên tưởng bị tấn công chứ không nghĩ là dán thiếu cổng.
+          if [ "$CONG" != "22" ] && ! grep -q '^\[' ~/.ssh/known_hosts; then
+            echo "::error::VPS_PORT là $CONG nhưng VPS_HOST_KEY không ở dạng [máy]:cổng."
+            echo "::error::Lấy lại bằng: ssh-keyscan -p $CONG <địa-chỉ-máy>"
+            exit 1
+          fi
+
       - name: Nhắc nếu chưa khai địa chỉ công khai
         # Thiếu biến này thì việc soi bị BỎ QUA, và bỏ qua thì không ai biết —
         # một lần triển khai xanh mà chưa ai thử mã mặc định vào nó.
-        if: vars.OLY_DIA_CHI == ''
+        if: vars.VPS_URL == ''
         run: |
-          echo "::warning::Chưa khai variable OLY_DIA_CHI cho environment '$MOI_TRUONG'."
+          echo "::warning::Chưa khai variable VPS_URL."
           echo "::warning::Thiếu nó thì việc soi bản đã triển khai bị bỏ qua — sẽ KHÔNG ai thử PIN 1234 và mã trực mặc định vào máy chủ này."
 
       - name: Gửi tệp cấu hình lên máy chủ
@@ -178,28 +204,28 @@ jobs:
         # cần bất kỳ thông tin đăng nhập GitHub nào, và thứ đang chạy trên đó
         # luôn khớp đúng lần gửi mã vừa dựng ra ảnh.
         env:
-          MAY: ${{ secrets.OLY_MAY_CHU }}
-          NGUOI: ${{ secrets.OLY_NGUOI }}
+          MAY: ${{ secrets.VPS_HOST }}
+          NGUOI: ${{ secrets.VPS_USERNAME }}
         run: |
           tar czf - compose.yaml compose.thu.yaml compose.that.yaml trien-khai \
-            | ssh -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
+            | ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
                 'mkdir -p ~/o-ly && tar xzf - -C ~/o-ly'
 
       - name: Chạy ảnh mới
         env:
-          MAY: ${{ secrets.OLY_MAY_CHU }}
-          NGUOI: ${{ secrets.OLY_NGUOI }}
+          MAY: ${{ secrets.VPS_HOST }}
+          NGUOI: ${{ secrets.VPS_USERNAME }}
           THE: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Đăng nhập sổ đăng ký bằng thẻ của chính lần chạy này. Thẻ đó hết
           # hạn khi việc kết thúc, nên máy chủ không giữ lại một thông tin đăng
           # nhập sống mãi. Đăng xuất ngay sau đó, kể cả khi triển khai hỏng.
-          printf '%s' "$THE" | ssh -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
+          printf '%s' "$THE" | ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
             "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
           MA=0
-          ssh -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
+          ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
             "cd ~/o-ly && bash trien-khai/chay-anh.sh '$ANH' '$MOI_TRUONG'" || MA=$?
-          ssh -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" "docker logout ghcr.io" || true
+          ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" "docker logout ghcr.io" || true
           exit $MA
 
       - name: Xóa khóa khỏi máy chạy việc
