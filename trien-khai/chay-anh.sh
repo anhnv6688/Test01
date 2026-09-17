@@ -18,7 +18,29 @@ xanh() { printf '  ok   %s\n' "$1"; }
 vang() { printf '  !!   %s\n' "$1"; }
 do_()  { printf ' HỎNG  %s\n' "$1"; }
 
-[ -f .env ] || { do_ "Chưa có .env. Chạy trien-khai/trien-khai.sh một lần trước."; exit 1; }
+#
+# Chưa có .env thì TỰ SINH, đừng bắt người ta đăng nhập vào máy chủ gõ tay.
+#
+# Bản đầu đòi chạy trien-khai.sh một lần trước. Nghe thì hợp lý, nhưng nó biến
+# một đường ống tự động thành một đường ống tự động CÓ ĐIỀU KIỆN, và điều kiện
+# đó chỉ lộ ra ở lần triển khai đầu tiên — đúng lúc người ta đang bận nhất.
+#
+# Mã sinh ngẫu nhiên tại chỗ. KHÔNG in ra màn hình: kịch bản này chạy qua SSH từ
+# phần chạy tự động, nên mọi thứ in ra đều nằm lại trong nhật ký Actions, mà
+# nhật ký đó ai đọc được kho là đọc được. Người vận hành lấy mã bằng cách tự
+# đăng nhập và xem tệp — một việc chỉ làm một lần.
+#
+if [ ! -f .env ]; then
+  umask 077
+  {
+    printf 'OLY_MA_TRUC=%s\n' "$(openssl rand -base64 33 | tr -d '/+=' | cut -c1-32)"
+    printf 'OLY_PIN_MAU=%s\n' "$(shuf -i 100000-999999 -n 1)"
+    printf 'OLY_TEN_MIEN=\n'
+  } > .env
+  chmod 600 .env
+  xanh "chưa có .env — đã sinh mới (mã trực và PIN hộ mẫu ngẫu nhiên)"
+  vang "Xem hai mã đó bằng:  cat ~/o-ly/.env   — không in ra đây vì nhật ký lưu lại."
+fi
 set -a; . ./.env; set +a
 
 #

@@ -161,6 +161,23 @@ trên GitHub, không khai trong tệp workflow được, và nó là cửa duy n
 lần đưa lên bản thật xảy ra mà không ai biết. Bản thật chạm vào dữ liệu thật của
 các hộ.
 
+### Bước 2 vẫn phải làm bằng tay, và đó là chủ đích
+
+Phần chạy tự động chỉ **đưa ảnh lên một máy đã sẵn sàng**. Nó cố tình không tự
+cài Docker: làm thế thì khóa triển khai phải có quyền root trên máy chủ, và khóa
+đó bị lộ lúc ấy là mất cả máy chứ không chỉ mất ứng dụng.
+
+Nên `dung-may-chu.sh` chạy một lần bằng root, do người làm. Workflow kiểm trước
+khi triển khai và nói rõ còn thiếu gì nếu chưa làm.
+
+Còn `.env` thì workflow **tự sinh** ở lần triển khai đầu, với mã trực và PIN hộ
+mẫu ngẫu nhiên. Nó không in hai mã đó ra nhật ký — nhật ký Actions ai đọc được
+kho là đọc được. Lấy chúng bằng cách đăng nhập máy chủ một lần:
+
+```bash
+cat ~/o-ly/.env
+```
+
 ### Rồi sau đó
 
 Đẩy lên nhánh chính là tự đưa lên **bản thử**. Bản thật thì vào tab Actions,

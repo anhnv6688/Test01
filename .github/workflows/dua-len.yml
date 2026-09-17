@@ -358,6 +358,42 @@ jobs:
             echo "  * VPS_HOST sai"
           fi
 
+      - name: Máy chủ đã dựng nền chưa
+        #
+        # Bước này tồn tại vì lần chạy thật đầu tiên trả về đúng một dòng:
+        # "bash: line 1: docker: command not found", rồi exit 127.
+        #
+        # Đúng, nhưng vô dụng. Nó không nói rằng máy chủ chưa bao giờ được dựng
+        # nền, và không nói phải làm gì. Người đọc sẽ đi tìm lỗi trong workflow —
+        # tức là đi sai hướng ngay từ đầu, vì workflow không hỏng.
+        #
+        # Phần chạy tự động chỉ ĐƯA ẢNH LÊN một máy đã sẵn sàng. Nó cố tình
+        # không tự cài Docker: làm thế thì nó cần quyền root trên máy chủ, mà
+        # khóa triển khai bị lộ lúc đó là mất cả máy chứ không chỉ mất ứng dụng.
+        env:
+          MAY: ${{ secrets.VPS_HOST }}
+          NGUOI: ${{ secrets.VPS_USERNAME }}
+        run: |
+          THIEU=$(ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" '
+            T=""
+            command -v docker >/dev/null 2>&1 || T="$T docker"
+            docker compose version >/dev/null 2>&1 || T="$T docker-compose-plugin"
+            docker ps >/dev/null 2>&1 || T="$T quyen-goi-docker"
+            printf "%s" "$T"
+          ')
+          if [ -n "$THIEU" ]; then
+            echo "::error::Máy chủ chưa dựng nền. Còn thiếu:$THIEU"
+            echo "::error::"
+            echo "::error::Đăng nhập máy chủ BẰNG ROOT rồi chạy một lần:"
+            echo "::error::    curl -fsSLO https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/trien-khai/dung-may-chu.sh"
+            echo "::error::    bash dung-may-chu.sh $NGUOI"
+            echo "::error::"
+            echo "::error::Nó cài Docker, dựng tường lửa, gia cố SSH. Chạy lại không hỏng gì."
+            echo "::error::Chi tiết: docs/vps-contabo.md"
+            exit 1
+          fi
+          echo "Máy chủ đã sẵn sàng."
+
       - name: Chạy ảnh mới
         env:
           MAY: ${{ secrets.VPS_HOST }}
