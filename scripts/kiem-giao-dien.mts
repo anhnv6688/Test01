@@ -321,6 +321,15 @@ async function main(): Promise<void> {
     OLY_PIN_MAU: "884417",
     OLY_MA_TRUC: "ma-truc-cua-bo-kiem",
     OLY_THU_MUC_ANH: thuMucAnh,
+    /*
+     * Chạy máy chủ của bộ kiểm như một bản THỬ.
+     *
+     * Đúng với sự thật — đây là máy chủ dựng lên để bấm thử rồi tắt. Và nhờ
+     * vậy dải báo bản thử cũng nằm trong khung hình lúc đo bề rộng hình minh
+     * họa: một dải chiếm chỗ ở đầu trang là thứ có thể đẩy bố cục vỡ, mà không
+     * bài kiểm thử nào trong Node thấy được.
+     */
+    OLY_MOI_TRUONG: "thu",
   };
 
   if (!gocNgoai) {

@@ -191,6 +191,75 @@ Rồi bật sao lưu:
 bash trien-khai/sao-luu.sh --cai-lich
 ```
 
+## Mời người nội bộ vào thử
+
+Máy này tồn tại để người trong nhà bấm vào sản phẩm trước khi phụ huynh thật
+bấm. Ba điều phải chuẩn bị, và điều đầu tiên là điều hay bị bỏ qua nhất.
+
+### 1. Nói trước với người test: đừng chụp bài thật của con
+
+Người test một sản phẩm **chấm bài** sẽ chụp bài thật của con mình. Đó là phản
+xạ đúng đắn, không phải sự bất cẩn — muốn biết nó chấm có đúng không thì phải
+đưa cho nó một bài mà mình đã biết đáp án.
+
+Nhưng máy này đặt ở Singapore. Ảnh trang vở của một đứa trẻ có thật, kèm tên và
+lớp ở đầu trang, nằm trên một máy ngoài Việt Nam là đúng thứ Nghị định 53 nói
+tới. Và nếu khóa API đã cắm thì nó còn đi tiếp ra nhà cung cấp xử lý ảnh.
+
+Vì vậy sản phẩm **tự nói ra** điều đó: bản thử hiện một dải báo trên mọi trang,
+dặn đừng nhập tên thật và đừng chụp bài thật, kèm một câu nói rõ ảnh chụp ở đây
+**có bị gửi ra ngoài hay không**. Câu sau quan trọng ngang câu trước, vì bản giả
+lập trả về dữ liệu dựng sẵn — không nói thì người test sẽ báo "Ô Ly đọc sai hết"
+trong khi nó chưa đọc gì cả.
+
+Cần bài để thử thì lấy từ `src/lib/do-anh/bo-dien-tap.ts` hoặc tự viết tay một
+trang rồi chụp. Trang vở tự viết thì không có tên đứa trẻ nào trên đó.
+
+### 2. Chọn đọc ảnh thật hay bản giả lập
+
+| | Bản giả lập (mặc định) | Nhà cung cấp thật |
+|---|---|---|
+| Thử được luồng chụp, cắt, gửi, hiện kết quả | có | có |
+| Thử được ĐỘ CHÍNH XÁC khi đọc chữ viết tay | **không** | có |
+| Tốn tiền | không | có |
+| Cần ba cờ `OLY_DPA_*` | không | **có** |
+
+Đợt thử đầu tiên nên để bản giả lập: thứ cần biết trước là luồng có chạy trơn
+không, màn hình có khó hiểu chỗ nào không. Độ chính xác đo bằng `npm run do-anh`
+trên bộ ảnh đã che, không đo bằng cách để người nội bộ chụp con mình.
+
+### 3. Xóa sạch giữa các đợt
+
+```bash
+bash trien-khai/dat-lai-ban-thu.sh
+```
+
+Sau một đợt bấm thử, cơ sở dữ liệu đầy tài khoản dở dang và sự đồng ý bấm nửa
+chừng. Đợt sau chạy trên đống đó thì không phân biệt được lỗi của bản mới với
+rác của đợt trước.
+
+Xóa đều còn vì một lý do nữa: dữ liệu người nội bộ gõ vào tuy là "giả", nhưng
+đó là lời hứa của người gõ chứ không phải sự thật kiểm chứng được. Giữ càng lâu
+thì càng có khả năng trong đó có một cái tên thật.
+
+Kịch bản này từ chối chạy nếu máy đang phục vụ bản thật.
+
+### Nên đặt thêm một lớp mật khẩu ở Caddy
+
+`robots.txt` của bản thử chặn mọi máy quét, nhưng đó là lời đề nghị chứ không
+phải cái khóa. Một địa chỉ công khai thì vẫn có người dò tới. Thêm vào khối site
+trong `trien-khai/Caddyfile`:
+
+```
+basic_auth {
+    noi-bo <chuỗi-băm-bcrypt>
+}
+```
+
+Lấy chuỗi băm bằng `docker run --rm caddy:2-alpine caddy hash-password`. Một mật
+khẩu dùng chung cho cả đội là đủ — đây là hàng rào chắn người lạ, không phải hệ
+thống phân quyền.
+
 ## Vận hành hằng ngày
 
 ```bash
@@ -199,6 +268,7 @@ docker compose -f compose.yaml -f compose.thu.yaml -f trien-khai/compose.caddy.y
 bash trien-khai/trien-khai.sh                    # triển khai bản mới
 bash trien-khai/sao-luu.sh                       # sao lưu ngay
 bash trien-khai/sao-luu.sh --phuc-hoi <tệp.gz>   # ĐÈ dữ liệu đang chạy
+bash trien-khai/dat-lai-ban-thu.sh               # xóa sạch bản thử, dựng lại
 ```
 
 Sao lưu dùng lệnh của chính SQLite chứ không chép tệp — chép giữa một giao dịch

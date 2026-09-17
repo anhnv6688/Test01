@@ -20,7 +20,16 @@ name: Đưa lên máy chủ
 
 on:
   push:
-    branches: [main]
+    # Nhánh làm việc cũng đưa lên bản thử được, và đó là chủ đích: môi trường
+    # thử tồn tại để người nội bộ bấm vào thứ vừa viết xong, nên bắt gộp vào
+    # nhánh chính trước là bắt chờ đúng cái vòng mà bản thử sinh ra để cắt.
+    #
+    # Chỉ `push` mới chạy được từ nhánh khác. `workflow_dispatch` thì GitHub
+    # đòi tệp workflow nằm trên nhánh mặc định — nên nút bấm tay, và vì thế cả
+    # đường lên bản THẬT, chỉ hiện ra sau khi nhánh này đã gộp vào main. Đó là
+    # một hàng rào có ích chứ không phải phiền toái: bản thật thì nên đi qua
+    # nhánh chính.
+    branches: [main, "claude/**"]
   workflow_dispatch:
     inputs:
       moi_truong:
