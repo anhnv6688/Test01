@@ -200,20 +200,59 @@ jobs:
           if [ "$CONG" = "22" ]; then TEN="$MAY"; else TEN="[$MAY]:$CONG"; fi
           : > ~/.ssh/known_hosts
           SO_KHOA=0
-          while read -r _may loai khoa _rest; do
-            case "$loai" in
-              ssh-ed25519|ssh-rsa|ecdsa-sha2-*)
-                printf '%s %s %s\n' "$TEN" "$loai" "$khoa" >> ~/.ssh/known_hosts
-                SO_KHOA=$((SO_KHOA + 1))
+          SO_DONG=0
+          HINH_DANG=""
+
+          #
+          # Nhận CẢ HAI dạng người ta hay dán, thay vì chỉ một dạng.
+          #
+          # Bản đầu chỉ nhận dạng ssh-keyscan (`<máy> <loại> <khóa>`) rồi hỏng
+          # với thông báo "không có dòng khóa nào đọc được" — đúng nhưng vô ích,
+          # vì nó không nói dán sai thành cái gì.
+          #
+          # Hai dạng trông rất giống nhau và đều hợp lý với người dán:
+          #   ssh-keyscan  ->  109.123.233.46 ssh-ed25519 AAAA...
+          #   tệp .pub     ->  ssh-ed25519 AAAA... ghi-chu
+          # Khác nhau ở chỗ loại khóa nằm ở cột 1 hay cột 2. Cả hai đều mang
+          # ĐÚNG những bytes cần ghim, nên từ chối một dạng chỉ là khó tính vô
+          # cớ. Nhận cả hai, và việc ghim không yếu đi chút nào.
+          #
+          while read -r c1 c2 c3 _rest; do
+            [ -n "$c1" ] || continue
+            SO_DONG=$((SO_DONG + 1))
+            case "$c1" in
+              ssh-ed25519|ssh-rsa|ecdsa-sha2-*) LOAI="$c1"; KHOA_BYTES="$c2" ;;
+              *)
+                case "$c2" in
+                  ssh-ed25519|ssh-rsa|ecdsa-sha2-*) LOAI="$c2"; KHOA_BYTES="$c3" ;;
+                  *) HINH_DANG="$HINH_DANG  dòng $SO_DONG: không thấy loại khóa ở cột 1 hay cột 2$(printf '\n')"; continue ;;
+                esac
                 ;;
             esac
-          done <<< "$(printf '%s\n' "$KHOA_MAY" | grep -v '^[[:space:]]*#')"
+            [ -n "$KHOA_BYTES" ] || {
+              HINH_DANG="$HINH_DANG  dòng $SO_DONG: có loại $LOAI nhưng thiếu phần khóa$(printf '\n')"
+              continue
+            }
+            printf '%s %s %s\n' "$TEN" "$LOAI" "$KHOA_BYTES" >> ~/.ssh/known_hosts
+            SO_KHOA=$((SO_KHOA + 1))
+          done <<< "$(printf '%s\n' "$KHOA_MAY" | tr -d '\r' | grep -v '^[[:space:]]*#' || true)"
           chmod 600 ~/.ssh/known_hosts
 
+          # Kiểm bằng chính ssh-keygen, không tin vào việc mình vừa ghi đúng:
+          # một khóa base64 bị cắt giữa vẫn trông như một dòng hợp lệ.
+          if [ "$SO_KHOA" -gt 0 ] && ! ssh-keygen -lf ~/.ssh/known_hosts >/dev/null 2>&1; then
+            echo "::error::Đã tách được $SO_KHOA dòng nhưng ssh-keygen không đọc nổi."
+            echo "::error::Phần khóa base64 nhiều khả năng bị cắt giữa lúc dán."
+            SO_KHOA=0
+          fi
+
           if [ "$SO_KHOA" -eq 0 ]; then
-            echo "::error::VPS_HOST_KEY không có dòng khóa nào đọc được."
-            echo "::error::Nó phải là nguyên văn kết quả của: ssh-keyscan -p <cổng> <địa-chỉ-máy>"
-            echo "::error::Mỗi dòng dạng: <máy> ssh-ed25519 AAAA..."
+            echo "::error::Không tách được khóa nào từ VPS_HOST_KEY (đọc được $SO_DONG dòng)."
+            [ -n "$HINH_DANG" ] && printf '%s' "$HINH_DANG"
+            echo "::error::Lấy lại bằng đúng lệnh này, rồi dán NGUYÊN VĂN cả khối:"
+            echo "::error::    ssh-keyscan -p $CONG <địa-chỉ-máy>"
+            echo "::error::Mỗi dòng phải có ba phần, ví dụ:  <máy> ssh-ed25519 AAAAC3Nza..."
+            echo "::error::Dán dấu vân tay (SHA256:...) thì KHÔNG dùng được — vân tay không phải khóa."
             exit 1
           fi
           echo "Đã ghim $SO_KHOA khóa máy chủ."
@@ -254,7 +293,12 @@ jobs:
           MAY: ${{ secrets.VPS_HOST }}
         run: |
           echo "Khóa ĐANG GHIM (từ secret VPS_HOST_KEY):"
-          ssh-keygen -lf ~/.ssh/known_hosts 2>/dev/null | awk '{print "  " $1 " " $2 " " $NF}' || echo "  (không đọc được)"
+          # Lấy kết quả ra biến trước rồi mới kiểm. Viết
+          # `ssh-keygen ... | awk ... || echo` thì mã thoát của cả đường ống là
+          # mã của awk, luôn bằng 0 — nên nhánh `||` không bao giờ chạy và
+          # người đọc thấy một mục TRỐNG mà không biết là trống vì sao.
+          GHIM=$(ssh-keygen -lf ~/.ssh/known_hosts 2>/dev/null | awk '{print "  " $1 " " $2 " " $NF}')
+          if [ -n "$GHIM" ]; then printf '%s\n' "$GHIM"; else echo "  (chưa ghim được khóa nào — xem lỗi ở bước Chuẩn bị SSH)"; fi
 
           echo "Khóa máy chủ ĐANG TRẢ VỀ ngay bây giờ:"
           if ssh-keyscan -T 10 -p "$CONG" "$MAY" > /tmp/khoa-hien-tai 2>/dev/null && [ -s /tmp/khoa-hien-tai ]; then
