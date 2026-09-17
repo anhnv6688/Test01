@@ -200,42 +200,67 @@ jobs:
           if [ "$CONG" = "22" ]; then TEN="$MAY"; else TEN="[$MAY]:$CONG"; fi
           : > ~/.ssh/known_hosts
           SO_KHOA=0
-          SO_DONG=0
-          HINH_DANG=""
 
           #
-          # Nhận CẢ HAI dạng người ta hay dán, thay vì chỉ một dạng.
+          # Nhận BA dạng, vì cả ba đều ghim được và đều là thứ người ta có sẵn.
           #
-          # Bản đầu chỉ nhận dạng ssh-keyscan (`<máy> <loại> <khóa>`) rồi hỏng
-          # với thông báo "không có dòng khóa nào đọc được" — đúng nhưng vô ích,
-          # vì nó không nói dán sai thành cái gì.
+          #   1. ssh-keyscan  ->  109.123.233.46 ssh-ed25519 AAAA...
+          #   2. tệp .pub     ->  ssh-ed25519 AAAA... ghi-chu
+          #   3. dấu vân tay  ->  SHA256:1OaEineVGALUcHKTrBVzYvwKShFUfi9HTbBs...
           #
-          # Hai dạng trông rất giống nhau và đều hợp lý với người dán:
-          #   ssh-keyscan  ->  109.123.233.46 ssh-ed25519 AAAA...
-          #   tệp .pub     ->  ssh-ed25519 AAAA... ghi-chu
-          # Khác nhau ở chỗ loại khóa nằm ở cột 1 hay cột 2. Cả hai đều mang
-          # ĐÚNG những bytes cần ghim, nên từ chối một dạng chỉ là khó tính vô
-          # cớ. Nhận cả hai, và việc ghim không yếu đi chút nào.
+          # Dạng 3 là dạng hay bị dán nhất, và trước đây bị từ chối — nhưng nó
+          # lại là dạng DUY NHẤT mà bảng điều khiển của nhà cung cấp in ra, và
+          # là thứ người ta kiểm được bằng mắt. Từ chối nó là đẩy người vận hành
+          # đi tìm một thứ khó lấy hơn mà không an toàn hơn.
           #
+          # Vân tay là băm của chính khóa, nên ghim vân tay AN TOÀN NGANG ghim
+          # khóa: ta hỏi máy chủ khóa của nó, tự băm lại, rồi chỉ chấp nhận khi
+          # băm trùng cái đã ghim. Máy lạ không tạo nổi một khóa có cùng SHA-256.
+          # Điểm mấu chốt là ta không TIN cái máy chủ trả về — ta ĐỐI CHIẾU nó.
+          #
+          GOM=$(printf '%s\n' "$KHOA_MAY" | tr -d '\r' | grep -v '^[[:space:]]*#' || true)
+          VAN_TAY_GHIM=$(printf '%s\n' "$GOM" | grep -o 'SHA256:[A-Za-z0-9+/=]\{20,\}' | sort -u || true)
+
+          # --- Dạng 1 và 2: có sẵn bytes của khóa ---
           while read -r c1 c2 c3 _rest; do
             [ -n "$c1" ] || continue
-            SO_DONG=$((SO_DONG + 1))
             case "$c1" in
-              ssh-ed25519|ssh-rsa|ecdsa-sha2-*) LOAI="$c1"; KHOA_BYTES="$c2" ;;
-              *)
-                case "$c2" in
-                  ssh-ed25519|ssh-rsa|ecdsa-sha2-*) LOAI="$c2"; KHOA_BYTES="$c3" ;;
-                  *) HINH_DANG="$HINH_DANG  dòng $SO_DONG: không thấy loại khóa ở cột 1 hay cột 2$(printf '\n')"; continue ;;
-                esac
-                ;;
+              ssh-ed25519|ssh-rsa|ecdsa-sha2-*) L="$c1"; K="$c2" ;;
+              *) case "$c2" in
+                   ssh-ed25519|ssh-rsa|ecdsa-sha2-*) L="$c2"; K="$c3" ;;
+                   *) continue ;;
+                 esac ;;
             esac
-            [ -n "$KHOA_BYTES" ] || {
-              HINH_DANG="$HINH_DANG  dòng $SO_DONG: có loại $LOAI nhưng thiếu phần khóa$(printf '\n')"
-              continue
-            }
-            printf '%s %s %s\n' "$TEN" "$LOAI" "$KHOA_BYTES" >> ~/.ssh/known_hosts
+            [ -n "$K" ] || continue
+            printf '%s %s %s\n' "$TEN" "$L" "$K" >> ~/.ssh/known_hosts
             SO_KHOA=$((SO_KHOA + 1))
-          done <<< "$(printf '%s\n' "$KHOA_MAY" | tr -d '\r' | grep -v '^[[:space:]]*#' || true)"
+          done <<< "$GOM"
+
+          # --- Dạng 3: chỉ có vân tay, phải hỏi máy chủ rồi đối chiếu ---
+          if [ "$SO_KHOA" -eq 0 ] && [ -n "$VAN_TAY_GHIM" ]; then
+            echo "VPS_HOST_KEY là dấu vân tay. Hỏi khóa của máy chủ rồi đối chiếu."
+            ssh-keyscan -T 15 -p "$CONG" "$MAY" > /tmp/quet 2>/dev/null || true
+            while read -r q1 q2 q3 _qrest; do
+              case "$q1" in ''|'#'*) continue ;; esac
+              [ -n "$q3" ] || continue
+              VT=$(printf '%s %s %s\n' "$q1" "$q2" "$q3" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')
+              [ -n "$VT" ] || continue
+              if printf '%s\n' "$VAN_TAY_GHIM" | grep -qxF "$VT"; then
+                printf '%s %s %s\n' "$TEN" "$q2" "$q3" >> ~/.ssh/known_hosts
+                SO_KHOA=$((SO_KHOA + 1))
+                echo "  khớp: $VT"
+              fi
+            done < /tmp/quet
+            if [ "$SO_KHOA" -eq 0 ]; then
+              echo "::error::Không khóa nào của máy chủ khớp vân tay đã ghim."
+              echo "::error::Vân tay đang ghim trong VPS_HOST_KEY:"
+              printf '%s\n' "$VAN_TAY_GHIM" | sed 's/^/::error::    /'
+              echo "::error::Vân tay máy chủ đang trả về:"
+              ssh-keygen -lf /tmp/quet 2>/dev/null | awk '{print "::error::    " $2 " " $NF}' || echo "::error::    (không hỏi được)"
+              echo "::error::Khác nhau nghĩa là VPS_HOST_KEY của máy khác, hoặc máy đã cài lại."
+              exit 1
+            fi
+          fi
           chmod 600 ~/.ssh/known_hosts
 
           # Kiểm bằng chính ssh-keygen, không tin vào việc mình vừa ghi đúng:
@@ -247,12 +272,11 @@ jobs:
           fi
 
           if [ "$SO_KHOA" -eq 0 ]; then
-            echo "::error::Không tách được khóa nào từ VPS_HOST_KEY (đọc được $SO_DONG dòng)."
-            [ -n "$HINH_DANG" ] && printf '%s' "$HINH_DANG"
-            echo "::error::Lấy lại bằng đúng lệnh này, rồi dán NGUYÊN VĂN cả khối:"
-            echo "::error::    ssh-keyscan -p $CONG <địa-chỉ-máy>"
-            echo "::error::Mỗi dòng phải có ba phần, ví dụ:  <máy> ssh-ed25519 AAAAC3Nza..."
-            echo "::error::Dán dấu vân tay (SHA256:...) thì KHÔNG dùng được — vân tay không phải khóa."
+            echo "::error::VPS_HOST_KEY không dùng được. Nó phải là MỘT trong ba dạng:"
+            echo "::error::  1. kết quả ssh-keyscan -p $CONG <địa-chỉ-máy>"
+            echo "::error::  2. nội dung một tệp .pub:  ssh-ed25519 AAAA... ghi-chu"
+            echo "::error::  3. dấu vân tay:            SHA256:xxxxxxxx..."
+            echo "::error::Đọc được $(printf '%s\n' "$GOM" | grep -c . || true) dòng, không dòng nào khớp ba dạng trên."
             exit 1
           fi
           echo "Đã ghim $SO_KHOA khóa máy chủ."
