@@ -515,7 +515,19 @@ jobs:
       # trường nào. Đây là chỗ duy nhất phát hiện một máy chủ chạy đúng mã nguồn
       # nhưng sai cấu hình.
       - name: Máy chủ từ chối mọi mã mặc định
-        run: npm run kiem-moi-truong -- --goc "${{ needs.dua-len.outputs.dia_chi }}" --cho "${{ github.event.inputs.moi_truong || 'thu' }}"
+        env:
+          DIA_CHI: ${{ needs.dua-len.outputs.dia_chi }}
+          CHO: ${{ github.event.inputs.moi_truong || 'thu' }}
+        run: |
+          # Địa chỉ là IP thì chứng chỉ chỉ có thể là tự ký, nên phải khai cờ —
+          # nếu không thì fetch và trình duyệt đều từ chối và bộ soi không soi
+          # được gì. Cờ đó làm bộ soi kêu to rằng nó đã bỏ phần xác thực danh
+          # tính máy chủ, để dòng "đạt" ở cuối không bị đọc rộng hơn sự thật.
+          CO=""
+          case "${DIA_CHI#https://}" in
+            [0-9]*.[0-9]*.[0-9]*.[0-9]*) CO="--chung-chi-tu-ky" ;;
+          esac
+          npm run kiem-moi-truong -- --goc "$DIA_CHI" --cho "$CHO" $CO
 
       # Chỉ soi giao diện ở bản thử, và không phải vì bản thật ít quan trọng
       # hơn. Bộ kiểm giao diện bấm vào một bạn rồi đo bề rộng hình minh họa, mà
@@ -527,6 +539,12 @@ jobs:
       # phần giao diện đã được soi — chỉ là soi ở chỗ có dữ liệu để soi.
       - name: Giao diện nhìn thấy được trên bản đã triển khai
         if: (github.event.inputs.moi_truong || 'thu') == 'thu'
-        run: npm run kiem-giao-dien -- --goc "${{ needs.dua-len.outputs.dia_chi }}"
         env:
           OLY_CHROME: ""
+          DIA_CHI: ${{ needs.dua-len.outputs.dia_chi }}
+        run: |
+          CO=""
+          case "${DIA_CHI#https://}" in
+            [0-9]*.[0-9]*.[0-9]*.[0-9]*) CO="--chung-chi-tu-ky" ;;
+          esac
+          npm run kiem-giao-dien -- --goc "$DIA_CHI" $CO

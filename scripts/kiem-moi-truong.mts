@@ -3,6 +3,7 @@
  *
  *   npm run kiem-moi-truong -- --goc https://oly.vn --cho that
  *   npm run kiem-moi-truong -- --goc https://thu.oly.vn --cho thu
+ *   npm run kiem-moi-truong -- --goc https://109.123.233.46 --cho thu --chung-chi-tu-ky
  *
  * Vì sao cần bộ kiểm này dù đã có cau-hinh-phat-hanh.test.ts: bài kiểm thử kia
  * chứng minh HÀM trả về đúng, nhưng nó chạy trong Node trên máy người viết mã.
@@ -58,6 +59,23 @@ function laTaiCho(goc: string): boolean {
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(goc);
 }
 
+/**
+ * Chấp nhận chứng chỉ tự ký, và đây là một quyết định phải khai ra.
+ *
+ * Máy chưa có tên miền thì chỉ có chứng chỉ tự ký, nên fetch và trình duyệt đều
+ * từ chối và bộ soi không soi được gì. Nhưng tắt kiểm chứng chỉ là BỎ phần xác
+ * thực danh tính máy chủ — sau đó "đã soi xong" chỉ còn nghĩa là đã soi một máy
+ * nào đó trả lời ở địa chỉ ấy.
+ *
+ * Vì vậy nó là một cờ phải gõ ra, không phải một suy đoán. Và mỗi lần bật, bộ
+ * soi nói to rằng phần xác thực đã bị bỏ — để dòng "đạt" ở cuối không bị đọc
+ * thành một lời bảo đảm rộng hơn thứ nó thật sự kiểm.
+ */
+const CHO_TU_KY = process.argv.includes("--chung-chi-tu-ky");
+if (CHO_TU_KY) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+
 async function kiemDuongTruyen(goc: string): Promise<void> {
   console.log("\nĐường truyền");
   if (laTaiCho(goc)) {
@@ -71,6 +89,14 @@ async function kiemDuongTruyen(goc: string): Promise<void> {
     return;
   }
   doi("dùng HTTPS", true);
+  if (CHO_TU_KY) {
+    nhac(
+      "CHỨNG CHỈ KHÔNG ĐƯỢC KIỂM (--chung-chi-tu-ky). Đường truyền có mã hóa nhưng " +
+        "KHÔNG chứng minh được máy bên kia là ai. Chỉ chấp nhận được ở bản thử chưa " +
+        "có tên miền; bản có phụ huynh thật vào thì phải có chứng chỉ thật.",
+      false,
+    );
+  }
 
   const r = await fetch(goc, { redirect: "manual" });
   const hsts = r.headers.get("strict-transport-security");
@@ -136,7 +162,10 @@ function rinhCookie(p: Page, ten: string): { daPhat: () => boolean } {
 
 async function thuMaMacDinh(b: Browser, goc: string, cho: string): Promise<void> {
   console.log("\nThử mã mặc định của bản phát triển vào chính máy chủ này");
-  const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+  const ctx = await b.newContext({
+    viewport: { width: 390, height: 844 },
+    ignoreHTTPSErrors: CHO_TU_KY,
+  });
   const p: Page = await ctx.newPage();
 
   // --- Cổng phụ huynh

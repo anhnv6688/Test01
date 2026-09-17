@@ -50,6 +50,16 @@ const NHAN_HINH = [
   '[aria-label*="mỗi hàng"]',
 ].join(", ");
 
+/**
+ * Chấp nhận chứng chỉ tự ký khi soi một máy chưa có tên miền.
+ *
+ * Phải khai ra chứ không suy đoán: tắt kiểm chứng chỉ là bỏ phần xác thực danh
+ * tính máy chủ. Ở bộ kiểm GIAO DIỆN thì hậu quả nhẹ hơn bộ kiểm môi trường —
+ * nó đo bề rộng hình minh họa chứ không kết luận gì về an ninh — nhưng vẫn để
+ * thành một cờ, để hai bộ kiểm không lệch thói quen nhau.
+ */
+const CHO_TU_KY = process.argv.includes("--chung-chi-tu-ky");
+
 function doiSo(ten: string): string | null {
   const i = process.argv.indexOf(`--${ten}`);
   return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : null;
@@ -124,7 +134,10 @@ async function vaoHoc(p: Page, goc: string): Promise<KetQuaVaoHoc> {
 
 async function kiemBeMatTre(b: Browser, goc: string): Promise<void> {
   console.log("\nBề mặt của trẻ");
-  const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+  const ctx = await b.newContext({
+    viewport: { width: 390, height: 844 },
+    ignoreHTTPSErrors: CHO_TU_KY,
+  });
   const daThay = new Map<string, number>();
   let hepNhat = Number.POSITIVE_INFINITY;
   let tenHepNhat = "";
@@ -181,7 +194,10 @@ async function kiemBeMatTre(b: Browser, goc: string): Promise<void> {
 
 async function kiemManHinhChinh(b: Browser, goc: string): Promise<void> {
   console.log("\nCác màn hình chính");
-  const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+  const ctx = await b.newContext({
+    viewport: { width: 390, height: 844 },
+    ignoreHTTPSErrors: CHO_TU_KY,
+  });
   const p = await ctx.newPage();
   const loiTrang: string[] = [];
   p.on("pageerror", (e) => loiTrang.push(String(e)));
@@ -252,7 +268,10 @@ async function kiemCongCuGanNhanDaKhoa(goc: string): Promise<void> {
  */
 async function kiemTrangGanNhan(b: Browser, goc: string): Promise<void> {
   console.log("\nTrang gắn nhãn");
-  const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+  const ctx = await b.newContext({
+    viewport: { width: 1280, height: 900 },
+    ignoreHTTPSErrors: CHO_TU_KY,
+  });
   const p = await ctx.newPage();
   const loiTrang: string[] = [];
   p.on("pageerror", (e) => loiTrang.push(String(e)));
