@@ -147,8 +147,28 @@ dat_anh "$ANH_MOI"
 # hình cũ. Giữ cấu hình cũ mà báo xanh là kiểu hỏng tệ nhất, nên ở đây sai là
 # đỏ ngay.
 #
+#
+# Trước hết: Caddy có ĐANG NHÌN THẤY bản vừa gửi lên không.
+#
+# Câu hỏi nghe thừa, nhưng ba lần triển khai liên tiếp chết vì đúng nó. Bản đầu
+# gắn riêng một tệp vào thùng chứa, mà Docker gắn tệp theo inode; `tar xzf` xóa
+# tệp cũ rồi tạo tệp mới, nên thùng chứa trỏ mãi vào inode đã bị xóa. Trên đĩa
+# máy chủ Caddyfile mới tinh, bên trong thùng chứa vẫn là bản cũ.
+#
+# `caddy reload` lúc đó trả lời "config is unchanged" và thoát 0 — không sai,
+# nhưng đọc lên thì tưởng là đã nạp xong. Nay gắn cả thư mục nên chuyện đó không
+# còn, và dòng dưới canh để nó đừng quay lại dưới hình dạng khác.
+#
+if ! "${COMPOSE[@]}" exec -T caddy cat "/etc/caddy-nguon/$OLY_CADDYFILE" 2>/dev/null \
+     | diff -q - "trien-khai/$OLY_CADDYFILE" >/dev/null; then
+  do_ "Caddy đang đọc một bản Caddyfile KHÁC bản vừa gửi lên máy chủ."
+  do_ "Thường là do thùng chứa gắn vào một inode cũ — dựng lại nó:"
+  do_ "    cd ~/o-ly && docker compose ... up -d --force-recreate caddy"
+  exit 1
+fi
+
 if LOI_CADDY=$("${COMPOSE[@]}" exec -T caddy caddy reload \
-      --config /etc/caddy/Caddyfile --adapter caddyfile 2>&1); then
+      --config "/etc/caddy-nguon/$OLY_CADDYFILE" --adapter caddyfile 2>&1); then
   xanh "Caddy đã nạp lại cấu hình"
 else
   do_ "Caddy KHÔNG nạp được cấu hình mới — nó vẫn đang chạy cấu hình CŨ:"

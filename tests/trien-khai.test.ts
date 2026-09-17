@@ -235,6 +235,22 @@ describe("đưa lên máy chủ tự động", () => {
     expect(ca.indexOf("DANG_CHAY")).toBeLessThan(ca.indexOf("COMPOSE=("));
   });
 
+  it("Caddyfile vào thùng chứa bằng thư mục, không bằng một tệp", () => {
+    /**
+     * Docker gắn một tệp theo INODE chứ không theo đường dẫn. Phần triển khai
+     * đưa cấu hình lên bằng `tar xzf`, mà tar xóa tệp cũ rồi tạo tệp mới — inode
+     * mới. Thùng chứa vẫn trỏ vào inode cũ đã bị xóa, nên bên trong nó Caddyfile
+     * không bao giờ đổi, dù trên đĩa máy chủ tệp đã mới tinh.
+     *
+     * Ba lần triển khai liên tiếp chết vì đúng chuyện này, và nó không tự nói ra:
+     * `caddy reload` chạy trơn tru rồi trả lời "config is unchanged".
+     */
+    const yaml = khongChuThich(doc("trien-khai/compose.caddy.yaml"));
+    expect(yaml).toMatch(/\.\/trien-khai:\/etc\/caddy-nguon:ro/);
+    // Không được quay lại kiểu gắn một tệp vào thẳng /etc/caddy/Caddyfile.
+    expect(yaml).not.toMatch(/:\/etc\/caddy\/Caddyfile/);
+  });
+
   it("bắt Caddy đọc lại Caddyfile sau khi up -d", () => {
     /**
      * Compose chỉ dựng lại thùng chứa khi ĐỊNH NGHĨA dịch vụ đổi. Caddyfile vào

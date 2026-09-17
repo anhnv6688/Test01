@@ -41,10 +41,36 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
+    # -----------------------------------------------------------------------
+    # Gắn cả THƯ MỤC, tuyệt đối không gắn riêng một tệp. Đây không phải chuyện
+    # gọn gàng, nó là chỗ đã làm chết ba lần triển khai liên tiếp.
+    #
+    # Docker gắn một tệp theo INODE, không theo đường dẫn. Phần triển khai đưa
+    # cấu hình lên bằng `tar xzf`, mà tar không sửa tại chỗ — nó xóa tệp cũ rồi
+    # tạo tệp mới, tức là một inode mới. Thùng chứa vẫn trỏ vào inode cũ đã bị
+    # xóa, nên bên trong nó Caddyfile KHÔNG BAO GIỜ đổi, dù trên đĩa máy chủ tệp
+    # đã mới tinh. Dựng lại thùng chứa mới gỡ được.
+    #
+    # Triệu chứng thì không hề nói ra chuyện đó: `caddy reload` chạy trơn tru và
+    # trả lời "config is unchanged" — đúng sự thật, từ chỗ nó đứng nhìn.
+    #
+    # Gắn thư mục thì inode của thư mục không đổi khi tar thay tệp bên trong,
+    # nên thùng chứa thấy đúng thứ vừa gửi lên.
+    #
+    # Thư mục này để :ro và không chứa bí mật nào — mã trực với PIN nằm ở ~/o-ly/.env,
+    # ngoài thư mục này và không được gắn vào đây.
+    # -----------------------------------------------------------------------
     volumes:
-      - ./trien-khai/${OLY_CADDYFILE:-Caddyfile}:/etc/caddy/Caddyfile:ro
+      - ./trien-khai:/etc/caddy-nguon:ro
       - caddy-du-lieu:/data
       - caddy-cau-hinh:/config
+    command:
+      - caddy
+      - run
+      - --config
+      - /etc/caddy-nguon/${OLY_CADDYFILE:-Caddyfile}
+      - --adapter
+      - caddyfile
     environment:
       OLY_TEN_MIEN: ${OLY_TEN_MIEN:-}
       # Địa chỉ site khi chưa có tên miền. Phải là IP thật của máy, không được
