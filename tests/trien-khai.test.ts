@@ -122,6 +122,40 @@ describe("bản thật không chạy được nếu chưa có chứng chỉ th�
  * bốn dòng thì không đáng. Quét chữ yếu hơn, và ở đây chấp nhận được vì cả bốn
  * điều dưới đây đều là "có mặt hay không có mặt", không phải chuyện cấu trúc.
  */
+describe("ảnh Docker dựng được và phần mã máy chạy được", () => {
+  const df = khongChuThich(doc("Dockerfile"));
+
+  it("bỏ script lúc cài gói thì PHẢI có dòng kiểm phần mã máy đi kèm", () => {
+    /*
+     * `--ignore-scripts` bỏ script của mọi gói, không chỉ của better-sqlite3.
+     * Hôm nay nó vô hại vì bước bị bỏ là một bước rỗng — binding.gyp của
+     * better-sqlite3 chỉ dựng thật khi có --force_build=1, và gói nạp
+     * prebuilds/linux-x64.node có sẵn bên trong nó.
+     *
+     * Ngày một gói thật sự cần biên dịch thì cờ này làm ảnh dựng ra THIẾU phần
+     * mã máy mà không báo gì. Dòng kiểm là chỗ duy nhất biến chuyện đó thành
+     * một bản dựng đỏ, thay vì một máy chủ lên được rồi sập lúc có người vào.
+     * Gỡ cờ thì gỡ luôn dòng kiểm cũng được; giữ cờ mà gỡ dòng kiểm thì không.
+     */
+    if (!df.includes("--ignore-scripts")) return;
+    expect(df, "có --ignore-scripts nhưng không kiểm lại phần mã máy")
+      .toMatch(/require\(['"]better-sqlite3['"]\)/);
+    // Phải ghi đọc thật, không chỉ require: require() qua được cả khi phần mã
+    // máy hỏng ở một hàm sâu hơn.
+    expect(df).toMatch(/create table/i);
+  });
+
+  it("dòng kiểm nằm trong cùng tầng với lệnh cài gói", () => {
+    // Kiểm ở tầng khác thì tầng cài gói vẫn được ghi vào bộ đệm dù hỏng, và
+    // lần dựng sau sẽ dùng lại đúng cái tầng thiếu phần mã máy đó.
+    const iCai = df.indexOf("npm ci");
+    const iKiem = df.indexOf("better-sqlite3");
+    const iTangSau = df.indexOf("AS dung");
+    expect(iCai).toBeLessThan(iKiem);
+    expect(iKiem).toBeLessThan(iTangSau);
+  });
+});
+
 describe("đưa lên máy chủ tự động", () => {
   const wf = khongChuThich(doc(".github/workflows/dua-len.yml"));
 
