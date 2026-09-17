@@ -207,21 +207,56 @@ Chưa có tên miền thì Caddy tự ký chứng chỉ, trình duyệt sẽ kê
 riêng tư". Chấp nhận được cho bản thử, **không** chấp nhận được cho bản thật:
 đường này chở mã PIN của bố mẹ, mã một lần gửi qua điện thoại và ảnh trang vở.
 
-Có tên miền rồi thì trỏ bản ghi A về `109.123.233.46`, đợi DNS lan, rồi:
+Có tên miền rồi thì hai bước, và **không** phải đăng nhập máy chủ.
+
+**1. Trỏ bản ghi A ở nhà cung cấp tên miền.** Ví dụ với GoDaddy, tên miền
+`testingwebs.online`, muốn dùng `oly.testingwebs.online`:
+
+| Ô | Điền |
+|---|---|
+| Type | `A` |
+| Name | `oly` — chỉ phần con, KHÔNG gõ cả `oly.testingwebs.online` |
+| Value | `109.123.233.46` |
+| TTL | 600 giây (1/2 giờ cũng được) |
+
+Đợi DNS lan rồi kiểm từ máy mình — đây là bước hay bị bỏ qua, và bỏ qua thì lần
+triển khai sau hỏng ở chỗ khó đoán:
 
 ```bash
-sed -i 's/^OLY_TEN_MIEN=.*/OLY_TEN_MIEN=thu.oly.vn/' .env
-bash trien-khai/trien-khai.sh
+nslookup oly.testingwebs.online      # phải trả về 109.123.233.46
 ```
 
-Caddy tự xin chứng chỉ Let's Encrypt và tự gia hạn. Không phải làm gì thêm.
+**2. Sửa biến `VPS_URL` trong kho mã** thành `https://oly.testingwebs.online`
+(Settings → Secrets and variables → Actions → tab **Variables**), rồi chạy lại
+phần đưa lên.
+
+Hết. Tên miền chỉ khai ở **một** chỗ: `VPS_URL`. Phần chạy tự động rút tên miền
+ra từ chính địa chỉ đó rồi truyền sang máy chủ, máy chủ ghi vào `.env` và Caddy
+chuyển sang `trien-khai/Caddyfile` — bản có chứng chỉ Let's Encrypt thật, HSTS
+và nhật ký truy cập.
+
+Vì sao một chỗ chứ không hai: khai hai chỗ thì chúng lệch nhau được, và kiểu
+lệch đó rất khó đọc ra — Caddy xin chứng chỉ cho tên A trong khi bộ soi gõ vào
+tên B, rồi báo "không kết nối được" mà không ai nghĩ tới chuyện hai cái tên khác
+nhau.
+
+Let's Encrypt cần **cổng 80 mở ra Internet** để gọi ngược vào xác minh. Phần
+dựng nền đã mở sẵn; đừng đóng nó lại vì thấy Ô Ly chỉ chạy ở 443.
+
+Đổi từ IP sang tên miền là thay chứng chỉ, nên trình duyệt nào đã từng bấm qua
+cảnh báo ở địa chỉ IP thì nay vào bằng tên miền sẽ **không** thấy cảnh báo nữa.
+Đó chính là điều mong muốn: người test không nên quen tay bấm qua cảnh báo bảo
+mật, vì thói quen đó theo họ sang cả bản thật.
+
+Máy chủ này vẫn là bản **THỬ** sau khi có tên miền. Tên miền không đổi được
+chuyện nó đặt ở Singapore (Nghị định 53) — xem phần đầu tài liệu.
 
 ## Sau khi lên
 
 Từ **máy của anh**, không phải từ máy chủ:
 
 ```bash
-npm run kiem-moi-truong -- --goc https://thu.oly.vn --cho thu
+npm run kiem-moi-truong -- --goc https://oly.testingwebs.online --cho thu
 ```
 
 Bộ này tự thử PIN `1234` và mã trực `truc2026` vào chính máy chủ đó rồi **đòi bị

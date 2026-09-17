@@ -307,6 +307,37 @@ describe("đưa lên máy chủ tự động", () => {
     }
   });
 
+  it("tên miền chỉ khai ở MỘT chỗ — rút ra từ VPS_URL", () => {
+    /**
+     * Khai hai chỗ thì chúng lệch nhau được, và kiểu lệch đó rất khó đọc ra:
+     * Caddy xin chứng chỉ cho tên A trong khi bộ soi gõ vào tên B, rồi báo
+     * "không kết nối được" mà không ai nghĩ tới chuyện hai cái tên khác nhau.
+     */
+    expect(wf).toMatch(/DIA_CHI_CONG_KHAI:\s*\$\{\{\s*vars\.VPS_URL\s*\}\}/);
+    // Tên miền phải được truyền sang máy chủ, không để máy chủ tự đoán.
+    expect(wf).toMatch(/chay-anh\.sh '\$ANH' '\$MOI_TRUONG' '\$TEN_MIEN'/);
+    // Và KHÔNG được đẻ ra một biến khai tên miền thứ hai.
+    expect(wf).not.toMatch(/vars\.VPS_TEN_MIEN|secrets\.VPS_TEN_MIEN/);
+  });
+
+  it("phép gõ thử cổng 443 gửi SNI khi máy có tên miền", () => {
+    /**
+     * Gõ thẳng vào https://127.0.0.1/ là gọi tới một địa chỉ IP, mà gọi tới IP
+     * thì không gửi SNI — đúng cái đã làm hỏng ba lần triển khai. Bản không tên
+     * miền vá bằng default_sni; bản CÓ tên miền thì không, vì ở đó SNI là thứ
+     * Caddy dùng để chọn đúng chứng chỉ chứ không phải thiếu sót cần bù.
+     *
+     * --resolve giữ đích là chính máy này nhưng gửi đi đúng tên, tức là bắt tay
+     * y hệt một trình duyệt thật ngoài kia.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    expect(ca).toMatch(/--resolve "\$OLY_TEN_MIEN:443:127\.0\.0\.1"/);
+    // Và phải đợi được lúc Caddy xin chứng chỉ, chứ không hỏi một lần rồi kết
+    // luận — lần đầu có tên miền thì cổng 443 chưa trả lời ngay.
+    const i = ca.indexOf("%{http_code}");
+    expect(ca.slice(Math.max(0, i - 300), i)).toMatch(/for _ in \$\(seq/);
+  });
+
   it("thẻ đăng nhập sổ đăng ký không ở lại trên máy chủ", () => {
     // Thẻ của lần chạy hết hạn khi việc kết thúc, nhưng tệp ~/.docker/config.json
     // thì ở lại. Đăng xuất kể cả khi triển khai hỏng.

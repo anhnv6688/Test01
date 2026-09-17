@@ -13,6 +13,8 @@ cd "$(dirname "$0")/.."
 
 ANH_MOI="${1:?thiếu tên ảnh}"
 MOI_TRUONG="${2:-thu}"
+# Tên miền, do phần chạy tự động rút ra từ chính VPS_URL. Xem khối dưới.
+TEN_MIEN_KHAI="${3:-}"
 
 xanh() { printf '  ok   %s\n' "$1"; }
 vang() { printf '  !!   %s\n' "$1"; }
@@ -70,6 +72,33 @@ if [ -n "$DANG_CHAY" ] && [ "$DANG_CHAY" != "$MOI_TRUONG" ]; then
   do_ ""
   do_ "Thật sự muốn đổi thì sửa tay OLY_MOI_TRUONG_DANG_CHAY trong ~/o-ly/.env."
   exit 1
+fi
+
+#
+# Tên miền khai ở MỘT chỗ: biến VPS_URL của kho mã. Không khai ở hai chỗ.
+#
+# Hai chỗ thì chúng lệch nhau được, và kiểu lệch đó rất khó đọc ra: Caddy xin
+# chứng chỉ cho tên A trong khi bộ soi gõ vào tên B, rồi báo "không kết nối
+# được" mà không ai nghĩ tới chuyện hai cái tên khác nhau. Rút từ VPS_URL thì
+# chúng không lệch được, vì chỉ có một cái tên tồn tại.
+#
+# Vẫn ghi xuống .env, để một lệnh `docker compose up -d` gõ tay trên máy chủ
+# sau này dùng đúng tên đó — và để máy chủ tự nói ra nó đang phục vụ tên nào.
+#
+if [ -n "$TEN_MIEN_KHAI" ]; then
+  if grep -qE '^OLY_TEN_MIEN=' .env; then
+    sed -i "s|^OLY_TEN_MIEN=.*|OLY_TEN_MIEN=$TEN_MIEN_KHAI|" .env
+  else
+    printf 'OLY_TEN_MIEN=%s\n' "$TEN_MIEN_KHAI" >> .env
+  fi
+  [ "$TEN_MIEN_KHAI" != "${OLY_TEN_MIEN:-}" ] && xanh "tên miền đổi thành $TEN_MIEN_KHAI"
+  export OLY_TEN_MIEN="$TEN_MIEN_KHAI"
+elif [ -n "${OLY_TEN_MIEN:-}" ]; then
+  # VPS_URL nay là một địa chỉ IP, nhưng máy chủ vẫn nhớ một tên miền. KHÔNG tự
+  # xóa: xóa tên miền là hạ máy đang chạy chứng chỉ thật xuống chứng chỉ tự ký,
+  # và một việc như thế phải do người gõ ra, không phải do một khoảng trắng.
+  vang "VPS_URL không có tên miền, nhưng máy này vẫn đang phục vụ $OLY_TEN_MIEN."
+  vang "Giữ nguyên tên miền. Thật sự muốn bỏ thì xóa tay dòng đó trong ~/o-ly/.env."
 fi
 
 if [ -n "${OLY_TEN_MIEN:-}" ]; then
@@ -229,7 +258,36 @@ xanh "Ô Ly khỏe, đang chạy $ANH_MOI"
 # Một dòng thêm vào để bắt lỗi im lặng, tự nó im lặng. `|| true` chỉ nuốt mã
 # thoát để `set -e` không giết kịch bản, không đụng vào thứ curl đã in.
 #
-MA_HTTP=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 20 https://127.0.0.1/ 2>/dev/null || true)
+#
+# Có tên miền thì phải gõ bằng ĐÚNG cái tên đó, qua --resolve.
+#
+# Gõ thẳng vào https://127.0.0.1/ là gọi tới một địa chỉ IP, mà gọi tới IP thì
+# không gửi SNI — đúng cái đã làm hỏng ba lần triển khai trước. Bản không tên
+# miền vá chuyện đó bằng default_sni; bản có tên miền thì không, và cũng không
+# nên: ở đó SNI là thứ Caddy dùng để chọn đúng chứng chỉ, chứ không phải thứ
+# thiếu sót cần bù.
+#
+# --resolve giữ nguyên đích là máy này, nhưng gửi đi đúng tên — tức là bắt tay
+# y hệt một trình duyệt thật ngoài kia.
+#
+if [ -n "${OLY_TEN_MIEN:-}" ]; then
+  DICH="https://$OLY_TEN_MIEN/"
+  GIAI=(--resolve "$OLY_TEN_MIEN:443:127.0.0.1")
+else
+  DICH="https://127.0.0.1/"
+  GIAI=()
+fi
+
+# Đợi, không hỏi một lần rồi kết luận: lần đầu có tên miền, Caddy còn đang xin
+# chứng chỉ Let's Encrypt và cổng 443 chưa trả lời ngay. Một lần hỏi duy nhất ở
+# đây sẽ làm đỏ một lần triển khai hoàn toàn đúng.
+MA_HTTP=""
+for _ in $(seq 1 30); do
+  MA_HTTP=$(curl -sk "${GIAI[@]}" -o /dev/null -w '%{http_code}' --max-time 10 "$DICH" 2>/dev/null || true)
+  printf '%s' "$MA_HTTP" | grep -qE '^[1-5][0-9][0-9]$' && break
+  sleep 2
+done
+
 # Bắt tay được thì curl trả về một mã ba chữ số thật, kể cả 404 hay 502 — ở đây
 # ta hỏi "có nói chuyện được với cổng 443 không", chứ chưa hỏi trang trả về gì.
 if ! printf '%s' "$MA_HTTP" | grep -qE '^[1-5][0-9][0-9]$'; then
@@ -238,10 +296,11 @@ if ! printf '%s' "$MA_HTTP" | grep -qE '^[1-5][0-9][0-9]$'; then
   "${COMPOSE[@]}" logs --tail 20 caddy || true
   do_ ""
   do_ "Xem chi tiết bắt tay:  openssl s_client -connect 127.0.0.1:443 </dev/null"
+  [ -n "${OLY_TEN_MIEN:-}" ] && do_ "Tên miền $OLY_TEN_MIEN đã trỏ A về máy này chưa, và cổng 80 có mở không?"
   do_ "curl trả về: '''$MA_HTTP'''"
   exit 1
 fi
-xanh "cổng 443 trả lời $MA_HTTP — người ngoài vào được"
+xanh "cổng 443 trả lời $MA_HTTP cho $DICH — người ngoài vào được"
 
 THIEU=$("${COMPOSE[@]}" logs o-ly 2>/dev/null | grep -A20 'còn thiếu khai báo' || true)
 [ -n "$THIEU" ] && { vang "máy chủ báo thiếu khai báo:"; echo "$THIEU"; }

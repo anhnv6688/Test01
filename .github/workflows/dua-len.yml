@@ -417,7 +417,28 @@ jobs:
           MAY: ${{ secrets.VPS_HOST }}
           NGUOI: ${{ secrets.VPS_USERNAME }}
           THE: ${{ secrets.GITHUB_TOKEN }}
+          DIA_CHI_CONG_KHAI: ${{ vars.VPS_URL }}
         run: |
+          # Tên miền rút ra từ chính VPS_URL, không khai thêm một biến nữa.
+          #
+          # Hai chỗ khai thì chúng lệch nhau được, và kiểu lệch đó rất khó đọc
+          # ra: Caddy xin chứng chỉ cho tên A trong khi bộ soi gõ vào tên B, rồi
+          # báo "không kết nối được" mà không ai nghĩ tới chuyện hai cái tên
+          # khác nhau. Rút từ một chỗ thì chúng không lệch được.
+          #
+          # Địa chỉ IP thì để trống: Let's Encrypt không cấp chứng chỉ cho IP,
+          # nên ở đó Caddy phải tự ký và dùng Caddyfile.khong-ten-mien.
+          HOST="${DIA_CHI_CONG_KHAI#https://}"
+          HOST="${HOST#http://}"
+          HOST="${HOST%%/*}"
+          HOST="${HOST%%:*}"
+          TEN_MIEN=""
+          case "$HOST" in
+            ""|[0-9]*.[0-9]*.[0-9]*.[0-9]*) ;;
+            *) TEN_MIEN="$HOST" ;;
+          esac
+          [ -n "$TEN_MIEN" ] && echo "Tên miền lấy từ VPS_URL: $TEN_MIEN"
+
           # Đăng nhập sổ đăng ký bằng thẻ của chính lần chạy này. Thẻ đó hết
           # hạn khi việc kết thúc, nên máy chủ không giữ lại một thông tin đăng
           # nhập sống mãi. Đăng xuất ngay sau đó, kể cả khi triển khai hỏng.
@@ -425,7 +446,7 @@ jobs:
             "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
           MA=0
           ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
-            "cd ~/o-ly && bash trien-khai/chay-anh.sh '$ANH' '$MOI_TRUONG'" || MA=$?
+            "cd ~/o-ly && bash trien-khai/chay-anh.sh '$ANH' '$MOI_TRUONG' '$TEN_MIEN'" || MA=$?
           ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" "docker logout ghcr.io" || true
           exit $MA
 
