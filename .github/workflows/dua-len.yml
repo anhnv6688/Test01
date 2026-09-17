@@ -126,7 +126,7 @@ jobs:
     # thật vẫn chạy mà không ai soi. Một cửa duyệt đặt sai chỗ thì tệ hơn là
     # không có: nó tạo cảm giác đã kiểm soát.
     outputs:
-      dia_chi: ${{ vars.VPS_URL }}
+      dia_chi: ${{ steps.dia-chi.outputs.url }}
     env:
       MOI_TRUONG: ${{ github.event.inputs.moi_truong || 'thu' }}
       ANH: ${{ needs.dung-anh.outputs.anh }}
@@ -137,6 +137,22 @@ jobs:
       CONG: ${{ secrets.VPS_PORT || '22' }}
     steps:
       - uses: actions/checkout@v5
+
+      - name: Ghi lại địa chỉ công khai để chuyển sang việc soi
+        id: dia-chi
+        #
+        # Lấy vars.VPS_URL qua ĐẦU RA CỦA MỘT BƯỚC, không khai thẳng ở khối
+        # `outputs` của việc.
+        #
+        # Bản đầu viết `outputs: dia_chi: ${{ vars.VPS_URL }}`. Nhìn thì hợp lệ,
+        # và không có lỗi nào — nhưng giá trị ra RỖNG, nên việc soi bị bỏ qua
+        # trong lặng lẽ dù biến đã khai đúng. Bằng chứng nằm ở chỗ bước nhắc
+        # "chưa khai địa chỉ" KHÔNG chạy: cùng một biến, đọc được ở `if` của
+        # bước mà không đọc được ở `outputs` của việc.
+        #
+        # Đầu ra của bước thì luôn chuyển được sang việc sau. Dài hơn ba dòng,
+        # đổi lại không phải nhớ chỗ nào đọc được context nào.
+        run: printf 'url=%s\n' "${{ vars.VPS_URL }}" >> "$GITHUB_OUTPUT"
 
       - name: Bản thật chỉ đưa lên từ nhánh chính
         # Một nhánh bất kỳ đẩy được lên bản thật nghĩa là mã chưa qua xét duyệt
