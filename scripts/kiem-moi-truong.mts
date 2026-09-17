@@ -72,8 +72,25 @@ function laTaiCho(goc: string): boolean {
  * thành một lời bảo đảm rộng hơn thứ nó thật sự kiểm.
  */
 const CHO_TU_KY = process.argv.includes("--chung-chi-tu-ky");
-if (CHO_TU_KY) {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+/*
+ * Phải đặt NODE_TLS_REJECT_UNAUTHORIZED từ BÊN NGOÀI, không đặt được ở đây.
+ *
+ * Bản đầu gán process.env ngay tại chỗ này. Không ăn: trong ESM, mọi `import`
+ * chạy TRƯỚC mọi câu lệnh, mà playwright kéo theo `tls` — nên tới lượt dòng gán
+ * này thì `tls` đã đọc xong biến cũ. Triệu chứng là một dòng "fetch failed"
+ * trống rỗng, trong khi cờ thì trông như đã bật.
+ *
+ * Nên chỗ gọi phải đặt biến môi trường thật. Nếu quên, nói ra ngay — một cờ
+ * trông như có tác dụng mà không có tác dụng thì tệ hơn là không có cờ.
+ */
+if (CHO_TU_KY && process.env.NODE_TLS_REJECT_UNAUTHORIZED !== "0") {
+  console.error(
+    "Có --chung-chi-tu-ky nhưng chưa đặt NODE_TLS_REJECT_UNAUTHORIZED=0.\n" +
+      "Node đọc biến đó lúc nạp mô-đun tls, nên đặt trong mã là muộn. Chạy lại:\n" +
+      "  NODE_TLS_REJECT_UNAUTHORIZED=0 npm run kiem-moi-truong -- --goc <địa-chỉ> --cho thu --chung-chi-tu-ky",
+  );
+  process.exit(2);
 }
 
 async function kiemDuongTruyen(goc: string): Promise<void> {
@@ -286,7 +303,20 @@ async function main(): Promise<void> {
     await kiemDaiBaoBanThu(goc, cho);
     await kiemLoRi(goc);
   } catch (e) {
-    doi(`chạy hết được bộ kiểm (${e instanceof Error ? e.message.split("\n")[0] : e})`, false);
+    /*
+     * In cả `cause`, vì `fetch` của Node gói lỗi thật vào đó và chỉ để lại
+     * đúng hai chữ "fetch failed" ở ngoài. Hai chữ đó không phân biệt nổi
+     * chứng chỉ tự ký, máy chủ đóng cổng, hay bắt tay TLS đứt — ba nguyên nhân
+     * cần ba cách sửa khác hẳn nhau.
+     */
+    const nguyenNhan = (x: unknown): string => {
+      if (!(x instanceof Error)) return String(x);
+      const goc = (x as { cause?: unknown }).cause;
+      const ma = goc && typeof goc === "object" && "code" in goc ? String(goc.code) : "";
+      const chi = goc instanceof Error ? goc.message : goc ? String(goc) : "";
+      return [x.message.split("\n")[0], ma, chi].filter(Boolean).join(" · ");
+    };
+    doi(`chạy hết được bộ kiểm (${nguyenNhan(e)})`, false);
   } finally {
     await b.close();
   }

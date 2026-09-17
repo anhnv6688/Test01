@@ -522,6 +522,9 @@ jobs:
           case "${DIA_CHI#https://}" in
             [0-9]*.[0-9]*.[0-9]*.[0-9]*) CO="--chung-chi-tu-ky" ;;
           esac
+          # Đặt biến từ ngoài chứ không để kịch bản tự gán: Node đọc nó lúc nạp
+          # mô-đun tls, nên gán trong mã là muộn.
+          [ -n "$CO" ] && export NODE_TLS_REJECT_UNAUTHORIZED=0
           npm run kiem-moi-truong -- --goc "$DIA_CHI" --cho "$CHO" $CO
 
       # Chỉ soi giao diện ở bản thử, và không phải vì bản thật ít quan trọng
