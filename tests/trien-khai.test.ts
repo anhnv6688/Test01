@@ -235,6 +235,40 @@ describe("đưa lên máy chủ tự động", () => {
     expect(ca.indexOf("DANG_CHAY")).toBeLessThan(ca.indexOf("COMPOSE=("));
   });
 
+  it("bắt Caddy đọc lại Caddyfile sau khi up -d", () => {
+    /**
+     * Compose chỉ dựng lại thùng chứa khi ĐỊNH NGHĨA dịch vụ đổi. Caddyfile vào
+     * bằng đường gắn thư mục, nên sửa nội dung tệp không đổi định nghĩa nào —
+     * Compose in "Container o-ly-caddy-1 Running" rồi bỏ qua, và Caddy vẫn chạy
+     * cấu hình cũ. Mọi bước triển khai xanh, máy chủ hỏng y hệt lần trước.
+     *
+     * Đã mất một vòng chạy vì đúng chuyện này, nên bài kiểm này canh dòng đó.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    expect(ca).toMatch(/caddy reload/);
+    // Nạp lại SAU khi up -d, nếu không thì nó nạp lại cấu hình của lần trước.
+    expect(ca.indexOf("up -d")).toBeLessThan(ca.indexOf("caddy reload"));
+  });
+
+  it("phép kiểm cổng 443 không tự nối thêm mã giả vào thứ curl đã in", () => {
+    /**
+     * Bản đầu viết `curl ... -w '%{http_code}' ... || echo "000"`. Khi bắt tay
+     * đứt, curl ĐÃ in "000" theo %{http_code} rồi mới thoát khác 0, nên echo
+     * nối thêm một "000" nữa: giá trị thành "000\n000", so sánh với "000"
+     * trượt, và bước kiểm in ra "cổng 443 trả lời 000000 — người ngoài vào
+     * được" trong khi ngoài kia không ai mở nổi trang.
+     *
+     * Một dòng thêm vào để bắt lỗi im lặng mà tự nó im lặng thì tệ hơn không
+     * có dòng nào: nó biến một chỗ chưa được kiểm thành một chỗ tưởng đã kiểm.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    const dong = ca.split("\n").filter((d) => d.includes("%{http_code}"));
+    expect(dong.length).toBeGreaterThan(0);
+    for (const d of dong) expect(d).not.toMatch(/\|\|\s*echo/);
+    // Và phải nhận đúng hình dạng một mã HTTP thật, chứ không chỉ khác "000".
+    expect(ca).toMatch(/\^\[1-5\]\[0-9\]\[0-9\]\$/);
+  });
+
   it("thẻ đăng nhập sổ đăng ký không ở lại trên máy chủ", () => {
     // Thẻ của lần chạy hết hạn khi việc kết thúc, nhưng tệp ~/.docker/config.json
     // thì ở lại. Đăng xuất kể cả khi triển khai hỏng.

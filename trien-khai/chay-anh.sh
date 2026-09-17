@@ -127,6 +127,35 @@ dat_anh "$ANH_MOI"
 "${COMPOSE[@]}" pull o-ly
 "${COMPOSE[@]}" up -d
 
+#
+# Bắt Caddy đọc lại Caddyfile. KHÔNG được bỏ dòng này.
+#
+# Compose chỉ dựng lại một thùng chứa khi ĐỊNH NGHĨA dịch vụ đổi: ảnh, biến môi
+# trường, cổng. Caddyfile thì vào bằng đường gắn thư mục, nên sửa nội dung tệp
+# không đổi định nghĩa nào cả — Compose nói "Container o-ly-caddy-1 Running" và
+# bỏ qua, còn Caddy thì vẫn chạy cấu hình nó đã nạp từ lần khởi động trước.
+#
+# Đã mất một vòng chạy vì đúng chuyện này: bản sửa default_sni được gửi lên máy
+# chủ đầy đủ, nằm đúng chỗ, mà máy chủ vẫn hỏng y hệt — vì chưa ai bảo Caddy đọc
+# lại. Nhìn nhật ký triển khai thì mọi bước đều xanh.
+#
+# Dùng `reload` chứ không dựng lại thùng chứa: reload thay cấu hình mà không cắt
+# kết nối đang mở và không phải xin lại chứng chỉ. Đổi biến môi trường thì
+# Compose tự dựng lại ở dòng `up -d` trên, nên hai cách bù đúng chỗ cho nhau.
+#
+# reload tự kiểm cấu hình trước khi áp: sai cú pháp thì nó từ chối và GIỮ cấu
+# hình cũ. Giữ cấu hình cũ mà báo xanh là kiểu hỏng tệ nhất, nên ở đây sai là
+# đỏ ngay.
+#
+if LOI_CADDY=$("${COMPOSE[@]}" exec -T caddy caddy reload \
+      --config /etc/caddy/Caddyfile --adapter caddyfile 2>&1); then
+  xanh "Caddy đã nạp lại cấu hình"
+else
+  do_ "Caddy KHÔNG nạp được cấu hình mới — nó vẫn đang chạy cấu hình CŨ:"
+  printf '%s\n' "$LOI_CADDY"
+  exit 1
+fi
+
 # Đợi trạng thái KHỎE, không đợi "đang chạy": một tiến trình Node vừa ném lỗi
 # và đang trên đường chết thì vẫn đang chạy.
 SONG=0
@@ -169,13 +198,27 @@ xanh "Ô Ly khỏe, đang chạy $ANH_MOI"
 # Dùng -k vì chứng chỉ có thể là bản tự ký; ở đây ta hỏi "có bắt tay được
 # không", còn "chứng chỉ có đáng tin không" là việc của npm run kiem-moi-truong.
 #
-MA_HTTP=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 20 https://127.0.0.1/ || echo "000")
-if [ "$MA_HTTP" = "000" ]; then
+#
+# Đừng thêm `|| echo "000"` vào dòng dưới. Bản đầu có, và nó làm chính dòng kiểm
+# này nói dối: khi bắt tay đứt, curl ĐÃ tự in "000" theo %{http_code} rồi mới
+# thoát khác 0, nên echo nối thêm một "000" nữa. Giá trị thành "000\n000", phép
+# so sánh với "000" trượt, và bước kiểm in ra:
+#
+#   ok   cổng 443 trả lời 000000 — người ngoài vào được
+#
+# Một dòng thêm vào để bắt lỗi im lặng, tự nó im lặng. `|| true` chỉ nuốt mã
+# thoát để `set -e` không giết kịch bản, không đụng vào thứ curl đã in.
+#
+MA_HTTP=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 20 https://127.0.0.1/ 2>/dev/null || true)
+# Bắt tay được thì curl trả về một mã ba chữ số thật, kể cả 404 hay 502 — ở đây
+# ta hỏi "có nói chuyện được với cổng 443 không", chứ chưa hỏi trang trả về gì.
+if ! printf '%s' "$MA_HTTP" | grep -qE '^[1-5][0-9][0-9]$'; then
   do_ "Ô Ly khỏe nhưng KHÔNG ai vào được qua cổng 443 — Caddy không bắt tay được."
   do_ "Hai chục dòng nhật ký Caddy cuối:"
   "${COMPOSE[@]}" logs --tail 20 caddy || true
   do_ ""
   do_ "Xem chi tiết bắt tay:  openssl s_client -connect 127.0.0.1:443 </dev/null"
+  do_ "curl trả về: '''$MA_HTTP'''"
   exit 1
 fi
 xanh "cổng 443 trả lời $MA_HTTP — người ngoài vào được"
