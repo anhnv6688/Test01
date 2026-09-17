@@ -219,7 +219,23 @@ jobs:
           # Điểm mấu chốt là ta không TIN cái máy chủ trả về — ta ĐỐI CHIẾU nó.
           #
           GOM=$(printf '%s\n' "$KHOA_MAY" | tr -d '\r' | grep -v '^[[:space:]]*#' || true)
-          VAN_TAY_GHIM=$(printf '%s\n' "$GOM" | grep -o 'SHA256:[A-Za-z0-9+/=]\{20,\}' | sort -u || true)
+          #
+          # Bắt vân tay ở ba biến thể, vì mỗi bảng điều khiển in một kiểu:
+          #   SHA256:1OaEine...   (OpenSSH, ssh-keygen -l)
+          #   sha256:1OaEine...   (một số bảng điều khiển hạ chữ)
+          #   1OaEine...          (chỉ phần băm, không có tiền tố)
+          #
+          # Biến thể thứ ba nhận diện bằng HÌNH DẠNG: băm SHA-256 mã hóa base64
+          # không đệm luôn dài đúng 43 ký tự. Chặt hơn thì không bắt được, lỏng
+          # hơn thì một chuỗi bất kỳ cũng thành "vân tay" rồi im lặng không
+          # khớp gì — mà một chốt an ninh im lặng thì tệ hơn một chốt kêu.
+          #
+          VAN_TAY_GHIM=$(
+            {
+              printf '%s\n' "$GOM" | grep -oi 'SHA256:[A-Za-z0-9+/=]\{20,\}' | sed 's/^[Ss][Hh][Aa]256://'
+              printf '%s\n' "$GOM" | grep -ox '[A-Za-z0-9+/]\{43\}'
+            } 2>/dev/null | sed 's/^/SHA256:/' | sort -u || true
+          )
 
           # --- Dạng 1 và 2: có sẵn bytes của khóa ---
           while read -r c1 c2 c3 _rest; do
@@ -275,7 +291,7 @@ jobs:
             echo "::error::VPS_HOST_KEY không dùng được. Nó phải là MỘT trong ba dạng:"
             echo "::error::  1. kết quả ssh-keyscan -p $CONG <địa-chỉ-máy>"
             echo "::error::  2. nội dung một tệp .pub:  ssh-ed25519 AAAA... ghi-chu"
-            echo "::error::  3. dấu vân tay:            SHA256:xxxxxxxx..."
+            echo "::error::  3. dấu vân tay:            SHA256:xxxxxxxx... (43 ký tự sau dấu hai chấm)"
             echo "::error::Đọc được $(printf '%s\n' "$GOM" | grep -c . || true) dòng, không dòng nào khớp ba dạng trên."
             exit 1
           fi
