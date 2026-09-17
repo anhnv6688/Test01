@@ -33,6 +33,9 @@ export async function hanhDongDoiDongY(form: FormData) {
   const bat = form.get("bat") === "1";
   ghiDongY(ho.id, mucDich, bat);
   revalidatePath("/phu-huynh/quyen-rieng-tu");
+  // Đồng ý bật được ngay tại trang chụp, nên trang đó cũng phải vẽ lại — không
+  // thì phụ huynh bấm đồng ý xong mà nút gửi vẫn xám, và họ tưởng nút hỏng.
+  revalidatePath("/phu-huynh/chup");
 }
 
 export async function hanhDongThemCon(form: FormData) {

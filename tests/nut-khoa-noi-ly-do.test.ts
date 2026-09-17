@@ -68,10 +68,47 @@ describe("nút gửi ảnh bị khóa thì nói ngay tại chỗ vì sao", () =>
      * cả đường đi.
      */
     const trang = khongChuThich(readFileSync("src/app/phu-huynh/chup/page.tsx", "utf8"));
-    expect(trang).toMatch(/\.thieu\.map\(\(t\) => NOI_GI_KHI_THIEU\[t\]\)/);
+    // Canh Ý, không canh cách viết: phải dùng CẢ mảng `thieu`, và tuyệt đối
+    // không quay lại `noiGiVoiPhuHuynh` — hàm ấy chỉ trả thiếu[0].
+    expect(trang).toMatch(/\.thieu\.map\(/);
     expect(trang).not.toMatch(/noiGiVoiPhuHuynh/);
     // Và hiện ra dạng danh sách có thứ tự, vì đây là các bước làm lần lượt.
     expect(ma).toMatch(/list-decimal/);
+  });
+
+  it("xin đồng ý ĐÚNG MỘT mục đích, ngay tại chỗ tắc", () => {
+    /**
+     * Trước đây chỗ này chỉ nói "anh chị bật riêng trong mục Quyền riêng tư
+     * nhé". Mục ấy có BỐN ô, mà việc phụ huynh đang làm chỉ cần MỘT. Không đoán
+     * được ô nào thì người ta bật hết cho chắc — và bật hết "cho chắc" chính là
+     * thứ mà đồng ý theo mục đích sinh ra để tránh: nó biến bốn quyết định
+     * riêng thành một cái gật đầu.
+     *
+     * Xin đúng một mục đích vừa đỡ mất công hơn vừa là tuân thủ đúng hơn. Hiếm
+     * khi hai thứ ấy cùng chiều; ở đây chúng cùng chiều.
+     */
+    expect(ma).toMatch(/const mucDichDangCan = loaiViec === "doc-de-bai"/);
+    expect(ma).toMatch(/<XinDongY mucDich=\{mucDichDangCan\}/);
+  });
+
+  it("đồng ý tại chỗ vẫn là đồng ý CÓ HIỂU, không phải một nút trống", () => {
+    // Rút gọn đường đi thì được, rút gọn thông tin thì không: vẫn nêu đủ việc
+    // Ô Ly sẽ làm và thứ sẽ mất nếu không bật.
+    const i = ma.indexOf("function XinDongY");
+    expect(i).toBeGreaterThan(-1);
+    const than = ma.slice(i, i + 1400);
+    expect(than).toMatch(/moTa\.giaiThich/);
+    expect(than).toMatch(/moTa\.matGi/);
+    // Và không có ô đánh dấu sẵn (CR-04) — phụ huynh phải tự bấm.
+    expect(than).not.toMatch(/defaultChecked/);
+  });
+
+  it("bật đồng ý xong thì trang chụp vẽ lại, không để nút xám tiếp", () => {
+    // Bấm đồng ý mà nút vẫn xám thì phụ huynh tưởng nút hỏng — đúng cái vòng
+    // bế tắc vừa gỡ ra.
+    const act = readFileSync("src/app/phu-huynh/actions.ts", "utf8");
+    const i = act.indexOf("export async function hanhDongDoiDongY");
+    expect(act.slice(i, i + 700)).toMatch(/revalidatePath\("\/phu-huynh\/chup"\)/);
   });
 
   it("ba điều kiện khóa nút đều có chỗ nói ra", () => {

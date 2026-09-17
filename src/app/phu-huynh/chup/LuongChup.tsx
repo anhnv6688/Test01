@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
+import { hanhDongDoiDongY } from "../actions";
 import type { KetQuaCham } from "@/lib/domain/cham-bai/ket-qua";
 import type { TomTatTrang } from "@/lib/domain/cham-bai";
 import type { LoiGiang, MucChiTiet } from "@/lib/domain/teaching";
@@ -51,13 +52,52 @@ export interface ConChonDuoc {
   lop: 1 | 2;
   /** null nghĩa là chụp được. Chuỗi là câu nói cho phụ huynh. */
   /** Những việc còn thiếu trước khi gửi được, theo thứ tự nên làm. Rỗng = xong. */
-  vuongGi: Record<LoaiViec, string[]>;
+  /** Những việc còn thiếu trước khi gửi được, theo thứ tự nên làm. Rỗng = xong. */
+  vuongGi: Record<LoaiViec, { ma: string; loi: string }[]>;
+}
+
+/**
+ * Xin đồng ý cho ĐÚNG MỘT mục đích, ngay tại chỗ đang tắc.
+ *
+ * Trước đây chỗ này chỉ nói "anh chị bật riêng trong mục Quyền riêng tư nhé".
+ * Mục ấy có bốn ô, mà việc phụ huynh đang làm chỉ cần một. Không đoán được ô
+ * nào thì người ta bật hết cho chắc — và bật hết "cho chắc" chính là thứ mà
+ * đồng ý THEO MỤC ĐÍCH sinh ra để tránh: nó biến bốn quyết định riêng thành một
+ * cái gật đầu.
+ *
+ * Vẫn là đồng ý CÓ HIỂU, không phải một nút trống: hiện đủ việc Ô Ly sẽ làm và
+ * thứ sẽ mất nếu không bật, đúng những câu ở MUC_DICH. Rút gọn đường đi thì
+ * được, rút gọn thông tin thì không.
+ *
+ * Không có ô đánh dấu sẵn (CR-04): phụ huynh phải tự bấm.
+ */
+function XinDongY({ mucDich, moTa }: {
+  mucDich: string;
+  moTa: { ten: string; giaiThich: string; matGi: string[] };
+}) {
+  return (
+    <form action={hanhDongDoiDongY} className="the mt-3 p-4"
+      style={{ background: "var(--giay)", borderColor: "var(--vien)" }}>
+      <input type="hidden" name="mucDich" value={mucDich} />
+      <input type="hidden" name="bat" value="1" />
+      <p className="m-0 text-sm font-semibold">{moTa.ten}</p>
+      <p className="m-0 mt-1 text-sm" style={{ color: "var(--muc-nhat)" }}>{moTa.giaiThich}</p>
+      <p className="m-0 mt-1 text-sm" style={{ color: "var(--muc-nhat)" }}>
+        Không bật thì mất: {moTa.matGi.join("; ")}. Phần luyện tập của con vẫn chạy bình thường.
+      </p>
+      <button type="submit" className="nut nut-chinh mt-3 text-sm">
+        Tôi đồng ý cho mục đích này
+      </button>
+    </form>
+  );
 }
 
 export function LuongChup({
+  moTaMucDich,
   cacCon, conLaiHomNay, tranNgay, conLaiThangNay, tranThang,
 }: {
   cacCon: ConChonDuoc[];
+  moTaMucDich: Record<string, { ten: string; giaiThich: string; matGi: string[] }>;
   conLaiHomNay: number | null;
   tranNgay: number | null;
   conLaiThangNay: number | null;
@@ -77,8 +117,12 @@ export function LuongChup({
   const canvasGoc = useRef<HTMLCanvasElement | null>(null);
 
   const con = cacCon.find((c) => c.id === childId) ?? cacCon[0] ?? null;
-  const vuongGi = con?.vuongGi[loaiViec] ?? ["Hộ mình chưa có bạn nào trong danh sách."];
+  const vuongGi = con?.vuongGi[loaiViec] ?? [{ ma: "chua-co-con", loi: "Hộ mình chưa có bạn nào trong danh sách." }];
   const daBat = vuongGi.length === 0;
+  // Mục đích tương ứng với việc đang chọn — đây là thứ cần xin đồng ý, và CHỈ
+  // thứ này. Ba mục đích còn lại không liên quan gì tới việc bấm nút gửi.
+  const mucDichDangCan = loaiViec === "doc-de-bai" ? "doc-anh-de-bai" : "cham-bai-viet-tay";
+  const moTa = moTaMucDich[mucDichDangCan];
 
   const dungVung = useCallback((cao: number): VungDaChe[] => [{ x: 0, y: 0, w: 1, h: cao }], []);
 
@@ -201,7 +245,7 @@ export function LuongChup({
               gửi được ảnh:
             </p>
             <ol className="m-0 mt-2 list-decimal space-y-1 pl-5">
-              {vuongGi.map((v) => <li key={v}>{v}</li>)}
+              {vuongGi.map((v) => <li key={v.ma}>{v.loi}</li>)}
             </ol>
             <p className="m-0 mt-3">
               <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>{" "}
@@ -281,8 +325,14 @@ export function LuongChup({
               style={{ background: "var(--cam-nen)", borderColor: "var(--cam)" }}>
               <p className="m-0"><strong>Chưa gửi đi được.</strong> Còn phải làm:</p>
               <ol className="m-0 mt-2 list-decimal space-y-1 pl-5">
-                {vuongGi.map((v) => <li key={v}>{v}</li>)}
+                {vuongGi.map((v) => <li key={v.ma}>{v.loi}</li>)}
               </ol>
+
+              {/* Việc nào làm được ngay tại đây thì làm ngay tại đây. */}
+              {vuongGi.some((v) => v.ma === "chua-co-dong-y-nguoi-giam-ho") && moTa && (
+                <XinDongY mucDich={mucDichDangCan} moTa={moTa} />
+              )}
+
               <p className="m-0 mt-3">
                 <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>{" "}
                 <Link href="/phu-huynh/quyen-rieng-tu">Mở mục Quyền riêng tư →</Link>
