@@ -105,7 +105,25 @@ CAUHINH
   # vụ SSH, và lúc đó không còn đường nào vào để sửa.
   if sshd -t; then
     systemctl reload ssh 2>/dev/null || systemctl reload sshd
-    xanh "SSH: chỉ nhận khóa, không nhận mật khẩu, root không đăng nhập thẳng"
+    #
+    # Hỏi lại sshd xem nó ĐANG hiểu thế nào, thay vì tin là tệp mình vừa ghi có
+    # hiệu lực. Trong sshd_config, giá trị ĐẦU TIÊN đọc được sẽ thắng; nhiều ảnh
+    # của nhà cung cấp đặt sẵn PasswordAuthentication yes ở chỗ nằm TRƯỚC dòng
+    # Include, nên tệp bổ sung này thua mà không báo gì.
+    #
+    # Đã gặp thật trên máy này: PermitRootLogin no có hiệu lực, còn
+    # PasswordAuthentication no thì không — nửa chốt ăn nửa chốt trượt, và dòng
+    # "ok" cũ báo xanh cho cả hai.
+    #
+    MK=$(sshd -T 2>/dev/null | awk '/^passwordauthentication /{print $2}')
+    RT=$(sshd -T 2>/dev/null | awk '/^permitrootlogin /{print $2}')
+    xanh "SSH đang hiệu lực: mật khẩu=${MK:-?}, đăng nhập root=${RT:-?}"
+    if [ "$MK" != "no" ]; then
+      vang "MẬT KHẨU VẪN BẬT. Tệp bổ sung bị một dòng khác trong /etc/ssh/sshd_config"
+      vang "ghi đè, vì dòng đó nằm trước Include. Sửa thẳng trong tệp chính:"
+      vang "    sed -i 's/^ *PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config"
+      vang "    sshd -t \&\& systemctl reload ssh"
+    fi
   else
     rm -f /etc/ssh/sshd_config.d/99-oly.conf
     do_ "cấu hình SSH sai cú pháp — đã bỏ đi, giữ nguyên cấu hình cũ"

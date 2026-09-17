@@ -159,6 +159,25 @@ jobs:
           # thử lại — mà mỗi lần thử là một vòng CI ba phút. Chỉ in TÊN, tuyệt
           # đối không in giá trị: nhật ký Actions ai có quyền đọc kho cũng xem
           # được, và một khóa riêng SSH lọt vào đó là phải tạo lại khóa.
+          #
+          # root thì KHÔNG dùng được, và phải nói ra trước khi thử kết nối.
+          #
+          # dung-may-chu.sh cố tình đặt PermitRootLogin no. Nên nếu VPS_USERNAME
+          # là root thì mọi lần triển khai đều hỏng — nhưng hỏng theo kiểu khó
+          # đoán nhất: lần đầu sau khi dựng nền, sshd từ chối trong ba giây, rồi
+          # fail2ban cấm luôn IP của runner, nên những lần sau lại thành TIMEOUT.
+          # Cùng một nguyên nhân hiện ra thành hai triệu chứng trông như hai
+          # bệnh khác nhau, và triệu chứng thứ hai dẫn thẳng người ta đi soi
+          # tường lửa. Đã mất hơn một giờ vì đúng chuyện này.
+          #
+          if [ "${{ secrets.VPS_USERNAME }}" = "root" ]; then
+            echo "::error::VPS_USERNAME đang là 'root'. Máy chủ đã tắt đăng nhập root."
+            echo "::error::Đổi VPS_USERNAME thành người vận hành thường, ví dụ 'oly'."
+            echo "::error::Nếu IP runner đã bị fail2ban cấm, gỡ trên máy chủ bằng:"
+            echo "::error::    sudo fail2ban-client unban --all"
+            exit 1
+          fi
+
           THIEU=""
           [ -n "${{ secrets.VPS_HOST }}" ]     || THIEU="$THIEU VPS_HOST"
           [ -n "${{ secrets.VPS_USERNAME }}" ] || THIEU="$THIEU VPS_USERNAME"
