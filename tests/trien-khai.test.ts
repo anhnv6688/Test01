@@ -464,6 +464,44 @@ describe("đưa lên máy chủ tự động", () => {
     expect(wf).not.toMatch(/OLY_PIN_MAU_KHAI='\$/);
   });
 
+  it("băm mật khẩu hàng rào qua stdin của docker exec -i, không qua tham số", () => {
+    /**
+     * `docker compose exec -T` KHÔNG chuyển tiếp stdin, và Caddy trả về đúng
+     * hai chữ "Error: EOF". Ba lần đưa lên liên tiếp chết ở đây. `docker exec -i`
+     * thì chuyển — đó chính là việc của cờ -i.
+     *
+     * Và tuyệt đối không dùng `--plaintext`: tham số dòng lệnh hiện trong `ps`
+     * của mọi người dùng trên máy chủ. Thà hỏng còn hơn rò.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    expect(ca).toMatch(/docker exec -i "\$ID_CADDY" caddy hash-password/);
+    expect(ca).not.toMatch(/hash-password[^\n]*--plaintext/);
+  });
+
+  it("hàng rào hỏng thì kêu to nhưng KHÔNG giữ lại bản Ô Ly cũ", () => {
+    /**
+     * Ba lần đưa lên liên tiếp đã chết vì băm mật khẩu hỏng, và mỗi cái chết ấy
+     * giữ lại trên máy chủ một bản Ô Ly cũ hơn — trong khi hàng rào vẫn hệt như
+     * trước, không hơn không kém. Chặn ở đó không bảo vệ thêm được gì, nó chỉ
+     * ngăn mọi bản sửa khác đi lên.
+     *
+     * Hàng rào là lớp phòng thêm cho một máy THỬ, không phải điều kiện để sản
+     * phẩm chạy — nên nó không được quyền giữ sản phẩm lại. Im lặng thì cũng
+     * không được: phải nói thẳng rằng bản thử đang mở.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    const i = ca.indexOf("KHÔNG băm được mật khẩu hàng rào");
+    expect(i, "phải có nhánh báo khi băm hỏng").toBeGreaterThan(-1);
+    // Nhánh ấy KHÔNG được exit — đó là điểm của cả bài kiểm này.
+    expect(ca.slice(i, i + 700)).not.toMatch(/exit 1/);
+    expect(ca.slice(i - 200, i + 700)).toMatch(/vang /);
+
+    // Nhưng khai mật khẩu cho bản THẬT thì vẫn dừng hẳn — chốt kia không đổi.
+    const j = ca.indexOf('[ -n "${OLY_MAT_KHAU_THU:-}" ] && [ "$MOI_TRUONG" = "that" ]');
+    expect(j).toBeGreaterThan(-1);
+    expect(ca.slice(j, j + 500)).toMatch(/exit 1/);
+  });
+
   it("thẻ đăng nhập sổ đăng ký không ở lại trên máy chủ", () => {
     // Thẻ của lần chạy hết hạn khi việc kết thúc, nhưng tệp ~/.docker/config.json
     // thì ở lại. Đăng xuất kể cả khi triển khai hỏng.

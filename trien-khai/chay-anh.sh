@@ -272,22 +272,59 @@ if [ -n "${OLY_MAT_KHAU_THU:-}" ]; then
   # Không câu nào nói vì sao. Một dòng chẩn đoán đặt sau chỗ chết là một dòng
   # chẩn đoán không tồn tại.
   #
+  #
+  # `docker exec -i`, KHÔNG phải `docker compose exec -T`.
+  #
+  # Bản trước dùng compose và Caddy trả về đúng hai chữ:
+  #
+  #     Error: EOF
+  #
+  # Nghĩa là `caddy hash-password` đọc stdin và không nhận được gì: `-T` tắt
+  # pseudo-TTY nhưng compose không chuyển tiếp stdin qua. `docker exec -i` thì
+  # chuyển, đó chính là việc của cờ -i.
+  #
+  # Vẫn đi qua stdin chứ không qua `--plaintext`: tham số dòng lệnh hiện trong
+  # `ps` của mọi người dùng trên máy chủ. Thà hỏng còn hơn rò.
+  #
   LOI_BAM=$(mktemp)
-  BAM=$(printf '%s' "$OLY_MAT_KHAU_THU" \
-    | "${COMPOSE[@]}" exec -T caddy caddy hash-password 2>"$LOI_BAM" | tr -d '\r\n' || true)
-  if [ -z "$BAM" ]; then
-    do_ "Không băm được mật khẩu hàng rào. Caddy nói:"
+  ID_CADDY=$("${COMPOSE[@]}" ps -q caddy 2>/dev/null || true)
+  BAM=""
+  if [ -n "$ID_CADDY" ]; then
+    BAM=$(printf '%s' "$OLY_MAT_KHAU_THU" \
+      | docker exec -i "$ID_CADDY" caddy hash-password 2>"$LOI_BAM" | tr -d '\r\n' || true)
+  else
+    printf 'không tìm thấy thùng chứa caddy đang chạy\n' > "$LOI_BAM"
+  fi
+
+  if [ -n "$BAM" ]; then
+    umask 077
+    {
+      printf '# Sinh bởi trien-khai/chay-anh.sh. Đừng sửa tay, mỗi lần triển khai ghi đè.\n'
+      printf 'basic_auth {\n\tnoi-bo %s\n}\n' "$BAM"
+    } > "$BAO_VE"
+    xanh "hàng rào mật khẩu: BẬT (tên đăng nhập noi-bo)"
+  else
+    #
+    # Băm hỏng thì KÊU TO nhưng KHÔNG chặn lần triển khai.
+    #
+    # Ba lần đưa lên liên tiếp đã chết ở đúng chỗ này, và cái chết ấy giữ lại
+    # trên máy chủ một bản Ô Ly cũ hơn — trong khi hàng rào thì vẫn hệt như
+    # trước, không hơn không kém. Tức là chặn ở đây không bảo vệ thêm được gì,
+    # nó chỉ ngăn mọi bản sửa khác đi lên.
+    #
+    # Hàng rào là lớp phòng thêm cho một máy THỬ. Nó không phải điều kiện để
+    # sản phẩm chạy, nên nó không được quyền giữ sản phẩm lại. Ngược lại, im
+    # lặng thì cũng không được: dòng dưới nói thẳng bản thử đang mở, và
+    # npm run kiem-moi-truong soi từ ngoài vào sẽ thấy điều đó.
+    #
+    vang "KHÔNG băm được mật khẩu hàng rào — bản thử đang MỞ, ai dò trúng địa chỉ cũng vào được."
+    vang "Caddy nói:"
     sed 's/^/       /' "$LOI_BAM" || true
-    rm -f "$LOI_BAM"
-    exit 1
+    vang "Vẫn đưa bản mới lên: chặn ở đây không làm hàng rào chắc hơn, chỉ giữ"
+    vang "lại một bản Ô Ly cũ trên máy chủ."
+    printf '# Băm mật khẩu hỏng ở lần triển khai này — không có hàng rào.\n' > "$BAO_VE"
   fi
   rm -f "$LOI_BAM"
-  umask 077
-  {
-    printf '# Sinh bởi trien-khai/chay-anh.sh. Đừng sửa tay, mỗi lần triển khai ghi đè.\n'
-    printf 'basic_auth {\n\tnoi-bo %s\n}\n' "$BAM"
-  } > "$BAO_VE"
-  xanh "hàng rào mật khẩu: BẬT (tên đăng nhập noi-bo)"
 else
   printf '# Không có hàng rào: OLY_MAT_KHAU_THU chưa khai.\n' > "$BAO_VE"
   if [ "$MOI_TRUONG" != "that" ]; then
