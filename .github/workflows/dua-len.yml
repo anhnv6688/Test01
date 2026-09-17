@@ -508,6 +508,11 @@ jobs:
         env:
           DIA_CHI: ${{ vars.VPS_URL }}
           CHO: ${{ github.event.inputs.moi_truong || 'thu' }}
+          # Dùng trình duyệt Playwright tự tải, đừng dùng đường dẫn mặc định
+          # trong kịch bản — đường dẫn đó là của máy người viết mã, không có ở
+          # máy chạy việc. kiem-giao-dien đã khai dòng này từ lâu; tôi quên khai
+          # cho kiem-moi-truong, nên nó chết trước cả khi thử được gì.
+          OLY_CHROME: ""
         run: |
           # Địa chỉ là IP thì chứng chỉ chỉ có thể là tự ký, nên phải khai cờ —
           # nếu không thì fetch và trình duyệt đều từ chối và bộ soi không soi
