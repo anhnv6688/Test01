@@ -135,8 +135,23 @@ jobs:
           KHOA: ${{ secrets.OLY_SSH_KHOA }}
           KHOA_MAY: ${{ secrets.OLY_MAY_CHU_KHOA }}
         run: |
-          if [ -z "$KHOA" ] || [ -z "$KHOA_MAY" ] || [ -z "${{ secrets.OLY_MAY_CHU }}" ]; then
-            echo "::error::Thiếu khai báo. Xem phần chú thích đầu tệp workflow này."
+          # Gọi tên từng khai báo còn thiếu, không báo gộp "thiếu khai báo".
+          #
+          # Người vận hành đọc dòng này lúc đang dở việc và thường là lần đầu
+          # dựng máy; báo gộp thì họ phải mở tài liệu, đối chiếu năm thứ, rồi
+          # thử lại — mà mỗi lần thử là một vòng CI ba phút. Chỉ in TÊN, tuyệt
+          # đối không in giá trị: nhật ký Actions ai có quyền đọc kho cũng xem
+          # được, và một khóa riêng SSH lọt vào đó là phải tạo lại khóa.
+          THIEU=""
+          [ -n "${{ secrets.OLY_MAY_CHU }}" ] || THIEU="$THIEU OLY_MAY_CHU"
+          [ -n "${{ secrets.OLY_NGUOI }}" ]   || THIEU="$THIEU OLY_NGUOI"
+          [ -n "$KHOA" ]                      || THIEU="$THIEU OLY_SSH_KHOA"
+          [ -n "$KHOA_MAY" ]                  || THIEU="$THIEU OLY_MAY_CHU_KHOA"
+          if [ -n "$THIEU" ]; then
+            echo "::error::Environment '$MOI_TRUONG' còn thiếu secret:$THIEU"
+            echo "::error::Khai ở Settings > Environments > $MOI_TRUONG (KHÔNG phải Repository secrets)."
+            echo "::error::Lấy OLY_MAY_CHU_KHOA bằng: ssh-keyscan <địa-chỉ-máy>"
+            echo "::error::Chi tiết: docs/vps-contabo.md"
             exit 1
           fi
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -149,6 +164,14 @@ jobs:
           # với dấu vân tay in ra ở bảng điều khiển của nhà cung cấp.
           printf '%s\n' "$KHOA_MAY" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+
+      - name: Nhắc nếu chưa khai địa chỉ công khai
+        # Thiếu biến này thì việc soi bị BỎ QUA, và bỏ qua thì không ai biết —
+        # một lần triển khai xanh mà chưa ai thử mã mặc định vào nó.
+        if: vars.OLY_DIA_CHI == ''
+        run: |
+          echo "::warning::Chưa khai variable OLY_DIA_CHI cho environment '$MOI_TRUONG'."
+          echo "::warning::Thiếu nó thì việc soi bản đã triển khai bị bỏ qua — sẽ KHÔNG ai thử PIN 1234 và mã trực mặc định vào máy chủ này."
 
       - name: Gửi tệp cấu hình lên máy chủ
         # Gửi cấu hình thay vì để máy chủ tự `git pull`. Nhờ vậy máy chủ không
