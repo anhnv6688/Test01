@@ -368,6 +368,70 @@ describe("đưa lên máy chủ tự động", () => {
     expect(bs).toMatch(/vaoDuoc\s*\?/);
   });
 
+  it("hàng rào mật khẩu KHÔNG bao giờ dựng ở bản thật", () => {
+    /**
+     * Đây là chốt quan trọng nhất của lớp hàng rào, và nó ngược chiều trực giác:
+     * thêm một lớp mật khẩu nghe như luôn an toàn hơn.
+     *
+     * Bản thật có phụ huynh thật vào bằng mã PIN của hộ mình. Một mật khẩu dùng
+     * chung của đội phát triển đặt trước cửa không bảo vệ thêm được gì — nó chỉ
+     * khóa đúng những người sản phẩm sinh ra để phục vụ. Khai nhầm một secret là
+     * cả bản thật câm lặng với mọi người dùng.
+     *
+     * Nên chay-anh.sh DỪNG HẲN chứ không âm thầm bỏ qua: bỏ qua thì người khai
+     * tưởng đã bật, và tưởng sai theo hướng nguy hiểm hơn.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+
+    // Chỉ đích danh CHÍNH điều kiện của hàng rào, không chỉ "có chữ that ở đâu
+    // đó". Bản đầu của bài kiểm này tìm `[ "$MOI_TRUONG" = "that" ]` rồi xem
+    // gần đó có exit 1 không — và nó khớp nhầm nhánh "bản thật bắt buộc có tên
+    // miền" nằm phía trên, nên thay điều kiện hàng rào bằng `if false` mà bài
+    // kiểm vẫn xanh. Một bài kiểm bắt nhầm chỗ thì không canh gì cả.
+    const dieuKien = '[ -n "${OLY_MAT_KHAU_THU:-}" ] && [ "$MOI_TRUONG" = "that" ]';
+    const i = ca.indexOf(dieuKien);
+    expect(i, "phải chặn đúng khi CÓ mật khẩu VÀ đang là bản thật").toBeGreaterThan(-1);
+    expect(ca.slice(i, i + 500)).toMatch(/exit 1/);
+  });
+
+  it("mật khẩu hàng rào không đi qua dòng lệnh chạy từ xa", () => {
+    // Tham số của lệnh chạy qua SSH hiện trong `ps` của mọi người dùng trên máy
+    // chủ. Đưa qua stdin thì không.
+    expect(wf).toMatch(/OLY_MAT_KHAU_THU=\\\$\(cat\)/);
+    expect(wf).not.toMatch(/OLY_MAT_KHAU_THU='\$/);
+  });
+
+  it("bản băm mật khẩu không nằm trong kho mã", () => {
+    // bao-ve.caddy được commit ở dạng TRỐNG, chỉ để `import` của Caddy không
+    // báo lỗi thiếu tệp. Máy chủ ghi đè nó ở mỗi lần triển khai.
+    const bv = doc("trien-khai/bao-ve.caddy");
+    expect(bv).not.toMatch(/basic_auth/);
+    expect(bv).not.toMatch(/\$2[aby]\$/); // chuỗi băm bcrypt
+    // Và cả hai Caddyfile đều phải móc vào nó, nếu không hàng rào sinh ra mà
+    // không ai nạp.
+    for (const t of ["trien-khai/Caddyfile", "trien-khai/Caddyfile.khong-ten-mien"]) {
+      expect(doc(t), t).toMatch(/import \/etc\/caddy-nguon\/bao-ve\.caddy/);
+    }
+  });
+
+  it("bộ soi đi qua được hàng rào, nếu không cả đường ống đỏ vì 401", () => {
+    // Bật hàng rào mà quên cấp mã cho bộ soi thì mọi bước kiểm nhận 401 và cả
+    // đường ống đỏ vì một lý do chẳng liên quan gì tới sản phẩm.
+    for (const bo of ["kiem-moi-truong", "kiem-giao-dien"]) {
+      const i = wf.indexOf(`npm run ${bo} --`);
+      expect(i, `workflow phải gọi ${bo}`).toBeGreaterThan(-1);
+      expect(wf.slice(Math.max(0, i - 600), i), bo).toMatch(/OLY_MAT_KHAU_THU:/);
+    }
+    // Và mọi cửa sổ trình duyệt đều mang thông tin đăng nhập — quên một chỗ là
+    // một bước kiểm lặng lẽ soi trang 401 thay vì soi sản phẩm.
+    for (const bo of ["scripts/kiem-moi-truong.mts", "scripts/kiem-giao-dien.mts"]) {
+      const ma = doc(bo);
+      const soContext = (ma.match(/newContext\(\{/g) ?? []).length;
+      const soMa = (ma.match(/httpCredentials: thongTinHangRao\(\)/g) ?? []).length;
+      expect(soMa, `${bo}: ${soContext} cửa sổ nhưng ${soMa} chỗ khai mã`).toBe(soContext);
+    }
+  });
+
   it("thẻ đăng nhập sổ đăng ký không ở lại trên máy chủ", () => {
     // Thẻ của lần chạy hết hạn khi việc kết thúc, nhưng tệp ~/.docker/config.json
     // thì ở lại. Đăng xuất kể cả khi triển khai hỏng.

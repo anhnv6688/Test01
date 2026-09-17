@@ -322,21 +322,39 @@ thì càng có khả năng trong đó có một cái tên thật.
 
 Kịch bản này từ chối chạy nếu máy đang phục vụ bản thật.
 
-### Nên đặt thêm một lớp mật khẩu ở Caddy
+### Lớp mật khẩu ở Caddy
 
 `robots.txt` của bản thử chặn mọi máy quét, nhưng đó là lời đề nghị chứ không
-phải cái khóa. Một địa chỉ công khai thì vẫn có người dò tới. Thêm vào khối site
-trong `trien-khai/Caddyfile`:
+phải cái khóa. Và từ lúc có chứng chỉ Let's Encrypt, tên miền nằm trong
+Certificate Transparency log — công khai, có bot quét liên tục. Cái link "chỉ
+mình biết" không còn tồn tại.
 
-```
-basic_auth {
-    noi-bo <chuỗi-băm-bcrypt>
-}
-```
+Bật bằng **một** khai báo: secret `VPS_MAT_KHAU_THU` trong kho mã (Settings →
+Secrets and variables → Actions → tab **Secrets**). Tên đăng nhập luôn là
+`noi-bo`. Không khai thì bản thử mở toang, và mỗi lần triển khai nói ra điều đó.
 
-Lấy chuỗi băm bằng `docker run --rm caddy:2-alpine caddy hash-password`. Một mật
-khẩu dùng chung cho cả đội là đủ — đây là hàng rào chắn người lạ, không phải hệ
-thống phân quyền.
+Phần còn lại tự động: `chay-anh.sh` băm mật khẩu ngay trên máy chủ bằng chính
+ảnh Caddy sẽ chạy, rồi sinh `trien-khai/bao-ve.caddy`. Không có bản băm nào đi
+qua kho mã hay nhật ký Actions, và mật khẩu đi sang máy chủ qua **stdin** chứ
+không qua dòng lệnh — tham số của lệnh chạy từ xa hiện trong `ps` của mọi người
+dùng trên máy chủ.
+
+**Bản THẬT không bao giờ có hàng rào này, và khai nhầm thì triển khai dừng hẳn.**
+Nghe ngược với trực giác, nên nói rõ: bản thật có phụ huynh thật vào bằng mã PIN
+của hộ mình. Một mật khẩu dùng chung của đội phát triển đặt trước cửa không bảo
+vệ thêm được gì — nó chỉ khóa đúng những người sản phẩm sinh ra để phục vụ. Nên
+`chay-anh.sh` dừng và nói ra, chứ không âm thầm bỏ qua: bỏ qua thì người khai
+tưởng đã bật, và tưởng sai theo hướng nguy hiểm hơn.
+
+Hai bộ soi tự động cũng phải qua được hàng rào, nếu không mọi bước kiểm nhận 401
+và cả đường ống đỏ vì một lý do chẳng liên quan gì tới sản phẩm. Chúng nhận mật
+khẩu qua `OLY_MAT_KHAU_THU` và tự in ra một dòng "Đi qua hàng rào mật khẩu của
+bản thử" — để dòng "đạt" ở cuối không bị đọc rộng hơn sự thật.
+
+Và nói thẳng về sức mạnh của lớp này: nó chặn người lạ dò trúng địa chỉ và bot
+quét, **không** chặn người quyết tâm. Một mật khẩu ngắn dùng chung thì đúng là
+như vậy. Với một máy thử không có dữ liệu thật của trẻ, đổi như thế là hợp lý —
+nhưng đừng nhầm nó với một lớp bảo vệ cho bản thật.
 
 ## Vận hành hằng ngày
 

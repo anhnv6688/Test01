@@ -1,0 +1,8 @@
+# Hàng rào mật khẩu của bản THỬ — tệp này do trien-khai/chay-anh.sh sinh ra.
+#
+# Bản trong kho mã trống, và phải trống: mật khẩu không được nằm trong kho mã,
+# kể cả dạng băm. Máy chủ ghi đè tệp này ở mỗi lần triển khai.
+#
+# Có mặt dù trống vì `import` của Caddy báo lỗi khi tệp không tồn tại. Một tệp
+# trống thì Caddy nạp bình thường và không thêm gì — còn thiếu tệp thì cả trang
+# chết, ở một lần triển khai mà người ta đang sửa chuyện khác.

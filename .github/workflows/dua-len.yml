@@ -418,6 +418,7 @@ jobs:
           NGUOI: ${{ secrets.VPS_USERNAME }}
           THE: ${{ secrets.GITHUB_TOKEN }}
           DIA_CHI_CONG_KHAI: ${{ vars.VPS_URL }}
+          MAT_KHAU_THU: ${{ secrets.VPS_MAT_KHAU_THU }}
         run: |
           # Tên miền rút ra từ chính VPS_URL, không khai thêm một biến nữa.
           #
@@ -444,9 +445,16 @@ jobs:
           # nhập sống mãi. Đăng xuất ngay sau đó, kể cả khi triển khai hỏng.
           printf '%s' "$THE" | ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
             "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+          # Mật khẩu hàng rào đi qua STDIN, không qua dòng lệnh: tham số của
+          # lệnh chạy từ xa hiện trong `ps` của mọi người dùng trên máy chủ,
+          # còn thứ đọc từ stdin thì không. `$(cat)` nhận nó vào biến môi
+          # trường của chính tiến trình ấy.
+          #
+          # Rỗng cũng gửi: chay-anh.sh coi chuỗi rỗng là "không có hàng rào" và
+          # tự nói ra rằng bản thử đang mở toang.
           MA=0
-          ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
-            "cd ~/o-ly && bash trien-khai/chay-anh.sh '$ANH' '$MOI_TRUONG' '$TEN_MIEN'" || MA=$?
+          printf '%s' "$MAT_KHAU_THU" | ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
+            "cd ~/o-ly && OLY_MAT_KHAU_THU=\$(cat) bash trien-khai/chay-anh.sh '$ANH' '$MOI_TRUONG' '$TEN_MIEN'" || MA=$?
           ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" "docker logout ghcr.io" || true
           exit $MA
 
@@ -534,6 +542,7 @@ jobs:
           # máy chạy việc. kiem-giao-dien đã khai dòng này từ lâu; tôi quên khai
           # cho kiem-moi-truong, nên nó chết trước cả khi thử được gì.
           OLY_CHROME: ""
+          OLY_MAT_KHAU_THU: ${{ secrets.VPS_MAT_KHAU_THU }}
         run: |
           # Địa chỉ là IP thì chứng chỉ chỉ có thể là tự ký, nên phải khai cờ —
           # nếu không thì fetch và trình duyệt đều từ chối và bộ soi không soi
@@ -560,6 +569,7 @@ jobs:
         if: (github.event.inputs.moi_truong || 'thu') == 'thu'
         env:
           OLY_CHROME: ""
+          OLY_MAT_KHAU_THU: ${{ secrets.VPS_MAT_KHAU_THU }}
           DIA_CHI: ${{ vars.VPS_URL }}
         run: |
           CO=""

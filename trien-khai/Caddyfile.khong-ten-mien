@@ -39,6 +39,11 @@
 
 {$OLY_DIA_CHI_MAY} {
 	tls internal
+	# Hàng rào mật khẩu của bản thử. Tệp do chay-anh.sh sinh ra: có nội dung ở
+	# bản thử, TRỐNG ở bản thật — bản thật có phụ huynh thật vào, không thể đứng
+	# sau một mật khẩu dùng chung.
+	import /etc/caddy-nguon/bao-ve.caddy
+
 	encode zstd gzip
 	reverse_proxy o-ly:3000
 

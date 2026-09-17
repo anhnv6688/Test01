@@ -27,6 +27,7 @@
  *   trình duyệt có giữ cookie hay giao diện kịp vẽ lại hay chưa.
  */
 import { chromium, type Browser, type Page } from "playwright";
+import { batHangRaoChoFetch, thongTinHangRao } from "./hang-rao";
 import { MA_TRUC_MAC_DINH } from "../src/lib/server/moi-truong";
 import { TEN_COOKIE as COOKIE_PHU_HUYNH } from "../src/lib/server/cong-phu-huynh";
 import { TEN_COOKIE_TRUC } from "../src/lib/server/cong-truc";
@@ -180,6 +181,7 @@ function rinhCookie(p: Page, ten: string): { daPhat: () => boolean } {
 async function thuMaMacDinh(b: Browser, goc: string, cho: string): Promise<void> {
   console.log("\nThử mã mặc định của bản phát triển vào chính máy chủ này");
   const ctx = await b.newContext({
+    httpCredentials: thongTinHangRao(),
     viewport: { width: 390, height: 844 },
     ignoreHTTPSErrors: CHO_TU_KY,
   });
@@ -315,6 +317,9 @@ async function main(): Promise<void> {
     process.exit(2);
   }
   console.log(`Kiểm ${goc}, khai là bản ${cho === "that" ? "THẬT" : "THỬ"}`);
+  // Nói ra là đã đi qua hàng rào. Không nói thì một dòng "đạt" ở cuối có thể là
+  // của một máy chủ mở toang — người đọc cần biết bộ soi đã phải gõ mã mới vào.
+  if (batHangRaoChoFetch(goc)) console.log("Đi qua hàng rào mật khẩu của bản thử.");
 
   const b = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
   try {

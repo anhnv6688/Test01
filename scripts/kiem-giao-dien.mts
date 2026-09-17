@@ -25,6 +25,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
+import { batHangRaoChoFetch, thongTinHangRao } from "./hang-rao";
 import { ghiBoAnhDienTap } from "../src/lib/do-anh/bo-dien-tap";
 
 /*
@@ -181,6 +182,7 @@ async function vaoHoc(p: Page, goc: string): Promise<KetQuaVaoHoc> {
 async function kiemBeMatTre(b: Browser, goc: string): Promise<void> {
   console.log("\nBề mặt của trẻ");
   const ctx = await b.newContext({
+    httpCredentials: thongTinHangRao(),
     viewport: { width: 390, height: 844 },
     ignoreHTTPSErrors: CHO_TU_KY,
   });
@@ -241,6 +243,7 @@ async function kiemBeMatTre(b: Browser, goc: string): Promise<void> {
 async function kiemManHinhChinh(b: Browser, goc: string): Promise<void> {
   console.log("\nCác màn hình chính");
   const ctx = await b.newContext({
+    httpCredentials: thongTinHangRao(),
     viewport: { width: 390, height: 844 },
     ignoreHTTPSErrors: CHO_TU_KY,
   });
@@ -315,6 +318,7 @@ async function kiemCongCuGanNhanDaKhoa(goc: string): Promise<void> {
 async function kiemTrangGanNhan(b: Browser, goc: string): Promise<void> {
   console.log("\nTrang gắn nhãn");
   const ctx = await b.newContext({
+    httpCredentials: thongTinHangRao(),
     viewport: { width: 1280, height: 900 },
     ignoreHTTPSErrors: CHO_TU_KY,
   });
@@ -415,6 +419,9 @@ async function main(): Promise<void> {
     }
   }
   console.log(`Chế độ: ${gocNgoai ? "máy chủ có sẵn" : cheDoDev ? "phát triển" : "phát hành"}`);
+  if (gocNgoai && batHangRaoChoFetch(gocNgoai)) {
+    console.log("Đi qua hàng rào mật khẩu của bản thử.");
+  }
 
   const b = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
   try {

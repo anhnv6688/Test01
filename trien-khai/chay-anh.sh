@@ -143,6 +143,51 @@ else
   xanh "chưa có tên miền — Caddy tự ký chứng chỉ cho $OLY_DIA_CHI_MAY"
 fi
 
+#
+# Dựng hàng rào mật khẩu — CHỈ cho bản thử.
+#
+# Bản thử nằm ở một địa chỉ công khai, và từ lúc có chứng chỉ Let's Encrypt thì
+# tên miền ấy nằm trong Certificate Transparency log: công khai, và có bot quét
+# log đó liên tục. robots.txt chặn máy quét nhưng đó là lời đề nghị, không phải
+# cái khóa.
+#
+# Bản THẬT thì ngược lại hẳn: phụ huynh thật vào bằng mã PIN của hộ mình, không
+# thể bắt họ qua thêm một mật khẩu dùng chung của đội phát triển. Nên ở đây
+# không chỉ bỏ qua mà DỪNG HẲN nếu ai đó khai mật khẩu cho bản thật — khai như
+# thế gần như chắc chắn là nhầm, và cái nhầm ấy khóa người dùng ra ngoài.
+#
+# Băm ngay trên máy chủ bằng chính ảnh Caddy sẽ chạy, nên không có bản băm nào
+# đi qua kho mã hay nhật ký. Không in mật khẩu, không in chuỗi băm.
+#
+BAO_VE="trien-khai/bao-ve.caddy"
+if [ -n "${OLY_MAT_KHAU_THU:-}" ] && [ "$MOI_TRUONG" = "that" ]; then
+  do_ "Có OLY_MAT_KHAU_THU nhưng đây là bản THẬT. Không dựng hàng rào."
+  do_ "Bản thật có phụ huynh thật vào bằng PIN của hộ mình; một mật khẩu dùng"
+  do_ "chung đặt trước cửa là khóa họ ra ngoài. Gỡ khai báo đó rồi chạy lại."
+  exit 1
+fi
+
+if [ -n "${OLY_MAT_KHAU_THU:-}" ]; then
+  BAM=$(printf '%s' "$OLY_MAT_KHAU_THU" \
+    | docker run --rm -i caddy:2-alpine caddy hash-password 2>/dev/null | tr -d '\r\n')
+  if [ -z "$BAM" ]; then
+    do_ "Không băm được mật khẩu hàng rào (caddy hash-password không trả về gì)."
+    exit 1
+  fi
+  umask 077
+  {
+    printf '# Sinh bởi trien-khai/chay-anh.sh. Đừng sửa tay, mỗi lần triển khai ghi đè.\n'
+    printf 'basic_auth {\n\tnoi-bo %s\n}\n' "$BAM"
+  } > "$BAO_VE"
+  xanh "hàng rào mật khẩu: BẬT (tên đăng nhập noi-bo)"
+else
+  printf '# Không có hàng rào: OLY_MAT_KHAU_THU chưa khai.\n' > "$BAO_VE"
+  if [ "$MOI_TRUONG" != "that" ]; then
+    vang "hàng rào mật khẩu: TẮT — ai dò trúng địa chỉ cũng vào được bản thử này."
+    vang "Bật bằng cách khai secret VPS_MAT_KHAU_THU trong kho mã."
+  fi
+fi
+
 COMPOSE=(docker compose
   -f compose.yaml -f "compose.${MOI_TRUONG}.yaml"
   -f trien-khai/compose.caddy.yaml -f trien-khai/compose.anh-ghcr.yaml)
