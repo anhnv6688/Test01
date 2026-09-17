@@ -46,14 +46,38 @@ usermod -aG sudo "$NGUOI"
 
 NHA="/home/$NGUOI"
 install -d -m 700 -o "$NGUOI" -g "$NGUOI" "$NHA/.ssh"
+touch "$NHA/.ssh/authorized_keys"
 if [ -s /root/.ssh/authorized_keys ]; then
+  #
   # Gộp chứ không đè: chạy lại kịch bản không được xóa mất khóa đã thêm sau đó.
-  touch "$NHA/.ssh/authorized_keys"
-  cat /root/.ssh/authorized_keys "$NHA/.ssh/authorized_keys" | sort -u > "$NHA/.ssh/.gop"
+  #
+  # `awk 1` chứ không phải `cat`, và đây là chỗ bản đầu đã sai. Tệp khóa của
+  # root do nhà cung cấp dựng sẵn RẤT hay thiếu ký tự xuống dòng ở cuối; `cat`
+  # hai tệp như thế lại dán khóa cuối của root dính liền vào khóa đầu của người
+  # vận hành, thành MỘT dòng hỏng. `sort -u` giữ nguyên dòng hỏng đó.
+  #
+  # Hỏng im lặng theo đúng nghĩa xấu nhất: tệp vẫn còn, số dòng vẫn gần đúng,
+  # quyền vẫn 600 — chỉ có khóa là mất. Và khóa mất ở đây thường là khóa của
+  # phần chạy tự động, vì nó là khóa được thêm vào trước.
+  #
+  # `awk 1` in lại từng dòng và luôn kết thúc bằng xuống dòng, nên hai tệp
+  # không bao giờ dính vào nhau.
+  #
+  awk 1 /root/.ssh/authorized_keys "$NHA/.ssh/authorized_keys" \
+    | grep -v '^[[:space:]]*$' | sort -u > "$NHA/.ssh/.gop"
   mv "$NHA/.ssh/.gop" "$NHA/.ssh/authorized_keys"
-  chown "$NGUOI:$NGUOI" "$NHA/.ssh/authorized_keys"
-  chmod 600 "$NHA/.ssh/authorized_keys"
-  xanh "đã chép khóa SSH của root sang $NGUOI"
+fi
+chown -R "$NGUOI:$NGUOI" "$NHA/.ssh"
+chmod 600 "$NHA/.ssh/authorized_keys"
+
+# Kiểm bằng chính ssh-keygen thay vì tin là mình vừa ghi đúng. Một dòng khóa
+# hỏng vẫn trông như một dòng bình thường khi nhìn bằng mắt.
+SO_KHOA_VAO=$(ssh-keygen -lf "$NHA/.ssh/authorized_keys" 2>/dev/null | grep -c . || true)
+if [ "${SO_KHOA_VAO:-0}" -gt 0 ]; then
+  xanh "$NGUOI có $SO_KHOA_VAO khóa vào được, ssh-keygen đọc được hết"
+else
+  vang "$NGUOI KHÔNG có khóa công khai nào đọc được."
+  vang "Từ MÁY CỦA ANH chạy:  ssh-copy-id $NGUOI@\$(hostname -I | awk '{print \$1}')"
 fi
 
 buoc "3. Khóa SSH lại"
