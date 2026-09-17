@@ -150,6 +150,7 @@ jobs:
         env:
           KHOA: ${{ secrets.VPS_SSH_KEY }}
           KHOA_MAY: ${{ secrets.VPS_HOST_KEY }}
+          MAY: ${{ secrets.VPS_HOST }}
         run: |
           # Gọi tên từng khai báo còn thiếu, không báo gộp "thiếu khai báo".
           #
@@ -173,23 +174,49 @@ jobs:
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$KHOA" > ~/.ssh/id_trien_khai
           chmod 600 ~/.ssh/id_trien_khai
-          # Ghim khóa máy chủ. TUYỆT ĐỐI không dùng StrictHostKeyChecking=no:
-          # nó chấp nhận bất cứ máy nào trả lời ở địa chỉ đó, nghĩa là một lần
-          # chiếm quyền DNS là đủ để nhận trọn khóa triển khai và toàn bộ nội
-          # dung gửi lên. Lấy dòng này một lần bằng ssh-keyscan rồi đối chiếu
-          # với dấu vân tay in ra ở bảng điều khiển của nhà cung cấp.
-          printf '%s\n' "$KHOA_MAY" > ~/.ssh/known_hosts
+
+          #
+          # Ghim khóa máy chủ, nhưng ghim đúng thứ đáng ghim.
+          #
+          # TUYỆT ĐỐI không dùng StrictHostKeyChecking=no: nó chấp nhận bất cứ
+          # máy nào trả lời ở địa chỉ đó, nên một lần chiếm quyền DNS là đủ để
+          # nhận trọn khóa triển khai và toàn bộ nội dung gửi lên.
+          #
+          # Nhưng dán thẳng kết quả ssh-keyscan vào known_hosts thì ghim CẢ
+          # chuỗi tên máy người vận hành đã gõ lúc quét. Quét bằng tên miền rồi
+          # kết nối bằng IP — hoặc quét quên -p rồi đổi cổng — đều làm ssh từ
+          # chối, và nó từ chối bằng đúng câu "Host key verification failed",
+          # câu mà người đọc sẽ hiểu là đang bị tấn công. Một cảnh báo an ninh
+          # kêu vì lý do hành chính là cảnh báo sẽ bị tắt.
+          #
+          # An toàn nằm ở BYTES CỦA KHÓA, không nằm ở chuỗi tên máy. Nên ở đây
+          # ta lấy phần khóa ra khỏi secret rồi TỰ ghi lại cột tên máy cho đúng
+          # địa chỉ và cổng sắp kết nối tới. Việc ghim không yếu đi một chút
+          # nào: máy lạ vẫn bị từ chối vì khóa khác, chỉ khác là nó không còn từ
+          # chối vì một lý do không liên quan tới an ninh.
+          #
+          # Cổng 22 thì ssh tra known_hosts bằng tên trần; cổng khác thì bằng
+          # dạng [máy]:cổng. Phải ghi đúng dạng tương ứng.
+          if [ "$CONG" = "22" ]; then TEN="$MAY"; else TEN="[$MAY]:$CONG"; fi
+          : > ~/.ssh/known_hosts
+          SO_KHOA=0
+          while read -r _may loai khoa _rest; do
+            case "$loai" in
+              ssh-ed25519|ssh-rsa|ecdsa-sha2-*)
+                printf '%s %s %s\n' "$TEN" "$loai" "$khoa" >> ~/.ssh/known_hosts
+                SO_KHOA=$((SO_KHOA + 1))
+                ;;
+            esac
+          done <<< "$(printf '%s\n' "$KHOA_MAY" | grep -v '^[[:space:]]*#')"
           chmod 600 ~/.ssh/known_hosts
 
-          # Cổng khác 22 thì known_hosts phải ghi dạng [máy]:cổng, và
-          # `ssh-keyscan -p <cổng>` đã in ra đúng dạng đó. Kiểm ngay ở đây chứ
-          # không để ssh tự báo: lỗi của ssh lúc đó là "Host key verification
-          # failed", đọc lên tưởng bị tấn công chứ không nghĩ là dán thiếu cổng.
-          if [ "$CONG" != "22" ] && ! grep -q '^\[' ~/.ssh/known_hosts; then
-            echo "::error::VPS_PORT là $CONG nhưng VPS_HOST_KEY không ở dạng [máy]:cổng."
-            echo "::error::Lấy lại bằng: ssh-keyscan -p $CONG <địa-chỉ-máy>"
+          if [ "$SO_KHOA" -eq 0 ]; then
+            echo "::error::VPS_HOST_KEY không có dòng khóa nào đọc được."
+            echo "::error::Nó phải là nguyên văn kết quả của: ssh-keyscan -p <cổng> <địa-chỉ-máy>"
+            echo "::error::Mỗi dòng dạng: <máy> ssh-ed25519 AAAA..."
             exit 1
           fi
+          echo "Đã ghim $SO_KHOA khóa máy chủ."
 
       - name: Nhắc nếu chưa khai địa chỉ công khai
         # Thiếu biến này thì việc soi bị BỎ QUA, và bỏ qua thì không ai biết —
@@ -210,6 +237,42 @@ jobs:
           tar czf - compose.yaml compose.thu.yaml compose.that.yaml trien-khai \
             | ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
                 'mkdir -p ~/o-ly && tar xzf - -C ~/o-ly'
+
+      - name: Chẩn đoán khi không kết nối được
+        #
+        # Chạy CHỈ KHI có bước trước đó hỏng. "Host key verification failed" là
+        # một câu không nói gì cả: nó đúng khi bị tấn công, và cũng đúng khi
+        # người ta dán nhầm khóa của một máy khác. Không phân biệt được hai
+        # trường hợp đó thì người vận hành hoặc hoảng, hoặc tệ hơn là quen dần
+        # rồi thêm StrictHostKeyChecking=no cho xong.
+        #
+        # In DẤU VÂN TAY, không in khóa và không in địa chỉ. Vân tay sinh ra để
+        # công bố — chính nó là thứ nhà cung cấp máy chủ in ở bảng điều khiển —
+        # nên đối chiếu được mà không lộ gì.
+        if: failure()
+        env:
+          MAY: ${{ secrets.VPS_HOST }}
+        run: |
+          echo "Khóa ĐANG GHIM (từ secret VPS_HOST_KEY):"
+          ssh-keygen -lf ~/.ssh/known_hosts 2>/dev/null | awk '{print "  " $1 " " $2 " " $NF}' || echo "  (không đọc được)"
+
+          echo "Khóa máy chủ ĐANG TRẢ VỀ ngay bây giờ:"
+          if ssh-keyscan -T 10 -p "$CONG" "$MAY" > /tmp/khoa-hien-tai 2>/dev/null && [ -s /tmp/khoa-hien-tai ]; then
+            ssh-keygen -lf /tmp/khoa-hien-tai | awk '{print "  " $1 " " $2 " " $NF}'
+            echo ""
+            echo "Hai danh sách trên KHÁC nhau  -> VPS_HOST_KEY là của máy khác, hoặc máy đã cài lại."
+            echo "Hai danh sách GIỐNG nhau      -> khóa đúng; lỗi nằm ở chỗ khác:"
+            echo "  * VPS_SSH_KEY chưa nằm trong ~/.ssh/authorized_keys của VPS_USERNAME"
+            echo "  * hoặc VPS_USERNAME sai"
+            echo "  * hoặc khóa riêng dán thiếu dòng BEGIN/END"
+          else
+            echo "  (không nối được tới cổng $CONG)"
+            echo ""
+            echo "Không chạm được tới máy. Ba khả năng, theo thứ tự hay gặp:"
+            echo "  * VPS_PORT sai — máy đang nghe ở cổng khác"
+            echo "  * tường lửa chặn: trên máy chủ chạy  sudo ufw allow $CONG/tcp"
+            echo "  * VPS_HOST sai"
+          fi
 
       - name: Chạy ảnh mới
         env:
