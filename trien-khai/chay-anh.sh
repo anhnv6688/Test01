@@ -80,6 +80,17 @@ elif [ "$MOI_TRUONG" = "that" ]; then
   exit 1
 else
   export OLY_CADDYFILE="Caddyfile.khong-ten-mien"
+  # Chưa có tên miền thì địa chỉ site là IP của chính máy này. Tự tìm ở đây chứ
+  # không bắt khai thêm một biến nữa — máy chủ biết rõ IP của nó hơn bất kỳ ai.
+  OLY_DIA_CHI_MAY=$(hostname -I 2>/dev/null | awk '{print $1}')
+  if [ -z "$OLY_DIA_CHI_MAY" ]; then
+    do_ "Không tự tìm được địa chỉ IP của máy này, mà cũng chưa khai OLY_TEN_MIEN."
+    do_ "Caddy cần một tên cụ thể mới xuất được chứng chỉ. Khai tay vào ~/o-ly/.env:"
+    do_ "    OLY_DIA_CHI_MAY=<ip-hoặc-tên-miền>"
+    exit 1
+  fi
+  export OLY_DIA_CHI_MAY
+  xanh "chưa có tên miền — Caddy tự ký chứng chỉ cho $OLY_DIA_CHI_MAY"
 fi
 
 COMPOSE=(docker compose

@@ -1,18 +1,26 @@
 # Cho máy CHƯA có tên miền — chỉ có địa chỉ IP.
 #
-# Let's Encrypt không cấp chứng chỉ cho địa chỉ IP, nên Caddy tự ký lấy một cái
-# (`tls internal`). Trình duyệt sẽ kêu "kết nối không riêng tư" và phải bấm qua.
+# Địa chỉ site phải ghi RÕ IP, không được viết `:443` trống.
 #
-# CHỈ DÙNG CHO BẢN THỬ, và đây không phải lời khuyên chung chung. Chứng chỉ tự
-# ký thì mã hóa được đường truyền nhưng KHÔNG chứng minh được máy bên kia là ai,
-# nên nó không chống được người đứng giữa. Quan trọng hơn: nó dạy người dùng
-# bấm qua cảnh báo bảo mật — và người đã quen bấm qua thì sẽ bấm qua cả lần
-# cảnh báo thật.
+# Bản đầu viết `:443 { tls internal }`. Nhìn thì hợp lý — nghe mọi tên trên cổng
+# 443 — nhưng nó hỏng, và hỏng ở chỗ không nghĩ ra: trình duyệt gọi tới một địa
+# chỉ IP thì KHÔNG gửi SNI. Caddy không biết phải xuất chứng chỉ cho tên nào,
+# nên không đưa ra chứng chỉ nào cả, và trình duyệt báo ERR_SSL_PROTOCOL_ERROR.
 #
-# Bản có phụ huynh thật vào phải có tên miền và chứng chỉ thật. Dùng
-# trien-khai/Caddyfile.
+# Đó không phải cảnh báo chứng chỉ — cảnh báo thì còn có nút bấm qua. Đây là bắt
+# tay TLS đứt hẳn, nghĩa là không ai vào được bằng cách nào.
+#
+# Ghi rõ IP thì Caddy tự ký một chứng chỉ có IP trong phần tên thay thế, và
+# trình duyệt nhận được chứng chỉ để mà kêu — kêu rồi bấm qua được.
+#
+# Let's Encrypt không cấp chứng chỉ cho địa chỉ IP, nên ở đây bắt buộc là chứng
+# chỉ tự ký. CHỈ DÙNG CHO BẢN THỬ. Chứng chỉ tự ký mã hóa được đường truyền
+# nhưng không chứng minh được máy bên kia là ai, và quan trọng hơn: nó dạy người
+# dùng bấm qua cảnh báo bảo mật — người đã quen bấm qua sẽ bấm qua cả lần thật.
+#
+# Bản có phụ huynh thật vào phải có tên miền. Dùng trien-khai/Caddyfile.
 
-:443 {
+{$OLY_DIA_CHI_MAY} {
 	tls internal
 	encode zstd gzip
 	reverse_proxy o-ly:3000
@@ -27,8 +35,4 @@
 		X-Frame-Options "DENY"
 		-Server
 	}
-}
-
-:80 {
-	redir https://{host}{uri} permanent
 }

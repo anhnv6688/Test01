@@ -47,6 +47,10 @@ services:
       - caddy-cau-hinh:/config
     environment:
       OLY_TEN_MIEN: ${OLY_TEN_MIEN:-}
+      # Địa chỉ site khi chưa có tên miền. Phải là IP thật của máy, không được
+      # để trống: Caddy cần một tên cụ thể mới xuất được chứng chỉ, mà trình
+      # duyệt gọi tới IP thì không gửi SNI để Caddy đoán.
+      OLY_DIA_CHI_MAY: ${OLY_DIA_CHI_MAY:-}
     depends_on:
       - o-ly
 
