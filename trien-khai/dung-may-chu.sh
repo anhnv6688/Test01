@@ -93,14 +93,42 @@ else
 fi
 
 buoc "4. Tường lửa"
+#
+# Bật tường lửa là bước NGUY HIỂM NHẤT của cả tệp này: làm sai một nhịp là tự
+# cắt đường SSH của chính mình, và lúc đó không còn đường nào vào để sửa.
+#
+# Đã xảy ra thật. Bản đầu mở cổng SSH bằng hồ sơ ứng dụng `ufw allow OpenSSH`,
+# rồi in "ok chỉ mở 22, 80, 443" mà KHÔNG kiểm lại. Hồ sơ đó chỉ mở cổng 22;
+# máy nào đổi cổng SSH sang chỗ khác là mất đường vào ngay khi ufw bật. Và vì
+# ufw THẢ im lặng chứ không từ chối, triệu chứng là treo chứ không phải báo lỗi
+# — người ta sẽ đi tìm ở mạng, ở nhà cung cấp, ở mọi chỗ trừ chỗ đúng.
+#
+# Nay: đọc cổng SSH thật từ chính sshd rồi mở đúng cổng đó, và KIỂM LẠI sau khi
+# bật thay vì in "ok".
+#
+CONG_SSH=$(sshd -T 2>/dev/null | awk '/^port /{print $2}' | head -1)
+[ -n "$CONG_SSH" ] || CONG_SSH=22
+
 ufw --force reset >/dev/null
 ufw default deny incoming >/dev/null
 ufw default allow outgoing >/dev/null
-ufw allow OpenSSH >/dev/null
+ufw allow "$CONG_SSH/tcp" >/dev/null
 ufw allow 80/tcp  >/dev/null
 ufw allow 443/tcp >/dev/null
 ufw --force enable >/dev/null
-xanh "chỉ mở 22, 80, 443 — cổng 3000 của Ô Ly KHÔNG ra ngoài, chỉ Caddy gọi được"
+
+# Kiểm bằng chính ufw, không tin vào việc mình vừa gõ đúng lệnh.
+if ufw status | grep -qE "^${CONG_SSH}/tcp[[:space:]]+ALLOW"; then
+  xanh "mở $CONG_SSH (SSH), 80, 443 — cổng 3000 của Ô Ly KHÔNG ra ngoài, chỉ Caddy gọi được"
+else
+  # Mở lại rồi mới kêu. Thà tường lửa lỏng hơn dự định còn hơn một máy chủ không
+  # ai vào được: cái thứ nhất sửa được từ xa, cái thứ hai thì không.
+  ufw allow "$CONG_SSH/tcp" >/dev/null 2>&1 || true
+  ufw --force enable >/dev/null 2>&1 || true
+  do_ "KHÔNG xác nhận được luật mở cổng SSH $CONG_SSH. Đã thử mở lại."
+  do_ "ĐỪNG thoát phiên này cho tới khi mở một phiên SSH MỚI thành công."
+  do_ "Không vào được thì dùng bảng điều khiển của nhà cung cấp:  ufw disable"
+fi
 
 systemctl enable --now fail2ban >/dev/null 2>&1 || true
 xanh "fail2ban đang chạy"
