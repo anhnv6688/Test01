@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
-import { hanhDongDoiDongY } from "../actions";
+import { hanhDongConDongY, hanhDongDoiDongY } from "../actions";
 import type { KetQuaCham } from "@/lib/domain/cham-bai/ket-qua";
 import type { TomTatTrang } from "@/lib/domain/cham-bai";
 import type { LoiGiang, MucChiTiet } from "@/lib/domain/teaching";
@@ -50,8 +50,6 @@ export interface ConChonDuoc {
   id: string;
   tenGoi: string;
   lop: 1 | 2;
-  /** null nghĩa là chụp được. Chuỗi là câu nói cho phụ huynh. */
-  /** Những việc còn thiếu trước khi gửi được, theo thứ tự nên làm. Rỗng = xong. */
   /** Những việc còn thiếu trước khi gửi được, theo thứ tự nên làm. Rỗng = xong. */
   vuongGi: Record<LoaiViec, { ma: string; loi: string }[]>;
 }
@@ -92,12 +90,81 @@ function XinDongY({ mucDich, moTa }: {
   );
 }
 
+/**
+ * Hỏi CHÍNH ĐỨA TRẺ, ngay tại chỗ đang tắc (CR-05).
+ *
+ * Vì sao phải có ô này chứ không chỉ một đường dẫn: sau khi ô XinDongY ở trên
+ * gỡ xong phần của người lớn, việc CUỐI CÙNG còn lại với bạn từ 7 tuổi là sự
+ * đồng ý của chính em — và đó lại đúng là việc duy nhất không làm được tại đây.
+ * Phụ huynh đi hết ba bước rồi vấp ở bước thứ tư, bị đẩy sang một trang khác,
+ * và ở trang ấy phải tự tìm xem câu hỏi nào ứng với việc mình đang làm dở.
+ * Chỗ tắc cuối cùng mà vẫn là ngõ cụt thì ba bước gỡ trước đó gần như vô nghĩa.
+ *
+ * KHÔNG phải là nới lỏng gì cả. Đây đúng một hành động như ở trang Người đại
+ * diện: cùng `hanhDongConDongY`, cùng `m.hoiCon`, cùng ghi `nguoiDongY` là
+ * "tre-em" kèm childId, và máy chủ vẫn kiểm lại độc lập. Chỉ đổi CHỖ hỏi, không
+ * đổi ai trả lời hay điều gì được ghi lại.
+ *
+ * Câu hỏi giữ nguyên văn `hoiCon` — bản viết cho một bạn bảy tuổi tự đọc được,
+ * không phải bản rút gọn của câu dành cho người lớn. Và giữ nguyên câu "con nói
+ * không cũng được": một sự đồng ý không từ chối được thì không phải sự đồng ý.
+ */
+function HoiCon({ childId, tenGoi, mucDich, hoiCon }: {
+  childId: string;
+  tenGoi: string;
+  mucDich: string;
+  hoiCon: string;
+}) {
+  return (
+    <form action={hanhDongConDongY} className="the mt-3 p-4"
+      style={{ background: "var(--giay)", borderColor: "var(--vien)" }}>
+      <input type="hidden" name="childId" value={childId} />
+      <input type="hidden" name="mucDich" value={mucDich} />
+      <input type="hidden" name="bat" value="1" />
+      <p className="m-0 text-sm font-semibold">Ô Ly hỏi {tenGoi} một câu</p>
+      <p className="m-0 mt-1 text-sm">{hoiCon}</p>
+      <p className="m-0 mt-1 text-sm" style={{ color: "var(--muc-nhat)" }}>
+        Anh chị ngồi cạnh và đọc cùng con nhé — <strong>con nói không cũng được</strong>, phần
+        luyện tập của con vẫn chạy bình thường.
+      </p>
+      <button type="submit" className="nut nut-chinh mt-3 text-sm">Con đồng ý</button>
+    </form>
+  );
+}
+
+/**
+ * Chỉ đường — và CHỈ khi việc ấy thật sự ở trang khác.
+ *
+ * Hai việc nay làm được ngay trên trang chụp: bật đồng ý của người giám hộ, và
+ * hỏi chính con. In thêm "mở mục Quyền riêng tư" là chỉ đường ĐI KHỎI cái nút
+ * vừa đặt xuống, và phụ huynh nghe lời thì mất đúng một vòng mà bản sửa này
+ * sinh ra để bỏ.
+ *
+ * Còn khai tháng năm sinh và ghi người đại diện thì thật sự ở trang khác —
+ * giấu đường dẫn đi mới là bỏ người ta giữa đường.
+ *
+ * Một thành phần dùng cho cả khối nhắc TRƯỚC ở đầu trang lẫn khối giải thích
+ * ĐÚNG LÚC ở cạnh nút. Hai khối ấy cố ý lặp nội dung, nhưng luật "khi nào thì
+ * chỉ đường" mà chép làm hai bản thì có ngày lệch nhau.
+ */
+function ChiDuong({ vuongGi }: { vuongGi: { ma: string }[] }) {
+  const canTrangKhac = vuongGi.some(
+    (v) => v.ma === "chua-khai-thang-nam-sinh" || v.ma === "chua-co-nguoi-giam-ho",
+  );
+  if (!canTrangKhac) return null;
+  return (
+    <p className="m-0 mt-3">
+      <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>
+    </p>
+  );
+}
+
 export function LuongChup({
   moTaMucDich,
   cacCon, conLaiHomNay, tranNgay, conLaiThangNay, tranThang,
 }: {
   cacCon: ConChonDuoc[];
-  moTaMucDich: Record<string, { ten: string; giaiThich: string; matGi: string[] }>;
+  moTaMucDich: Record<string, { ten: string; giaiThich: string; matGi: string[]; hoiCon: string }>;
   conLaiHomNay: number | null;
   tranNgay: number | null;
   conLaiThangNay: number | null;
@@ -247,10 +314,7 @@ export function LuongChup({
             <ol className="m-0 mt-2 list-decimal space-y-1 pl-5">
               {vuongGi.map((v) => <li key={v.ma}>{v.loi}</li>)}
             </ol>
-            <p className="m-0 mt-3">
-              <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>{" "}
-              <Link href="/phu-huynh/quyen-rieng-tu">Mở mục Quyền riêng tư →</Link>
-            </p>
+            <ChiDuong vuongGi={vuongGi} />
           </div>
         )}
       </fieldset>
@@ -332,11 +396,12 @@ export function LuongChup({
               {vuongGi.some((v) => v.ma === "chua-co-dong-y-nguoi-giam-ho") && moTa && (
                 <XinDongY mucDich={mucDichDangCan} moTa={moTa} />
               )}
+              {vuongGi.some((v) => v.ma === "chua-co-dong-y-cua-tre") && moTa && con && (
+                <HoiCon childId={con.id} tenGoi={con.tenGoi}
+                  mucDich={mucDichDangCan} hoiCon={moTa.hoiCon} />
+              )}
 
-              <p className="m-0 mt-3">
-                <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>{" "}
-                <Link href="/phu-huynh/quyen-rieng-tu">Mở mục Quyền riêng tư →</Link>
-              </p>
+              <ChiDuong vuongGi={vuongGi} />
             </div>
           )}
 

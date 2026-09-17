@@ -62,7 +62,10 @@ export default async function TrangChup() {
 
       <LuongChup
         moTaMucDich={Object.fromEntries(
-          MUC_DICH.map((m) => [m.ma, { ten: m.ten, giaiThich: m.giaiThich, matGi: m.matGi }]),
+          MUC_DICH.map((m) => [
+            m.ma,
+            { ten: m.ten, giaiThich: m.giaiThich, matGi: m.matGi, hoiCon: m.hoiCon },
+          ]),
         )}
         cacCon={cacCon}
         conLaiHomNay={tran.conLaiHomNay}

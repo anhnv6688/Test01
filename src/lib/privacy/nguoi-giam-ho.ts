@@ -156,15 +156,38 @@ export type ThieuGi =
   | "chua-co-dong-y-nguoi-giam-ho"
   | "chua-co-dong-y-cua-tre";
 
+/**
+ * Tách "THIẾU GÌ" khỏi "ĐI ĐÂU MÀ LÀM", vì hai câu ấy không phải lúc nào cũng
+ * đi cùng nhau.
+ *
+ * Trang chụp nay làm được ngay tại chỗ hai việc: bật đồng ý của người giám hộ,
+ * và hỏi chính con. Ở đó, câu "anh chị bật riêng trong mục Quyền riêng tư nhé"
+ * không còn là chỉ đường nữa — nó chỉ đường ĐI KHỎI cái nút đang nằm ngay bên
+ * dưới, và phụ huynh nghe lời thì mất một vòng không cần thiết.
+ *
+ * Nhưng API xử lý ảnh thì vẫn cần nguyên cả hai câu: lúc ấy phụ huynh không
+ * đứng trên trang nào có nút để bấm, nên bỏ phần chỉ đường đi là bỏ họ giữa
+ * đường. Nên hai câu tách ra chứ không xóa bớt, và `noiGiVoiPhuHuynh` vẫn ghép
+ * đủ cả hai — một nguồn, hai chỗ dùng, không có bản sao nào để lệch nhau.
+ */
 export const NOI_GI_KHI_THIEU: Record<ThieuGi, string> = {
   "chua-khai-thang-nam-sinh":
     "Ô Ly cần biết tháng năm sinh của con để làm đúng quy định về dữ liệu của trẻ em. Ô Ly không hỏi ngày sinh, chỉ hỏi tháng và năm.",
   "chua-co-nguoi-giam-ho":
-    "Phần này cần cha, mẹ hoặc người giám hộ của con xác nhận trước. Anh chị vào mục Người đại diện của con để làm giúp nhé.",
+    "Phần này cần cha, mẹ hoặc người giám hộ của con xác nhận trước.",
   "chua-co-dong-y-nguoi-giam-ho":
-    "Cha, mẹ hoặc người giám hộ của con chưa đồng ý cho mục đích này. Anh chị bật riêng trong mục Quyền riêng tư nhé.",
+    "Cha, mẹ hoặc người giám hộ của con chưa đồng ý cho mục đích này.",
   "chua-co-dong-y-cua-tre":
-    "Con đã từ 7 tuổi, nên theo quy định, chính con cũng cần được hỏi và đồng ý — bên cạnh sự đồng ý của anh chị. Anh chị ngồi cùng con và đọc phần hỏi con giúp Ô Ly nhé.",
+    "Con đã từ 7 tuổi, nên theo quy định, chính con cũng cần được hỏi và đồng ý — bên cạnh sự đồng ý của anh chị.",
+};
+
+/** Chỉ đường, dùng ở nơi KHÔNG làm được việc ấy ngay tại chỗ. */
+export const DI_DAU_MA_LAM: Record<ThieuGi, string> = {
+  "chua-khai-thang-nam-sinh": "Anh chị khai giúp trong mục Người đại diện của con nhé.",
+  "chua-co-nguoi-giam-ho": "Anh chị vào mục Người đại diện của con để làm giúp nhé.",
+  "chua-co-dong-y-nguoi-giam-ho": "Anh chị bật riêng trong mục Quyền riêng tư nhé.",
+  "chua-co-dong-y-cua-tre":
+    "Anh chị ngồi cùng con và đọc phần hỏi con giúp Ô Ly nhé.",
 };
 
 export interface DauVaoKiemTra {
@@ -208,7 +231,8 @@ export function kiemTraDuDieuKien(dv: DauVaoKiemTra, moc = new Date()): KetQuaDu
     duDieuKien: thieu.length === 0,
     thieu,
     cheDo,
-    noiGiVoiPhuHuynh: thieu.length > 0 ? NOI_GI_KHI_THIEU[thieu[0]] : null,
+    noiGiVoiPhuHuynh:
+      thieu.length > 0 ? `${NOI_GI_KHI_THIEU[thieu[0]]} ${DI_DAU_MA_LAM[thieu[0]]}` : null,
     ngayChuyenCheDo: dv.thangNamSinh ? ngayChuyenCheDo(dv.thangNamSinh, moc) : null,
   };
 }

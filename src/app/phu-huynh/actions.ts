@@ -117,6 +117,9 @@ export async function hanhDongConDongY(form: FormData) {
   const mucDich = String(form.get("mucDich")) as MucDich;
   ghiDongY(ho.id, mucDich, form.get("bat") === "1", "tre-em", childId);
   revalidatePath("/phu-huynh/nguoi-giam-ho");
+  // Con trả lời được ngay tại trang chụp, nên trang đó cũng phải vẽ lại — không
+  // thì con bấm đồng ý xong mà nút gửi vẫn xám, đúng cái vòng bế tắc vừa gỡ.
+  revalidatePath("/phu-huynh/chup");
 }
 
 export async function hanhDongGuiMa(_truoc: unknown, form: FormData) {
