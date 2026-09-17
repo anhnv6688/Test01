@@ -50,7 +50,8 @@ export interface ConChonDuoc {
   tenGoi: string;
   lop: 1 | 2;
   /** null nghĩa là chụp được. Chuỗi là câu nói cho phụ huynh. */
-  vuongGi: Record<LoaiViec, string | null>;
+  /** Những việc còn thiếu trước khi gửi được, theo thứ tự nên làm. Rỗng = xong. */
+  vuongGi: Record<LoaiViec, string[]>;
 }
 
 export function LuongChup({
@@ -76,8 +77,8 @@ export function LuongChup({
   const canvasGoc = useRef<HTMLCanvasElement | null>(null);
 
   const con = cacCon.find((c) => c.id === childId) ?? cacCon[0] ?? null;
-  const vuongGi = con?.vuongGi[loaiViec] ?? "Hộ mình chưa có bạn nào trong danh sách.";
-  const daBat = vuongGi === null;
+  const vuongGi = con?.vuongGi[loaiViec] ?? ["Hộ mình chưa có bạn nào trong danh sách."];
+  const daBat = vuongGi.length === 0;
 
   const dungVung = useCallback((cao: number): VungDaChe[] => [{ x: 0, y: 0, w: 1, h: cao }], []);
 
@@ -193,12 +194,20 @@ export function LuongChup({
           </div>
         )}
 
-        {vuongGi !== null && (
-          <p className="the mt-4 mb-0 p-4 text-sm" style={{ background: "var(--cam-nen)", borderColor: "var(--cam)" }}>
-            {vuongGi}{" "}
-            <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>{" "}
-            <Link href="/phu-huynh/quyen-rieng-tu">Mở mục Quyền riêng tư →</Link>
-          </p>
+        {!daBat && (
+          <div className="the mt-4 mb-0 p-4 text-sm" style={{ background: "var(--cam-nen)", borderColor: "var(--cam)" }}>
+            <p className="m-0 font-semibold">
+              Còn {vuongGi.length === 1 ? "một việc" : `${vuongGi.length} việc`} phải làm trước khi
+              gửi được ảnh:
+            </p>
+            <ol className="m-0 mt-2 list-decimal space-y-1 pl-5">
+              {vuongGi.map((v) => <li key={v}>{v}</li>)}
+            </ol>
+            <p className="m-0 mt-3">
+              <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>{" "}
+              <Link href="/phu-huynh/quyen-rieng-tu">Mở mục Quyền riêng tư →</Link>
+            </p>
+          </div>
         )}
       </fieldset>
 
@@ -249,6 +258,45 @@ export function LuongChup({
             onClick={() => void gui()}>
             {dangXuLy ? "Đang xử lý…" : "Tôi đã che xong, gửi đi"}
           </button>
+
+          {/*
+            Vì sao nút xám, nói NGAY TẠI ĐÂY.
+
+            Lý do vốn đã có ở đầu trang, trong khối chọn bạn và loại việc. Nhưng
+            phụ huynh chọn ảnh xong thì cuộn xuống tận đây để kéo thanh che và
+            bấm gửi — khối kia lúc ấy nằm cách hai màn hình phía trên, ngoài tầm
+            nhìn. Thứ họ thấy là một nút xám câm lặng, và chuyện đó đã xảy ra
+            thật.
+
+            Một nút bị khóa mà không nói vì sao thì người dùng đọc thành "sản
+            phẩm hỏng", chứ không đọc thành "còn thiếu một bước". Hai cách đọc
+            ấy dẫn tới hai hành động khác hẳn nhau: một bên bỏ đi, một bên bấm
+            vào đường dẫn ngay dưới đây.
+
+            Lặp lại thông tin ở hai chỗ là có chủ ý. Chỗ trên báo TRƯỚC để đỡ mất
+            công chụp; chỗ này giải thích ĐÚNG LÚC bế tắc.
+          */}
+          {!daBat && (
+            <div className="the mt-3 mb-0 p-4 text-sm"
+              style={{ background: "var(--cam-nen)", borderColor: "var(--cam)" }}>
+              <p className="m-0"><strong>Chưa gửi đi được.</strong> Còn phải làm:</p>
+              <ol className="m-0 mt-2 list-decimal space-y-1 pl-5">
+                {vuongGi.map((v) => <li key={v}>{v}</li>)}
+              </ol>
+              <p className="m-0 mt-3">
+                <Link href="/phu-huynh/nguoi-giam-ho">Mở mục Người đại diện của con →</Link>{" "}
+                <Link href="/phu-huynh/quyen-rieng-tu">Mở mục Quyền riêng tư →</Link>
+              </p>
+            </div>
+          )}
+
+          {daBat && hetLuot && (
+            <p className="the mt-3 mb-0 p-4 text-sm"
+              style={{ background: "var(--cam-nen)", borderColor: "var(--cam)" }}>
+              <strong>Hết lượt chụp rồi.</strong> Sáng mai hộ mình có lượt mới. Phần luyện tập của
+              con thì không giới hạn, con vẫn học bình thường.
+            </p>
+          )}
 
           {conLaiHomNay !== null ? (
             <p className="mt-3 mb-0 text-xs" style={{ color: "var(--muc-nhat)" }}>
