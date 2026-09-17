@@ -5,6 +5,7 @@ import {
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
 import { danhSachCon, lichSuCuaCon, lichSuViecAnh } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
+import { goiYPinHoMau } from "@/lib/server/moi-truong";
 import { hanhDongYeuCauDuLieu } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ const LOAI = [
  */
 export default async function TrangDuLieu() {
   const ho = await daMoCong();
-  if (!ho) return <CongPin />;
+  if (!ho) return <CongPin goiY={goiYPinHoMau()} />;
 
   const con = danhSachCon(ho.id);
   const yeuCau = danhSachYeuCauDuLieu(ho.id);

@@ -5,6 +5,7 @@ import { tyLeTuSuaSauGoiY } from "@/lib/domain/rewards";
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
 import { danhSachCon, lichSuCuaCon } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
+import { goiYPinHoMau } from "@/lib/server/moi-truong";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function TrangLichSu({
   searchParams: Promise<{ childId?: string }>;
 }) {
   const ho = await daMoCong();
-  if (!ho) return <CongPin />;
+  if (!ho) return <CongPin goiY={goiYPinHoMau()} />;
 
   const sp = await searchParams;
   const con = danhSachCon(ho.id);

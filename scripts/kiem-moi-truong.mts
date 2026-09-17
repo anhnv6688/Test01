@@ -210,7 +210,28 @@ async function thuMaMacDinh(b: Browser, goc: string, cho: string): Promise<void>
     if (cho === "that") {
       doi(`PIN ${PIN_PHAT_TRIEN} KHÔNG mở được phần của bố mẹ`, !vaoDuoc);
     } else {
-      nhac(`PIN ${PIN_PHAT_TRIEN} vẫn mở được (chấp nhận được ở bản thử)`, true);
+      /*
+       * Ở bản thử, PIN mặc định mở được hay không đều chấp nhận được — nên đây
+       * là một dòng BÁO CÁO, không phải một phép kiểm.
+       *
+       * Nhưng nó phải báo cáo thứ VỪA XẢY RA. Bản đầu gọi nhac(..., true): một
+       * hằng số, không đọc `vaoDuoc` lấy một lần. Nên nó in
+       *
+       *   ok   PIN 1234 vẫn mở được (chấp nhận được ở bản thử)
+       *
+       * kể cả khi máy chủ vừa từ chối 1234 — và nó in đúng như thế trong khi
+       * trên máy thật không ai vào nổi phần của bố mẹ. Người đọc bản in ấy tin
+       * rằng cổng phụ huynh đã được thử và đang chạy.
+       *
+       * Một dòng "ok" không đọc kết quả nào thì tệ hơn hẳn không có dòng nào:
+       * nó biến một chỗ chưa được kiểm thành một chỗ tưởng đã kiểm.
+       */
+      nhac(
+        vaoDuoc
+          ? `PIN ${PIN_PHAT_TRIEN} vẫn mở được (chấp nhận được ở bản thử)`
+          : `PIN ${PIN_PHAT_TRIEN} KHÔNG mở được — hộ mẫu đang dùng mã khác, xem OLY_PIN_MAU trong ~/o-ly/.env`,
+        vaoDuoc,
+      );
     }
   } else {
     nhac("không tìm thấy ô nhập mã PIN để thử", false);

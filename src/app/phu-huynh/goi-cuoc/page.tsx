@@ -5,6 +5,7 @@ import { tinhHinhThueBao } from "@/lib/server/thue-bao";
 import { ThueBao } from "./ThueBao";
 import { luotDungCuaHo, mucDaDung } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
+import { goiYPinHoMau } from "@/lib/server/moi-truong";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function TrangGoiCuoc() {
   const ho = await daMoCong();
-  if (!ho) return <CongPin />;
+  if (!ho) return <CongPin goiY={goiYPinHoMau()} />;
 
   const tran = tinhTran(ho.goi, mucDaDung(ho.id));
   const th = tinhHinhThueBao(ho.id);

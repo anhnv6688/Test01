@@ -9,8 +9,12 @@ import { hanhDongMoCong } from "./actions";
  * Đây là chỗ duy nhất dẫn vào phần chứa lời giải đầy đủ (NT-10). Câu giải thích
  * bên dưới ô nhập không phải để trang trí: phụ huynh cần hiểu vì sao sản phẩm
  * lại khóa phần của chính họ, nếu không họ sẽ tưởng đây là một rào cản bán hàng.
+ *
+ * `goiY` đến từ máy chủ (goiYPinHoMau), không viết cứng ở đây. Bản đầu viết cứng
+ * "dùng sẵn mã 1234" và câu đó theo lên máy chủ thật, nơi nó sai — người đọc gõ
+ * 1234, bị từ chối, và kết luận sản phẩm hỏng.
  */
-export function CongPin() {
+export function CongPin({ goiY }: { goiY?: string | null }) {
   const [trangThai, gui, dangGui] = useActionState(hanhDongMoCong, null);
 
   return (
@@ -39,9 +43,9 @@ export function CongPin() {
             {dangGui ? "Đang mở…" : "Mở"}
           </button>
         </form>
-        <p className="mt-6 text-xs" style={{ color: "var(--muc-nhat)" }}>
-          Bản dựng thử nghiệm dùng sẵn mã 1234.
-        </p>
+        {goiY && (
+          <p className="mt-6 text-xs" style={{ color: "var(--muc-nhat)" }}>{goiY}</p>
+        )}
       </div>
     </main>
   );

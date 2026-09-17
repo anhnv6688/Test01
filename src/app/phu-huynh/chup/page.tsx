@@ -4,13 +4,14 @@ import { daMoCong } from "@/lib/server/cong-phu-huynh";
 import { dieuKienXuLy } from "@/lib/server/du-dieu-kien";
 import { danhSachCon, mucDaDung } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
+import { goiYPinHoMau } from "@/lib/server/moi-truong";
 import { LuongChup, type ConChonDuoc } from "./LuongChup";
 
 export const dynamic = "force-dynamic";
 
 export default async function TrangChup() {
   const ho = await daMoCong();
-  if (!ho) return <CongPin />;
+  if (!ho) return <CongPin goiY={goiYPinHoMau()} />;
 
   const tran = tinhTran(ho.goi, mucDaDung(ho.id));
   const cacCon: ConChonDuoc[] = danhSachCon(ho.id).map((c) => ({

@@ -31,11 +31,44 @@ export function choPhepDuLieuMau(): boolean {
   return process.env.OLY_DU_LIEU_MAU === "true";
 }
 
-/** Mã PIN của hộ mẫu. Ở bản phát hành phải tự đặt, không được để mặc định. */
+/**
+ * Mã PIN của hộ mẫu. Ở bản phát hành phải tự đặt, không được để mặc định.
+ *
+ * ĐÚNG BỐN chữ số, không phải "4 tới 8".
+ *
+ * Bản đầu nhận 4–8, và đó là một cái bẫy im lặng: ô nhập duy nhất dẫn vào phần
+ * của bố mẹ có maxLength={4} và nhãn "Mã PIN bốn số". Một mã sáu số được cấu
+ * hình chấp nhận, được ghi vào cơ sở dữ liệu, hộ mẫu dựng lên bình thường — rồi
+ * không ai gõ nổi nó vào, vì trình duyệt cắt ở ký tự thứ tư. Máy chủ chỉ thấy
+ * bốn số đầu và trả về "Mã PIN chưa đúng", đúng một câu, mãi mãi.
+ *
+ * Đã xảy ra thật trên bản thử: chay-anh.sh sinh PIN sáu số, và không ai vào
+ * được phần của bố mẹ. Nới rộng chỗ này ra hơn thứ gõ được là tạo ra một dải
+ * giá trị "hợp lệ mà vô dụng" — thà từ chối và ghi cảnh báo.
+ */
 export function pinHoMau(): string | null {
   if (!laBanPhatHanh()) return "1234";
   const pin = process.env.OLY_PIN_MAU;
-  return pin && /^\d{4,8}$/.test(pin) ? pin : null;
+  return pin && /^\d{4}$/.test(pin) ? pin : null;
+}
+
+/**
+ * Câu gợi ý dưới ô nhập PIN. Trả null nghĩa là không hiện gì.
+ *
+ * Bản đầu viết cứng "Bản dựng thử nghiệm dùng sẵn mã 1234." ngay trong giao
+ * diện, không kèm điều kiện nào. Trên máy chủ thật câu đó là một lời nói dối:
+ * bản phát hành không bao giờ dùng 1234, mà người đọc thì tin nó và gõ 1234 rồi
+ * kết luận sản phẩm hỏng.
+ *
+ * Và KHÔNG in mã thật ra đây. Trang này công khai — in mã hộ mẫu lên nó thì lớp
+ * khóa còn lại đúng bằng không. Người vận hành tự xem trong ~/o-ly/.env.
+ */
+export function goiYPinHoMau(): string | null {
+  if (!laBanPhatHanh()) return "Bản dựng thử nghiệm dùng sẵn mã 1234.";
+  if (!choPhepDuLieuMau() || !pinHoMau()) return null;
+  // Không nhắc tới 1234 dù chỉ để phủ định nó. Người đọc lướt qua một dòng chữ
+  // nhỏ sẽ nhớ con số chứ không nhớ chữ "không phải" đứng trước nó.
+  return "Bản thử có sẵn một hộ mẫu. Mã PIN do người vận hành đặt.";
 }
 
 export const MA_TRUC_MAC_DINH = "truc2026";

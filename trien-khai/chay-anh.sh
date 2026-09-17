@@ -36,7 +36,7 @@ if [ ! -f .env ]; then
   umask 077
   {
     printf 'OLY_MA_TRUC=%s\n' "$(openssl rand -base64 33 | tr -d '/+=' | cut -c1-32)"
-    printf 'OLY_PIN_MAU=%s\n' "$(shuf -i 100000-999999 -n 1)"
+    printf 'OLY_PIN_MAU=%s\n' "$(shuf -i 1000-9999 -n 1)"
     printf 'OLY_TEN_MIEN=\n'
   } > .env
   chmod 600 .env
@@ -44,6 +44,27 @@ if [ ! -f .env ]; then
   vang "Xem hai mã đó bằng:  cat ~/o-ly/.env   — không in ra đây vì nhật ký lưu lại."
 fi
 set -a; . ./.env; set +a
+
+#
+# Sửa lại PIN hộ mẫu nếu nó không gõ được.
+#
+# Bản đầu sinh PIN SÁU số, mà ô nhập duy nhất dẫn vào phần của bố mẹ có
+# maxLength=4. Cấu hình nhận, cơ sở dữ liệu ghi, hộ mẫu dựng lên bình thường —
+# rồi không ai vào nổi, vì trình duyệt cắt ở ký tự thứ tư và máy chủ chỉ thấy
+# bốn số đầu. Triệu chứng là đúng một câu "Mã PIN chưa đúng", lặp lại mãi.
+#
+# Sửa ở đây chứ không chỉ sửa dòng sinh phía trên: những máy đã chạy rồi vẫn
+# đang giữ một PIN sáu số trong .env, và .env chỉ được sinh khi nó chưa tồn tại.
+# Không tự sửa thì bản vá này không tới được đúng cái máy đang hỏng.
+#
+PIN_CU=$(grep -E '^OLY_PIN_MAU=' .env | cut -d= -f2- || true)
+if [ -n "$PIN_CU" ] && ! printf '%s' "$PIN_CU" | grep -qE '^[0-9]{4}$'; then
+  PIN_MOI=$(shuf -i 1000-9999 -n 1)
+  sed -i "s|^OLY_PIN_MAU=.*|OLY_PIN_MAU=$PIN_MOI|" .env
+  export OLY_PIN_MAU="$PIN_MOI"
+  vang "PIN hộ mẫu cũ không gõ được (phải đúng 4 chữ số) — đã sinh mã mới."
+  vang "Xem bằng:  cat ~/o-ly/.env   — không in ra đây vì nhật ký Actions lưu lại."
+fi
 
 #
 # Một máy chỉ phục vụ MỘT môi trường, và nó nhớ mình là môi trường nào.

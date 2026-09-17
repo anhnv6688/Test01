@@ -3,6 +3,7 @@ import { MUC_DICH, PHIEN_BAN_VAN_BAN_DONG_Y, dangBat } from "@/lib/privacy/conse
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
 import { lichSuDongY } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
+import { goiYPinHoMau } from "@/lib/server/moi-truong";
 import { hanhDongDoiDongY } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function TrangQuyenRiengTu() {
   const ho = await daMoCong();
-  if (!ho) return <CongPin />;
+  if (!ho) return <CongPin goiY={goiYPinHoMau()} />;
   const bangGhi = lichSuDongY(ho.id);
 
   return (

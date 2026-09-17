@@ -338,6 +338,36 @@ describe("đưa lên máy chủ tự động", () => {
     expect(ca.slice(Math.max(0, i - 300), i)).toMatch(/for _ in \$\(seq/);
   });
 
+  it("PIN hộ mẫu sinh ra phải gõ được — đúng bốn chữ số", () => {
+    /**
+     * chay-anh.sh từng sinh PIN sáu số (shuf -i 100000-999999), mà ô nhập duy
+     * nhất dẫn vào phần của bố mẹ có maxLength={4}. Hộ mẫu dựng lên bình thường
+     * và không ai vào nổi: trình duyệt cắt ở ký tự thứ tư, máy chủ trả về "Mã
+     * PIN chưa đúng", đúng một câu, mãi mãi.
+     *
+     * Bản thử chạy cả buổi như thế. Không bộ kiểm nào bắt được, vì bộ soi môi
+     * trường lúc ấy in "ok PIN 1234 vẫn mở được" từ một hằng số.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    expect(ca).toMatch(/shuf -i 1000-9999/);
+    expect(ca).not.toMatch(/shuf -i 100000-999999/);
+    // Và phải sửa được PIN cũ: .env chỉ sinh khi chưa có, nên máy đã chạy rồi
+    // vẫn giữ mã sáu số cũ và bản vá không tới được đúng cái máy đang hỏng.
+    expect(ca).toMatch(/PIN_CU/);
+  });
+
+  it("bộ soi môi trường không khẳng định PIN mà không kiểm", () => {
+    /**
+     * Dòng này từng là `nhac(..., true)` — một hằng số, không đọc kết quả lấy
+     * một lần. Nó in "ok PIN 1234 vẫn mở được" kể cả khi máy chủ vừa từ chối,
+     * và nó in đúng như thế trong khi trên máy thật không ai vào nổi phần của
+     * bố mẹ.
+     */
+    const bs = khongChuThich(doc("scripts/kiem-moi-truong.mts"));
+    expect(bs).not.toMatch(/nhac\([\s\S]*?vẫn mở được[\s\S]*?,\s*true\s*\)/);
+    expect(bs).toMatch(/vaoDuoc\s*\?/);
+  });
+
   it("thẻ đăng nhập sổ đăng ký không ở lại trên máy chủ", () => {
     // Thẻ của lần chạy hết hạn khi việc kết thúc, nhưng tệp ~/.docker/config.json
     // thì ở lại. Đăng xuất kể cả khi triển khai hỏng.

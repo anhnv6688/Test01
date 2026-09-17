@@ -6,6 +6,7 @@ import { TUOI_TU_DONG_Y, cheDoDongY, ngayChuyenCheDo, tuoiTron } from "@/lib/pri
 import { daMoCong } from "@/lib/server/cong-phu-huynh";
 import { danhSachCon, lichSuDongY, nguoiGiamHoHienTai } from "@/lib/server/repo";
 import { CongPin } from "../CongPin";
+import { goiYPinHoMau } from "@/lib/server/moi-truong";
 import {
   hanhDongConDongY, hanhDongGhiNguoiGiamHo, hanhDongGhiThangNamSinh,
 } from "../actions";
@@ -33,7 +34,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function TrangNguoiGiamHo() {
   const ho = await daMoCong();
-  if (!ho) return <CongPin />;
+  if (!ho) return <CongPin goiY={goiYPinHoMau()} />;
 
   const ng = nguoiGiamHoHienTai(ho.id);
   const canhBao = canhBaoXacMinh(ng);

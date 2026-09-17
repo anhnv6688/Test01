@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   MA_TRUC_MAC_DINH, choPhepDuLieuMau, laBanPhatHanh, maTruc, moiTruong,
-  noiDungRobots, pinHoMau, thieuGiDeChayThat,
+  goiYPinHoMau, noiDungRobots, pinHoMau, thieuGiDeChayThat,
 } from "@/lib/server/moi-truong";
 
 process.env.OLY_DB = ":memory:";
@@ -67,16 +67,51 @@ describe("hộ mẫu", () => {
     expect(choPhepDuLieuMau()).toBe(true);
     expect(pinHoMau()).toBeNull();
 
-    process.env.OLY_PIN_MAU = "918273";
-    expect(pinHoMau()).toBe("918273");
+    process.env.OLY_PIN_MAU = "9182";
+    expect(pinHoMau()).toBe("9182");
   });
 
-  it("PIN mẫu phải là 4 tới 8 chữ số, không nhận thứ khác", () => {
+  it("PIN mẫu phải là ĐÚNG bốn chữ số — vì đó là thứ duy nhất gõ được", () => {
+    /**
+     * Bản đầu nhận 4–8 chữ số, và đó là một cái bẫy im lặng.
+     *
+     * Ô nhập duy nhất dẫn vào phần của bố mẹ (CongPin.tsx) có maxLength={4} và
+     * nhãn "Mã PIN bốn số". Một mã sáu số được cấu hình chấp nhận, được ghi vào
+     * cơ sở dữ liệu, hộ mẫu dựng lên bình thường — rồi không ai gõ nổi nó vào,
+     * vì trình duyệt cắt ở ký tự thứ tư. Máy chủ chỉ thấy bốn số đầu và trả về
+     * "Mã PIN chưa đúng", đúng một câu, lặp lại mãi.
+     *
+     * Đã xảy ra thật trên bản thử: chay-anh.sh sinh PIN sáu số và không ai vào
+     * được phần của bố mẹ. Một dải giá trị "hợp lệ mà vô dụng" thì thà từ chối.
+     */
     datPhatHanh();
-    for (const xau of ["123", "123456789", "abcd", "12 34", ""]) {
+    for (const xau of ["123", "12345", "123456", "123456789", "abcd", "12 34", ""]) {
       process.env.OLY_PIN_MAU = xau;
       expect(pinHoMau(), xau).toBeNull();
     }
+  });
+
+  it("gợi ý dưới ô PIN không nói 1234 ở bản phát hành, và không in mã thật", () => {
+    /**
+     * Câu gợi ý từng được viết cứng trong giao diện: "Bản dựng thử nghiệm dùng
+     * sẵn mã 1234." Không kèm điều kiện nào, nên nó theo lên máy chủ thật, nơi
+     * nó sai — người đọc gõ 1234, bị từ chối, và kết luận sản phẩm hỏng.
+     *
+     * Và không bao giờ in mã thật ra trang này: trang công khai, in mã hộ mẫu
+     * lên đó thì lớp khóa còn lại đúng bằng không.
+     */
+    expect(goiYPinHoMau()).toMatch(/1234/); // bản phát triển: đúng sự thật
+
+    datPhatHanh();
+    process.env.OLY_DU_LIEU_MAU = "true";
+    process.env.OLY_PIN_MAU = "8391";
+    const goiY = goiYPinHoMau();
+    expect(goiY).not.toMatch(/1234/);
+    expect(goiY).not.toMatch(/8391/);
+
+    // Không có hộ mẫu thì không gợi ý gì cả.
+    delete (process.env as Record<string, string | undefined>).OLY_DU_LIEU_MAU;
+    expect(goiYPinHoMau()).toBeNull();
   });
 
   it("PIN 1234 KHÔNG bao giờ là giá trị mặc định ở bản phát hành", () => {
