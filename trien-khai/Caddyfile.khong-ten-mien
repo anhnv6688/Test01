@@ -20,6 +20,23 @@
 #
 # Bản có phụ huynh thật vào phải có tên miền. Dùng trien-khai/Caddyfile.
 
+# Tên mặc định khi khách KHÔNG gửi SNI.
+#
+# Đây là mảnh cuối của cùng một vấn đề. Ghi rõ IP làm địa chỉ site đã đủ để
+# Caddy XIN được chứng chỉ, nhưng chưa đủ để nó ĐƯA RA: Caddy chọn chứng chỉ
+# theo SNI, mà khách gọi tới một địa chỉ IP thì không gửi SNI. Không có tên để
+# khớp, Caddy trả về TLS alert 80 (internal error) rồi đóng.
+#
+# Triệu chứng đúng là thứ đã thấy: trình duyệt báo ERR_SSL_PROTOCOL_ERROR, curl
+# báo "failed to receive handshake", và cả hai đều KHÔNG phải lỗi chứng chỉ —
+# `curl -k` bỏ kiểm chứng chỉ mà vẫn hỏng y hệt. Trong khi nhật ký Caddy thì nói
+# đã cấp chứng chỉ xong, nên nhìn hai bên riêng lẻ đều thấy "ổn".
+#
+# default_sni bảo Caddy: không ai nói tên thì coi như hỏi tên này.
+{
+	default_sni {$OLY_DIA_CHI_MAY}
+}
+
 {$OLY_DIA_CHI_MAY} {
 	tls internal
 	encode zstd gzip

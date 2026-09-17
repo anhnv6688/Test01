@@ -154,6 +154,32 @@ fi
 
 xanh "Ô Ly khỏe, đang chạy $ANH_MOI"
 
+#
+# Gõ thử vào chính cổng công khai, từ trên máy này.
+#
+# Bước trên chỉ hỏi Docker xem thùng chứa Ô Ly có khỏe không — mà Ô Ly khỏe
+# KHÔNG có nghĩa là người ngoài vào được. Caddy đứng trước nó, và Caddy hỏng thì
+# mọi thứ ở đây vẫn xanh trong khi ngoài kia không ai mở nổi trang.
+#
+# Đã xảy ra đúng như vậy, và mất sáu vòng chạy tự động mới lần ra: Caddy chạy,
+# lấy được chứng chỉ, nhật ký sạch, cổng 443 công bố đầy đủ — mà bắt tay TLS thì
+# đứt vì không có tên để khớp chứng chỉ. Một dòng curl ở đây bắt được chuyện đó
+# trong ba giây, ngay trên máy chủ.
+#
+# Dùng -k vì chứng chỉ có thể là bản tự ký; ở đây ta hỏi "có bắt tay được
+# không", còn "chứng chỉ có đáng tin không" là việc của npm run kiem-moi-truong.
+#
+MA_HTTP=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 20 https://127.0.0.1/ || echo "000")
+if [ "$MA_HTTP" = "000" ]; then
+  do_ "Ô Ly khỏe nhưng KHÔNG ai vào được qua cổng 443 — Caddy không bắt tay được."
+  do_ "Hai chục dòng nhật ký Caddy cuối:"
+  "${COMPOSE[@]}" logs --tail 20 caddy || true
+  do_ ""
+  do_ "Xem chi tiết bắt tay:  openssl s_client -connect 127.0.0.1:443 </dev/null"
+  exit 1
+fi
+xanh "cổng 443 trả lời $MA_HTTP — người ngoài vào được"
+
 THIEU=$("${COMPOSE[@]}" logs o-ly 2>/dev/null | grep -A20 'còn thiếu khai báo' || true)
 [ -n "$THIEU" ] && { vang "máy chủ báo thiếu khai báo:"; echo "$THIEU"; }
 
