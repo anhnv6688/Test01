@@ -145,6 +145,19 @@ describe("ảnh Docker dựng được và phần mã máy chạy được", () 
     expect(df).toMatch(/create table/i);
   });
 
+  it("ép địa chỉ lắng nghe về 0.0.0.0, không để Docker quyết hộ", () => {
+    /*
+     * Next lấy địa chỉ nghe từ process.env.HOSTNAME; Docker tự đặt biến đó
+     * bằng mã container. Thiếu dòng ép này thì máy chủ chỉ nghe ở địa chỉ mạng
+     * riêng của container, mục kiểm tra sống chết gọi 127.0.0.1 nên luôn đỏ,
+     * và phần triển khai tự động lùi lại một bản chạy hoàn toàn tốt — trong
+     * khi nhật ký ứng dụng vẫn in "Ready".
+     */
+    expect(df).toMatch(/ENV HOSTNAME=0\.0\.0\.0/);
+    // Phải đặt TRƯỚC mục kiểm tra sống chết, nếu không thì kiểm cái chưa có.
+    expect(df.indexOf("ENV HOSTNAME")).toBeLessThan(df.indexOf("HEALTHCHECK"));
+  });
+
   it("dòng kiểm nằm trong cùng tầng với lệnh cài gói", () => {
     // Kiểm ở tầng khác thì tầng cài gói vẫn được ghi vào bộ đệm dù hỏng, và
     // lần dựng sau sẽ dùng lại đúng cái tầng thiếu phần mã máy đó.

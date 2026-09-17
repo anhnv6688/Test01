@@ -70,6 +70,23 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+
+#
+# Ép địa chỉ lắng nghe về 0.0.0.0. Thiếu dòng này là hỏng, và hỏng rất khó đoán.
+#
+# Bản phát hành gọn của Next lấy địa chỉ nghe từ `process.env.HOSTNAME`, còn
+# Docker thì TỰ ĐẶT biến HOSTNAME bằng mã container. Hai thứ vô can với nhau,
+# gặp nhau thành ra máy chủ chỉ nghe ở địa chỉ mạng riêng của container.
+#
+# Ứng dụng vẫn chạy: Caddy gọi qua mạng Docker nên vào được. Chỉ mục kiểm tra
+# sống chết ở dưới là hỏng, vì nó gọi 127.0.0.1 — mà 127.0.0.1 không còn được
+# gắn. Thành ra Docker báo thùng chứa "unhealthy" trong khi nhật ký ứng dụng in
+# "✓ Ready", và phần triển khai tự động thì lùi lại một bản chạy hoàn toàn tốt.
+#
+# Đã tái hiện: đặt HOSTNAME thành một mã container rồi gọi 127.0.0.1 -> không
+# nối được; đặt 0.0.0.0 -> trả 200.
+#
+ENV HOSTNAME=0.0.0.0
 # Mặc định trỏ vào vùng đĩa gắn ngoài. Để trong /app thì mỗi lần dựng lại ảnh
 # là mất sạch dữ liệu của các hộ.
 ENV OLY_DB=/du-lieu/oly.sqlite
