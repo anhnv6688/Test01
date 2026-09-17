@@ -323,6 +323,40 @@ Bản sao nằm trên chính máy này, nên ổ hỏng là mất cả gốc l�
 ra ngoài mỗi tuần, và **mã hóa trước khi chuyển**: tệp đó có tên, khối lớp và
 tháng năm sinh của từng đứa trẻ.
 
+## Ba cái bẫy đã trả giá rồi, đừng gỡ ra
+
+Ba thứ dưới đây mỗi thứ đều làm chết ít nhất một lần triển khai, và không thứ
+nào tự nói ra. Điểm chung của cả ba: một chỗ trong hệ thống báo xanh trong khi
+thứ nó nói về thì hỏng.
+
+**Docker gắn TỆP theo inode, không theo đường dẫn.** `trien-khai/compose.caddy.yaml`
+gắn cả thư mục `trien-khai/` vào Caddy, không gắn riêng tệp Caddyfile. Lý do:
+phần triển khai đưa cấu hình lên bằng `tar xzf`, mà tar xóa tệp cũ rồi tạo tệp
+mới — inode mới. Thùng chứa vẫn trỏ vào inode cũ đã bị xóa, nên bên trong nó
+Caddyfile không bao giờ đổi, dù trên đĩa máy chủ tệp đã mới tinh.
+
+Ba lần triển khai liên tiếp gửi bản sửa lên đầy đủ mà không lần nào tới được
+Caddy. Triệu chứng còn đánh lừa thêm một tầng nữa: `caddy reload` chạy trơn tru
+rồi trả lời `config is unchanged` — đúng sự thật, từ chỗ nó đứng nhìn.
+
+**Compose không dựng lại thùng chứa khi chỉ nội dung tệp cấu hình đổi.** Nó chỉ
+nhìn ĐỊNH NGHĨA dịch vụ: ảnh, biến môi trường, cổng. Sửa Caddyfile thì Compose
+in `Container o-ly-caddy-1 Running` rồi bỏ qua. Vì vậy `chay-anh.sh` gọi
+`caddy reload` sau mỗi lần `up -d`, và trước đó còn `diff` tệp bên trong thùng
+chứa với tệp trên đĩa để bắt trường hợp inode cũ quay lại dưới hình dạng khác.
+
+**Caddy chọn chứng chỉ theo SNI, mà khách gọi tới địa chỉ IP thì không gửi SNI.**
+Ghi rõ IP làm địa chỉ site đã đủ để Caddy XIN được chứng chỉ, nhưng chưa đủ để
+nó ĐƯA RA — không có tên để khớp, nó trả về TLS alert 80 rồi đóng. Nhật ký Caddy
+lúc đó vẫn nói "certificate obtained successfully". Chốt là dòng `default_sni`
+trong `Caddyfile.khong-ten-mien`. Có tên miền thật thì cả lớp vấn đề này biến
+mất.
+
+Và một lời hứa nhỏ đi kèm: sau khi Ô Ly báo khỏe, `chay-anh.sh` tự gõ `curl` vào
+chính cổng 443 từ trên máy chủ. Thùng chứa Ô Ly khỏe KHÔNG có nghĩa là người
+ngoài vào được — Caddy đứng trước nó. Ba lần hỏng vừa rồi đều đi qua một bước
+"khỏe" màu xanh.
+
 ## Hai cái bẫy đã tránh sẵn, đừng gỡ ra
 
 **Docker đi vòng qua ufw.** Docker tự viết luật iptables ở một bảng nằm trước
