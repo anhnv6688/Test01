@@ -124,7 +124,14 @@ Trên GitHub, vào **Settings → Secrets and variables → Actions**:
 | Secret | `VPS_SSH_KEY` | nội dung `~/.ssh/oly-trien-khai` |
 | Secret | `VPS_HOST_KEY` | kết quả `ssh-keyscan` ở trên |
 | Secret | `VPS_PORT` | cổng SSH; để trống thì dùng 22 |
-| Variable | `VPS_URL` | `https://thu.oly.vn` |
+| **Variable** | `VPS_URL` | `https://thu.oly.vn`, hoặc `https://109.123.233.46` nếu chưa có tên miền |
+
+`VPS_URL` nằm ở tab **Variables**, không phải tab Secrets — hai kho khác nhau,
+và workflow đọc tab Variables. Để nhầm sang Secrets thì workflow thấy rỗng rồi
+lặng lẽ bỏ qua bước soi, trong khi nhìn bảng điều khiển lại thấy đã khai rồi.
+
+Địa chỉ đó công khai nên nó không phải secret. Giấu nó đi còn có hại: GitHub sẽ
+che luôn trong nhật ký, và giá trị bị che thì không truyền được sang việc soi.
 
 `VPS_HOST_KEY` là cái duy nhất không bỏ được. Không có nó thì chỉ còn cách thêm
 `StrictHostKeyChecking=no`, mà dòng đó chấp nhận **bất cứ máy nào** trả lời ở

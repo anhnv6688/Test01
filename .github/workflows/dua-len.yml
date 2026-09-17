@@ -321,8 +321,17 @@ jobs:
         # một lần triển khai xanh mà chưa ai thử mã mặc định vào nó.
         if: vars.VPS_URL == ''
         run: |
-          echo "::warning::Chưa khai variable VPS_URL."
-          echo "::warning::Thiếu nó thì việc soi bản đã triển khai bị bỏ qua — sẽ KHÔNG ai thử PIN 1234 và mã trực mặc định vào máy chủ này."
+          echo "::warning::Chưa khai VPS_URL, nên việc soi bản đã triển khai bị BỎ QUA."
+          echo "::warning::Nghĩa là không ai thử PIN 1234 và mã trực mặc định vào máy chủ này."
+          echo "::warning::"
+          echo "::warning::Khai ở Settings > Secrets and variables > Actions, tab VARIABLES —"
+          echo "::warning::KHÔNG phải tab Secrets. Đây là hai kho khác nhau, và workflow đọc"
+          echo "::warning::tab Variables. Để ở Secrets thì nó vẫn rỗng ở đây mà nhìn bảng"
+          echo "::warning::điều khiển lại thấy đã khai rồi."
+          echo "::warning::"
+          echo "::warning::Địa chỉ đó là công khai nên nó KHÔNG phải secret: giấu đi thì"
+          echo "::warning::GitHub che luôn trong nhật ký, và không truyền được sang việc soi."
+          echo "::warning::Ví dụ giá trị: https://109.123.233.46"
 
       - name: Gửi tệp cấu hình lên máy chủ
         # Gửi cấu hình thay vì để máy chủ tự `git pull`. Nhờ vậy máy chủ không
