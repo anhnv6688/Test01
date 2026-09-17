@@ -397,8 +397,13 @@ describe("đưa lên máy chủ tự động", () => {
   it("mật khẩu hàng rào không đi qua dòng lệnh chạy từ xa", () => {
     // Tham số của lệnh chạy qua SSH hiện trong `ps` của mọi người dùng trên máy
     // chủ. Đưa qua stdin thì không.
-    expect(wf).toMatch(/OLY_MAT_KHAU_THU=\\\$\(cat\)/);
+    // Giá trị phải tới từ một biến đọc từ stdin, không phải một chuỗi nhúng
+    // thẳng vào lệnh. Canh hình dạng chứ không canh đúng một cách viết: cơ chế
+    // đã đổi một lần từ $(cat) sang read, và thứ cần giữ là "không nằm trong
+    // tham số", không phải tên của thủ thuật.
+    expect(wf).toMatch(/OLY_MAT_KHAU_THU=\\\$\w+/);
     expect(wf).not.toMatch(/OLY_MAT_KHAU_THU='\$/);
+    expect(wf).not.toMatch(/OLY_MAT_KHAU_THU=\$\{\{/);
   });
 
   it("bản băm mật khẩu không nằm trong kho mã", () => {
@@ -430,6 +435,33 @@ describe("đưa lên máy chủ tự động", () => {
       const soMa = (ma.match(/httpCredentials: thongTinHangRao\(\)/g) ?? []).length;
       expect(soMa, `${bo}: ${soContext} cửa sổ nhưng ${soMa} chỗ khai mã`).toBe(soContext);
     }
+  });
+
+  it("PIN hộ mẫu khai được từ ngoài, và phải đúng bốn chữ số", () => {
+    /**
+     * PIN hộ mẫu từng sinh ngẫu nhiên trên máy chủ và cố tình không in ra nhật
+     * ký Actions. Đúng cho một bí mật thật, sai cho thứ này: đây là PIN của một
+     * hộ chứa dữ liệu GIẢ, dựng ra để người nội bộ bấm thử. Giấu nó nghĩa là
+     * muốn vào thử phải đăng nhập SSH đọc tệp .env — mà người cần bấm thử
+     * thường không phải người có khóa SSH.
+     */
+    const ca = khongChuThich(doc("trien-khai/chay-anh.sh"));
+    expect(ca).toMatch(/OLY_PIN_MAU_KHAI/);
+    // Khai sai độ dài thì đỏ ngay, đừng nhận rồi để không ai gõ vào được.
+    const i = ca.indexOf("OLY_PIN_MAU_KHAI");
+    expect(ca.slice(i, i + 500)).toMatch(/\^\[0-9\]\{4\}\$/);
+    expect(ca.slice(i, i + 500)).toMatch(/exit 1/);
+    expect(wf).toMatch(/PIN_MAU: \$\{\{ secrets\.VPS_PIN_MAU \}\}/);
+  });
+
+  it("hai bí mật đi qua stdin vẫn tách đúng nhau", () => {
+    // Một dòng cho mật khẩu hàng rào, một dòng cho PIN. printf phải in đủ HAI
+    // dòng kể cả khi giá trị rỗng — thiếu một dòng thì `read` thứ hai gặp EOF,
+    // trả về khác 0, và cả lệnh triển khai không chạy.
+    expect(wf).toMatch(/printf '%s\\n%s\\n'/);
+    expect(wf).toMatch(/\{ read -r MK; read -r PM; \}/);
+    // Và vẫn không có giá trị nào nằm trong tham số dòng lệnh chạy từ xa.
+    expect(wf).not.toMatch(/OLY_PIN_MAU_KHAI='\$/);
   });
 
   it("thẻ đăng nhập sổ đăng ký không ở lại trên máy chủ", () => {

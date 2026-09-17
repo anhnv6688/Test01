@@ -57,6 +57,32 @@ set -a; . ./.env; set +a
 # đang giữ một PIN sáu số trong .env, và .env chỉ được sinh khi nó chưa tồn tại.
 # Không tự sửa thì bản vá này không tới được đúng cái máy đang hỏng.
 #
+#
+# PIN hộ mẫu do người vận hành tự đặt, khai ở secret VPS_PIN_MAU của kho mã.
+#
+# Trước đây nó sinh ngẫu nhiên trên máy chủ và cố tình không in ra nhật ký
+# Actions — đúng cho một bí mật thật, nhưng sai cho thứ này: đây là PIN của một
+# HỘ MẪU chứa dữ liệu giả, dựng ra để người nội bộ bấm thử. Giấu nó nghĩa là
+# muốn vào thử phải đăng nhập SSH vào máy chủ đọc tệp .env, và người cần bấm thử
+# thường không phải người có khóa SSH.
+#
+# Khai được thì người ta tự chọn mã mình nhớ, và không ai phải hỏi ai.
+#
+if [ -n "${OLY_PIN_MAU_KHAI:-}" ]; then
+  if ! printf '%s' "$OLY_PIN_MAU_KHAI" | grep -qE '^[0-9]{4}$'; then
+    do_ "VPS_PIN_MAU phải là ĐÚNG bốn chữ số — ô nhập mã PIN có maxLength=4,"
+    do_ "dài hơn thì cấu hình nhận mà không ai gõ vào được."
+    exit 1
+  fi
+  if grep -qE '^OLY_PIN_MAU=' .env; then
+    sed -i "s|^OLY_PIN_MAU=.*|OLY_PIN_MAU=$OLY_PIN_MAU_KHAI|" .env
+  else
+    printf 'OLY_PIN_MAU=%s\n' "$OLY_PIN_MAU_KHAI" >> .env
+  fi
+  export OLY_PIN_MAU="$OLY_PIN_MAU_KHAI"
+  xanh "PIN hộ mẫu: lấy theo khai báo VPS_PIN_MAU"
+fi
+
 PIN_CU=$(grep -E '^OLY_PIN_MAU=' .env | cut -d= -f2- || true)
 if [ -n "$PIN_CU" ] && ! printf '%s' "$PIN_CU" | grep -qE '^[0-9]{4}$'; then
   PIN_MOI=$(shuf -i 1000-9999 -n 1)

@@ -335,6 +335,27 @@ thì càng có khả năng trong đó có một cái tên thật.
 
 Kịch bản này từ chối chạy nếu máy đang phục vụ bản thật.
 
+### Mã PIN của hộ mẫu
+
+Khai ở secret `VPS_PIN_MAU` trong kho mã — **đúng bốn chữ số**, khai sai độ dài
+thì lần triển khai đỏ ngay chứ không nhận rồi để không ai gõ vào được.
+
+Không khai thì máy chủ tự sinh một mã ngẫu nhiên và **không in ra đâu cả**, kể cả
+nhật ký Actions. Lúc đó muốn biết phải đăng nhập máy chủ:
+
+```bash
+ssh oly@109.123.233.46
+grep OLY_PIN_MAU ~/o-ly/.env
+```
+
+Mặc định là tự sinh, vì đó là hành vi đúng cho một bí mật. Nhưng với hộ MẪU —
+dữ liệu giả, dựng ra để người nội bộ bấm thử — thì giấu nó là bắt người muốn bấm
+thử phải có khóa SSH, mà hai nhóm người ấy thường không trùng nhau. Nên khai
+được, và khi khai thì người vận hành tự chọn mã mình nhớ.
+
+Đây **không** phải PIN của một hộ thật. Hộ thật do chính phụ huynh đặt mã, và
+Ô Ly không có đường nào xem được mã đó.
+
 ### Lớp mật khẩu ở Caddy
 
 `robots.txt` của bản thử chặn mọi máy quét, nhưng đó là lời đề nghị chứ không

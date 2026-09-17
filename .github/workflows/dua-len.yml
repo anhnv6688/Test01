@@ -419,6 +419,7 @@ jobs:
           THE: ${{ secrets.GITHUB_TOKEN }}
           DIA_CHI_CONG_KHAI: ${{ vars.VPS_URL }}
           MAT_KHAU_THU: ${{ secrets.VPS_MAT_KHAU_THU }}
+          PIN_MAU: ${{ secrets.VPS_PIN_MAU }}
         run: |
           # Tên miền rút ra từ chính VPS_URL, không khai thêm một biến nữa.
           #
@@ -453,8 +454,11 @@ jobs:
           # Rỗng cũng gửi: chay-anh.sh coi chuỗi rỗng là "không có hàng rào" và
           # tự nói ra rằng bản thử đang mở toang.
           MA=0
-          printf '%s' "$MAT_KHAU_THU" | ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
-            "cd ~/o-ly && OLY_MAT_KHAU_THU=\$(cat) bash trien-khai/chay-anh.sh '$ANH' '$MOI_TRUONG' '$TEN_MIEN'" || MA=$?
+          # Hai giá trị, hai dòng, cùng một đường stdin. printf luôn in đủ hai
+          # dòng kể cả khi giá trị rỗng, nên hai lệnh `read` bên kia không bao
+          # giờ gặp EOF sớm và lệch nhau.
+          printf '%s\n%s\n' "$MAT_KHAU_THU" "$PIN_MAU" | ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" \
+            "cd ~/o-ly && { read -r MK; read -r PM; } && OLY_MAT_KHAU_THU=\$MK OLY_PIN_MAU_KHAI=\$PM bash trien-khai/chay-anh.sh '$ANH' '$MOI_TRUONG' '$TEN_MIEN'" || MA=$?
           ssh -p "$CONG" -i ~/.ssh/id_trien_khai "$NGUOI@$MAY" "docker logout ghcr.io" || true
           exit $MA
 
