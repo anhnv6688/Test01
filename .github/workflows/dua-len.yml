@@ -453,6 +453,39 @@ jobs:
     if: needs.dua-len.outputs.dia_chi != ''
     steps:
       - uses: actions/checkout@v5
+
+      - name: VPS_URL có đúng là một địa chỉ không
+        #
+        # Kiểm hình dạng trước khi dùng. Ô "Value" của GitHub rất dễ bị dán cả
+        # tên biến lẫn dấu bằng vào — `VPS_URL = https://...` — vì đó đúng là
+        # thứ người ta copy từ tài liệu. Nhìn bảng điều khiển thì vẫn thấy có
+        # giá trị, nên nhầm kiểu này không tự lộ ra.
+        #
+        # Không kiểm thì bộ soi nhận nguyên chuỗi đó làm địa chỉ rồi hỏng bằng
+        # một thông báo nói về HTTPS, dẫn người đọc đi sai hướng hoàn toàn.
+        #
+        # In thẳng giá trị ra được: đây là địa chỉ công khai, không phải secret.
+        env:
+          DIA_CHI: ${{ needs.dua-len.outputs.dia_chi }}
+        run: |
+          case "$DIA_CHI" in
+            https://*|http://*) ;;
+            *)
+              echo "::error::VPS_URL không phải một địa chỉ: '$DIA_CHI'"
+              echo "::error::Ô Value chỉ chứa ĐỊA CHỈ, không chứa tên biến và dấu bằng."
+              echo "::error::Đúng:  https://109.123.233.46"
+              echo "::error::Sai :  VPS_URL = https://109.123.233.46"
+              exit 1
+              ;;
+          esac
+          case "$DIA_CHI" in
+            *[[:space:]]*)
+              echo "::error::VPS_URL có khoảng trắng: '$DIA_CHI'"
+              exit 1
+              ;;
+          esac
+          echo "Sẽ soi: $DIA_CHI"
+
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
