@@ -545,4 +545,8 @@ jobs:
           case "${DIA_CHI#https://}" in
             [0-9]*.[0-9]*.[0-9]*.[0-9]*) CO="--chung-chi-tu-ky" ;;
           esac
+          # Như trên: biến phải đặt từ ngoài, kịch bản tự gán là muộn. Không có
+          # nó thì `fetch` trong bước đợi máy chủ từ chối chứng chỉ tự ký, đợi
+          # hết 90 giây rồi báo "Máy chủ không lên" — đổ lỗi nhầm chỗ.
+          [ -n "$CO" ] && export NODE_TLS_REJECT_UNAUTHORIZED=0
           npm run kiem-giao-dien -- --goc "$DIA_CHI" $CO

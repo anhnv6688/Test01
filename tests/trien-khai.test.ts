@@ -285,6 +285,28 @@ describe("đưa lên máy chủ tự động", () => {
     expect(ca).toMatch(/\^\[1-5\]\[0-9\]\[0-9\]\$/);
   });
 
+  it("mọi bộ soi dùng --chung-chi-tu-ky đều được đặt biến TLS từ ngoài", () => {
+    /**
+     * `--chung-chi-tu-ky` chỉ dạy TRÌNH DUYỆT bỏ qua chứng chỉ tự ký. Hai bộ soi
+     * còn gọi `fetch` thẳng, mà fetch của Node nghe biến môi trường chứ không
+     * nghe cờ dòng lệnh — và trong ESM thì gán process.env trong mã là muộn, vì
+     * `import` chạy trước mọi câu lệnh và playwright đã kéo `tls` vào rồi.
+     *
+     * Quên đặt thì hỏng ở chỗ đổ lỗi nhầm người: bước đợi máy chủ nuốt lỗi
+     * chứng chỉ, đợi hết 90 giây, rồi báo "Máy chủ không lên" trong khi máy chủ
+     * lên hoàn toàn bình thường. Đã mất một vòng chạy vì đúng nó.
+     */
+    for (const bo of ["kiem-moi-truong", "kiem-giao-dien"]) {
+      const i = wf.indexOf(`npm run ${bo} --`);
+      expect(i, `workflow phải gọi ${bo}`).toBeGreaterThan(-1);
+      // Biến phải được đặt TRƯỚC dòng gọi, trong cùng một bước.
+      const truoc = wf.slice(Math.max(0, i - 400), i);
+      expect(truoc, `${bo} chạy mà chưa đặt biến TLS`).toMatch(
+        /export NODE_TLS_REJECT_UNAUTHORIZED=0/,
+      );
+    }
+  });
+
   it("thẻ đăng nhập sổ đăng ký không ở lại trên máy chủ", () => {
     // Thẻ của lần chạy hết hạn khi việc kết thúc, nhưng tệp ~/.docker/config.json
     // thì ở lại. Đăng xuất kể cả khi triển khai hỏng.

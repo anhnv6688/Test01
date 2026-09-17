@@ -60,6 +60,29 @@ const NHAN_HINH = [
  */
 const CHO_TU_KY = process.argv.includes("--chung-chi-tu-ky");
 
+/*
+ * Phải đặt NODE_TLS_REJECT_UNAUTHORIZED từ BÊN NGOÀI, không đặt được ở đây.
+ *
+ * `ignoreHTTPSErrors` chỉ dạy TRÌNH DUYỆT bỏ qua chứng chỉ tự ký. Kịch bản này
+ * còn gọi `fetch` thẳng ở vài chỗ — rõ nhất là doiMayChu() ngay dưới — và fetch
+ * của Node không nghe cờ đó, nó nghe biến môi trường.
+ *
+ * Trong ESM mọi `import` chạy TRƯỚC mọi câu lệnh, mà playwright kéo theo `tls`,
+ * nên gán process.env ở đây là muộn. Chỗ gọi phải đặt biến môi trường thật.
+ *
+ * Quên thì hỏng ở chỗ không ai ngờ: doiMayChu() nuốt mọi lỗi rồi đợi hết 90 giây
+ * và báo "Máy chủ không lên" — trong khi máy chủ lên hoàn toàn bình thường và
+ * bước kiểm ngay trước đó vừa chứng minh điều ấy.
+ */
+if (CHO_TU_KY && process.env.NODE_TLS_REJECT_UNAUTHORIZED !== "0") {
+  console.error(
+    "Có --chung-chi-tu-ky nhưng chưa đặt NODE_TLS_REJECT_UNAUTHORIZED=0.\n" +
+      "Node đọc biến đó lúc nạp mô-đun tls, nên đặt trong mã là muộn. Chạy lại:\n" +
+      "  NODE_TLS_REJECT_UNAUTHORIZED=0 npm run kiem-giao-dien -- --goc <địa-chỉ> --chung-chi-tu-ky",
+  );
+  process.exit(2);
+}
+
 function doiSo(ten: string): string | null {
   const i = process.argv.indexOf(`--${ten}`);
   return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : null;
@@ -85,14 +108,37 @@ function doi(dieu: string, dung: boolean): void {
 }
 
 async function doiMayChu(goc: string, giay = 90): Promise<void> {
+  // Giữ lại lỗi lần cuối. Bản đầu nuốt sạch rồi chỉ nói "Máy chủ không lên",
+  // mà câu đó không phân biệt nổi máy chủ chưa dậy với chứng chỉ bị từ chối —
+  // hai thứ cần hai cách sửa khác hẳn nhau. Đã mất một vòng chạy vì đúng nó:
+  // máy chủ lên hoàn toàn bình thường, fetch từ chối chứng chỉ tự ký, và bộ
+  // kiểm đợi hết 90 giây rồi đổ lỗi cho máy chủ.
+  let cuoi: unknown = null;
   for (let i = 0; i < giay * 2; i++) {
     try {
       const r = await fetch(goc, { signal: AbortSignal.timeout(2000) });
       if (r.ok) return;
-    } catch { /* chưa lên, thử tiếp */ }
+      cuoi = new Error(`trả về ${r.status}`);
+    } catch (e) {
+      cuoi = e;
+    }
     await new Promise((t) => setTimeout(t, 500));
   }
-  throw new Error(`Máy chủ không lên ở ${goc}`);
+  throw new Error(`Máy chủ không lên ở ${goc} (${nguyenNhan(cuoi)})`);
+}
+
+/** Node gói lỗi thật vào `cause` và chỉ để lại vỏ "fetch failed" ở ngoài. */
+function nguyenNhan(e: unknown): string {
+  const phan: string[] = [];
+  if (e instanceof Error) {
+    phan.push(e.message);
+    const c = e.cause as { code?: string; message?: string } | undefined;
+    if (c?.code) phan.push(c.code);
+    if (c?.message && c.message !== e.message) phan.push(c.message);
+  } else if (e != null) {
+    phan.push(String(e));
+  }
+  return phan.length ? phan.join(" · ") : "không rõ nguyên nhân";
 }
 
 type KetQuaVaoHoc = "vao-duoc" | "khong-co-ban" | "treo-o-man-cho";
