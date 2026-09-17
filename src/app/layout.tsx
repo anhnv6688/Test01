@@ -1,6 +1,4 @@
-import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
-import { DaiBaoBanThu } from "@/components/DaiBaoBanThu";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,14 +24,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="vi">
       <body>
-        {/*
-          Bọc trong Suspense để một mình dải báo phụ thuộc vào lúc chạy, còn
-          các trang tĩnh vẫn dựng sẵn được. Không bọc thì `connection()` trong
-          bố cục gốc kéo TOÀN BỘ trang sang chế độ dựng theo từng yêu cầu.
-        */}
-        <Suspense fallback={null}>
-          <DaiBaoBanThu />
-        </Suspense>
         {children}
       </body>
     </html>

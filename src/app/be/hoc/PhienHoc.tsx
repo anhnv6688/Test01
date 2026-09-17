@@ -8,6 +8,7 @@ import { useDocTo } from "@/components/doc-to";
 import type { BaiChoTre } from "@/lib/domain/present";
 import type { TrangThaiNhip } from "@/lib/domain/session";
 import { BanPhimSo } from "./BanPhimSo";
+import { choKhenMs } from "./cho-khen";
 
 /**
  * Vòng lặp học của trẻ.
@@ -41,7 +42,16 @@ export function PhienHoc() {
   const [ketThuc, setKetThuc] = useState<{ hatGiong: number; lyDo: string[] } | null>(null);
   const [loi, setLoi] = useState<string | null>(null);
   const [nhap, setNhap] = useState("");
+  /** Đang giữ lời khen, chưa sang bài mới. Khóa mọi nút trong lúc này. */
+  const [dangKhen, setDangKhen] = useState(false);
   const batDauRef = useRef<string | null>(null);
+  const henKhenRef = useRef<number | null>(null);
+
+  // Hủy hẹn giờ khi rời màn hình: trẻ bấm "Dừng ở đây" đúng lúc đang khen thì
+  // hẹn giờ vẫn nổ và gọi setState trên một thành phần đã gỡ.
+  useEffect(() => () => {
+    if (henKhenRef.current !== null) window.clearTimeout(henKhenRef.current);
+  }, []);
 
   const docBai = useCallback((b: BaiChoTre) => doc(b.speech), [doc]);
 
@@ -114,10 +124,29 @@ export function PhienHoc() {
     if (d.correct) {
       setHetThang(false);
       if (d.bai) {
-        setBai(d.bai);
-        setViTri(d.viTri);
-        // Chờ câu khen nói xong rồi mới đọc đề mới, để hai giọng không chồng nhau.
-        window.setTimeout(() => docBai(d.bai), 2200);
+        /*
+         * Giữ NGUYÊN bài cũ trên màn hình cho tới khi khen xong, rồi mới đổi.
+         *
+         * Bản đầu gọi setBai() ngay ở đây và chỉ hẹn giờ cho GIỌNG ĐỌC. Tiếng
+         * thì đúng thứ tự, còn hình đổi tức thì — nên lời khen của bài vừa làm
+         * đứng lại dưới đề bài mới:
+         *
+         *   Số liền trước của 100 là số nào?          ← bài mới
+         *   🎉 Đúng rồi! Con đã nhìn đúng kim ngắn.   ← khen bài cũ (đồng hồ)
+         *
+         * Trẻ đọc đề mới trước, rồi đọc tới một câu nói về cái đồng hồ không
+         * còn ở đó. Nay hình và tiếng cùng chờ, và xóa lời khen ĐÚNG LÚC đổi
+         * bài — không để nó sống sót thêm một khung hình nào.
+         */
+        setDangKhen(true);
+        henKhenRef.current = window.setTimeout(() => {
+          henKhenRef.current = null;
+          setPhanHoi(null);
+          setBai(d.bai);
+          setViTri(d.viTri);
+          setDangKhen(false);
+          docBai(d.bai);
+        }, choKhenMs(String(d.phanHoi ?? "")));
       } else {
         setBai(null);
         void ketThucPhien();
@@ -257,7 +286,7 @@ export function PhienHoc() {
           {bai.choices ? (
             <div className="flex flex-wrap justify-center gap-3">
               {bai.choices.map((c) => (
-                <button key={c} type="button" className="nut nut-tre px-7" disabled={dangGui}
+                <button key={c} type="button" className="nut nut-tre px-7" disabled={dangGui || dangKhen}
                   onClick={() => void traLoi(String(c))}>
                   {c}
                 </button>
@@ -267,7 +296,7 @@ export function PhienHoc() {
             <BanPhimSo
               gia={nhap}
               donVi={bai.unit}
-              dangGui={dangGui}
+              dangGui={dangGui || dangKhen}
               onDoi={setNhap}
               onGui={() => void traLoi(nhap)}
             />
@@ -275,7 +304,7 @@ export function PhienHoc() {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <button type="button" className="nut" onClick={() => void xinGoiY()} disabled={hetThang}>
+          <button type="button" className="nut" onClick={() => void xinGoiY()} disabled={hetThang || dangKhen}>
             {hetThang ? "Hết gợi ý rồi" : `Con cần gợi ý (${bai.goiYDaMo.length}/${bai.tongSoBacGoiY})`}
           </button>
           {hetThang && (
