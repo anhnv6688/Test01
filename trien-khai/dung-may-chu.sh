@@ -168,13 +168,30 @@ buoc "Xong phần nền"
 DIA_CHI=$(hostname -I | awk '{print $1}')
 cat <<HUONGDAN
 
-Máy đã sẵn sàng. Việc tiếp theo, làm bằng $NGUOI chứ không phải root:
+Máy đã sẵn sàng. Phần còn lại do GitHub Actions làm — KHÔNG phải gõ tay ở đây.
+
+Đẩy một commit lên nhánh làm việc là workflow "Đưa lên máy chủ" tự dựng ảnh,
+đưa lên máy này, đợi nó khỏe, rồi gõ vào chính nó để soi. Lần đầu nó tự sinh
+~/o-ly/.env với mã trực và PIN hộ mẫu ngẫu nhiên.
+
+Sau lần triển khai đầu tiên, đăng nhập lấy hai mã đó — chúng KHÔNG in ra nhật
+ký Actions, vì nhật ký đó ai đọc được kho là đọc được:
 
   ssh $NGUOI@$DIA_CHI
-  git clone <kho-mã> o-ly && cd o-ly
-  bash trien-khai/trien-khai.sh
+  cat ~/o-ly/.env
 
-Trước khi chạy lệnh đó, đọc docs/vps-contabo.md — có một quyết định phải chọn
-(tên miền hay chưa có tên miền) và một điều về pháp lý phải biết.
+Hai việc nên làm ngay, trước khi rời máy này:
+
+  1. Đưa khóa cá nhân của anh vào $NGUOI. SSH vừa bị khóa lại chỉ nhận khóa,
+     nên nếu $NGUOI mới chỉ có khóa của GitHub Actions thì lát nữa chỉ Actions
+     vào được máy, còn anh thì không. Từ MÁY CỦA ANH:
+         ssh-copy-id $NGUOI@$DIA_CHI
+
+  2. Đọc docs/vps-contabo.md. Có một quyết định phải chọn (tên miền hay chưa
+     có tên miền) và một điều về pháp lý phải biết: máy này đặt ngoài Việt Nam
+     nên nó chỉ chạy bản THỬ, không giữ dữ liệu của trẻ thật.
+
+Còn trien-khai/trien-khai.sh là đường gõ tay, dành cho lúc dò lỗi. Nó dựng ảnh
+ngay trên máy này nên đừng dùng cho bản thật — xem chú thích ở đầu tệp đó.
 
 HUONGDAN
