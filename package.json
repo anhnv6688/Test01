@@ -17,7 +17,8 @@
     "kiem-giao-dien": "tsx scripts/kiem-giao-dien.mts",
     "kiem-giao-dien-dev": "tsx scripts/kiem-giao-dien.mts --dev",
     "kiem-moi-truong": "tsx scripts/kiem-moi-truong.mts",
-    "che-anh-do": "tsx scripts/che-anh-do.mts"
+    "che-anh-do": "tsx scripts/che-anh-do.mts",
+    "dau-model": "tsx scripts/dau-model.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

@@ -90,23 +90,38 @@ describe("lời giảng phải bám ĐÚNG đề trong ảnh của phụ huynh",
 });
 
 describe("tầng 2 — chỉ gọi mô hình mạnh khi thật sự cần", () => {
-  const nguon = readFileSync("src/lib/vision/claude.ts", "utf-8");
+  /*
+   * Hai nguồn, vì hai thứ này nay ở hai tệp.
+   *
+   * CHỌN mô hình nào là việc riêng của nhà cung cấp Anthropic, nên ở claude.ts.
+   * LỜI NHẮC thì mọi nhà cung cấp phải dùng CHUNG một bản, nên ở luoc-do.ts —
+   * `npm run dau-model` chạy cùng một ảnh qua nhiều mô hình, và phép so sánh
+   * chỉ có nghĩa khi mọi bên nhận đúng cùng một lời nhắc.
+   */
+  const chonModel = readFileSync("src/lib/vision/claude.ts", "utf-8");
+  const loiNhac = readFileSync("src/lib/vision/luoc-do.ts", "utf-8");
 
   it("mô hình phiên âm mặc định là mô hình rẻ, không phải mô hình đắt", () => {
-    expect(nguon).toContain('OLY_MODEL_DOC_ANH ?? "claude-haiku-4-5"');
-    expect(nguon).toContain('OLY_MODEL_SOAN_GIANG ?? "claude-opus-5"');
+    expect(chonModel).toContain('OLY_MODEL_DOC_ANH ?? "claude-haiku-4-5"');
+    expect(chonModel).toContain('OLY_MODEL_SOAN_GIANG ?? "claude-opus-5"');
   });
 
   it("lời nhắc soạn giảng cấm mọi nhận định về đứa trẻ (NT-07)", () => {
-    const nhac = nguon.slice(nguon.indexOf("const NHAC_SOAN_GIANG"), nguon.indexOf("export class"));
+    const i = loiNhac.indexOf("export const NHAC_SOAN_GIANG");
+    expect(i, "phải tìm thấy lời nhắc soạn giảng").toBeGreaterThan(-1);
+    // Cắt tới dấu backtick đóng, không cắt tới một mốc có thể biến mất: bản
+    // trước cắt tới "export class" — chuỗi ấy không còn trong tệp này, nên
+    // indexOf trả -1 và phép cắt lặng lẽ lấy gần hết tệp. Bài vẫn xanh, nhưng
+    // xanh vì quét cả tệp chứ không vì lời nhắc đúng.
+    const nhac = loiNhac.slice(i, loiNhac.indexOf("`;", i));
     expect(nhac).toContain("tăng động");
     expect(nhac).toContain("Tuyệt đối không");
     expect(nhac).toContain("bạn không biết gì về đứa trẻ đó");
   });
 
   it("lời nhắc soạn giảng bắt mỗi bước phải có câu hỏi con (BR-27)", () => {
-    expect(nguon).toContain("hoiCon");
-    expect(nguon).toContain("Không được để trống");
+    expect(loiNhac).toContain("hoiCon");
+    expect(loiNhac).toContain("Không được để trống");
   });
 
   it("tầng 2 nằm sau giao diện nhà cung cấp, để bản giả lập không gọi ra mạng", () => {

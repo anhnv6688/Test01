@@ -192,3 +192,75 @@ hai bản báo cáo khác nhau là cách chắc chắn nhất để không ai gh
 Bộ đo chạy bộ chấm trên **cả hai** đầu vào — nhãn và phiên âm của mô hình — rồi
 so hai kết luận. Nhờ thế mọi khác biệt về kết luận đều quy được về đúng một
 nguyên nhân là lỗi đọc, không lẫn với lỗi của bộ chấm.
+
+## Đấu model: một ảnh, nhiều mô hình, so cạnh nhau
+
+```bash
+npm run dau-model -- --anh bo-anh-do/trang-01.jpg \
+  --claude haiku-4-5,opus-5 \
+  --tuong-thich qwen=http://127.0.0.1:8000/v1:Qwen/Qwen3-VL-8B-Instruct
+```
+
+Gọi song song, vì thứ cần đo có cả thời gian phụ huynh đứng chờ. In ra: mỗi bên
+đọc được mấy bài, hết bao lâu, tốn bao nhiêu, và **danh sách những ô các bên đọc
+khác nhau**.
+
+### Nó KHÔNG trả lời được câu "mô hình nào đúng hơn"
+
+Ở đây không có nhãn, nên không có gì để so là đúng hay sai. Ba mô hình cùng đọc
+"65" thì chỉ biết ba mô hình cùng đọc "65" — trên giấy có thể là 55. Chúng còn
+dễ sai giống nhau, vì cùng nhìn một nét chữ nhòe.
+
+Lấy đồng thuận làm đáp án là tự dựng một cái nhãn giả rồi chấm điểm theo nó, và
+cái nhãn giả ấy sai đúng ở những chỗ khó nhất — tức là những chỗ cần đo nhất.
+
+Muốn biết mô hình nào đọc đúng hơn thì vẫn phải gắn nhãn (`/gan-nhan`) rồi chạy
+`npm run do-anh`. Lệnh đấu model rút ngắn đường tới đó, không thay thế nó.
+
+### Vậy dùng nó để làm gì
+
+1. **Chỗ bất đồng là chỗ khó.** Chạy trên vài chục ảnh, những ô các mô hình cãi
+   nhau chính là danh sách ngắn đáng đem đi gắn nhãn TRƯỚC — thay vì gắn nhãn
+   tuần tự từ ảnh số một. Gắn nhãn là việc tốn người nhất của cả bộ đo.
+2. **Đo chi phí và thời gian thật** — hai thứ không cần nhãn vẫn đo được.
+3. **Bắt lỗi thô**: trả sai lược đồ, bỏ sót bài, hoặc đọc được trang mà bên kia
+   bảo không đọc nổi.
+
+### Cắm một mô hình tự dựng
+
+Bất kỳ điểm cuối nào nói giao thức OpenAI đều cắm được — vLLM, SGLang, Ollama,
+LM Studio, hoặc sàn cho thuê. Ví dụ với vLLM:
+
+```bash
+vllm serve Qwen/Qwen3-VL-8B-Instruct --port 8000
+```
+
+**Điểm cuối tại chỗ và điểm cuối ở xa là hai chuyện khác hẳn nhau.**
+
+`localhost`, `127.0.0.1`, `::1` thì ảnh không rời khỏi máy: Nghị định 53/2022 về
+lưu trữ dữ liệu trong nước không còn là vấn đề cho khâu phiên âm, và cũng không
+có bên thứ ba nào để mà ký thỏa thuận — đây là lý do lớn nhất để cân nhắc tự
+dựng, lớn hơn chuyện tiền.
+
+Mọi địa chỉ khác, **kể cả máy trong mạng LAN của mình**, đều tính là gửi ra
+ngoài, và chương trình đòi đủ ba cờ DPA giống hệt nhà cung cấp thật. Máy bên
+cạnh vẫn là một máy khác; người soát tuân thủ hỏi "ảnh có rời khỏi máy chủ
+không" thì câu trả lời phải là sự thật kỹ thuật chứ không phải ý định của người
+cấu hình.
+
+### Ảnh phải che trước
+
+Lệnh từ chối ảnh nằm ngoài `bo-anh-do/`. Che bằng `npm run che-anh-do` trước
+(BR-32). Muốn ép chạy thì có cờ `--toi-tu-chiu-trach-nhiem-anh-da-che`, cố ý đặt
+tên dài và cố ý không nhận từ biến môi trường: một chốt tự mở được bằng biến môi
+trường thì sớm muộn có người đặt nó vào tệp cấu hình rồi quên.
+
+### Tầng 2 chưa nối cho mô hình ngoài
+
+`soanLoiGiang` của nhà cung cấp tương thích trả `null`, tức là "không soạn
+được", và luồng đã có sẵn đường xử lý: nói thẳng với phụ huynh, không trừ lượt.
+
+Để trống là có chủ ý. Soạn lời giảng là chỗ duy nhất trong sản phẩm mà một mô
+hình tự do viết nội dung đến tay người dùng, và nó phải qua được NT-07. Đó là
+việc cần đo riêng trước khi giao cho một mô hình mới: một lời giảng sai thì phụ
+huynh đọc cho con nghe, còn một lần phiên âm sai thì bộ chấm bắt được.

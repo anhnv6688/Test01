@@ -124,7 +124,10 @@ describe("ghép dữ liệu phẳng về đúng dạng bài", () => {
 describe("lời nhắc gửi cho mô hình nói rõ chỉ phiên âm, không chấm", () => {
   it("mã nguồn có câu cấm chấm điểm", async () => {
     const { readFileSync } = await import("node:fs");
-    const nguon = readFileSync("src/lib/vision/claude.ts", "utf-8");
+    const nguon = readFileSync("src/lib/vision/luoc-do.ts", "utf-8")
+    // Lời nhắc đã chuyển sang luoc-do.ts để mọi nhà cung cấp dùng CHUNG một
+    // bản — xem chú thích đầu tệp đó. Bài kiểm thử đi theo nội dung, không đi
+    // theo tên tệp.;
     expect(nguon).toContain("KHÔNG chấm điểm");
     expect(nguon).toContain("PHIÊN ÂM");
     // Lược đồ đầu ra không có chỗ nào để mô hình ghi đúng sai.
